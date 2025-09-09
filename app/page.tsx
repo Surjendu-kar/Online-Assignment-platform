@@ -1,8 +1,11 @@
+import { RadixSidebarDemo } from "@/components/RadixSidebarDemo";
 
 function page() {
   return (
-    <div>Hoepage</div>
-  )
+    <div className="">
+      <RadixSidebarDemo />
+    </div>
+  );
 }
 
-export default page
+export default page;
