@@ -71,14 +71,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
+import { AddInstitutionDialog } from "@/components/AddInstitutionDialog";
 
 const DATA = {
   user: {
     name: "John Smith",
     email: "john.smith@university.edu",
     role: "Admin",
-    avatar:
-      "https://pbs.twimg.com/profile_images/1909615404789506048/MTqvRsjo_400x400.jpg",
+    avatar: "", 
   },
   institutions: [
     {
@@ -110,10 +110,6 @@ const DATA = {
         },
         {
           title: "Students",
-          url: "#",
-        },
-        {
-          title: "Courses",
           url: "#",
         },
       ],
@@ -191,11 +187,6 @@ const DATA = {
       icon: Frame,
     },
     {
-      name: "Active Courses",
-      url: "#",
-      icon: PieChart,
-    },
-    {
       name: "Pending Invitations",
       url: "#",
       icon: Map,
@@ -205,9 +196,29 @@ const DATA = {
 
 export const RadixSidebarDemo = () => {
   const isMobile = useIsMobile();
+  const [institutions, setInstitutions] = React.useState(DATA.institutions);
   const [activeInstitution, setActiveInstitution] = React.useState(
     DATA.institutions[0]
   );
+
+  const handleAddInstitution = (newInstitution: {
+    name: string;
+    type: string;
+    logo: string;
+  }) => {
+    const institutionWithIcon = {
+      ...newInstitution,
+      logo: GalleryVerticalEnd, // Default icon for new institutions
+    };
+
+    // Add to institutions list
+    setInstitutions((prev) => [...prev, institutionWithIcon]);
+
+    // Optionally set as active institution
+    setActiveInstitution(institutionWithIcon);
+
+    console.log("New Institution Added:", institutionWithIcon);
+  };
 
   if (!activeInstitution) return null;
 
@@ -247,28 +258,43 @@ export const RadixSidebarDemo = () => {
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
                     Institutions
                   </DropdownMenuLabel>
-                  {DATA.institutions.map((institution, index) => (
-                    <DropdownMenuItem
-                      key={institution.name}
-                      onClick={() => setActiveInstitution(institution)}
-                      className="gap-2 p-2"
-                    >
-                      <div className="flex size-6 items-center justify-center rounded-sm border">
-                        <institution.logo className="size-4 shrink-0" />
-                      </div>
-                      {institution.name}
-                      <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                  ))}
+                  {institutions
+                    .filter(
+                      (institution) =>
+                        institution.name !== activeInstitution.name
+                    )
+                    .map((institution, index) => (
+                      <DropdownMenuItem
+                        key={institution.name}
+                        onClick={() => setActiveInstitution(institution)}
+                        className="gap-2 p-2"
+                      >
+                        <div className="flex size-6 items-center justify-center rounded-sm border">
+                          <institution.logo className="size-4 shrink-0" />
+                        </div>
+                        <span className="capitalize">{institution.name}</span>
+                        <DropdownMenuShortcut>
+                          ⌘{index + 1}
+                        </DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                    ))}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2 p-2">
-                    <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                      <Plus className="size-4" />
-                    </div>
-                    <div className="font-medium text-muted-foreground">
-                      Add Institution
-                    </div>
-                  </DropdownMenuItem>
+                  <AddInstitutionDialog
+                    onAddInstitution={handleAddInstitution}
+                    trigger={
+                      <DropdownMenuItem
+                        className="gap-2 p-2"
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                          <Plus className="size-4" />
+                        </div>
+                        <div className="font-medium text-muted-foreground">
+                          Add Institution
+                        </div>
+                      </DropdownMenuItem>
+                    }
+                  />
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
