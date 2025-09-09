@@ -71,6 +71,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ThemeToggle } from "./ui/theme-toggle";
 
 const DATA = {
   user: {
@@ -473,6 +474,10 @@ export const RadixSidebarDemo = () => {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
+          {/* Theme Toggle */}
+          <div className="ml-auto px-4">
+            <ThemeToggle />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
