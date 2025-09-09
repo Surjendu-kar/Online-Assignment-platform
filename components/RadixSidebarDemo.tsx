@@ -74,87 +74,88 @@ import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/t
 
 const DATA = {
   user: {
-    name: "Skyleen",
-    email: "skyleen@example.com",
+    name: "John Smith",
+    email: "john.smith@university.edu",
+    role: "Admin",
     avatar:
       "https://pbs.twimg.com/profile_images/1909615404789506048/MTqvRsjo_400x400.jpg",
   },
-  teams: [
+  institutions: [
     {
-      name: "Acme Inc",
+      name: "Stanford University",
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      type: "Computer Science Department",
     },
     {
-      name: "Acme Corp.",
+      name: "MIT",
       logo: AudioWaveform,
-      plan: "Startup",
+      type: "Engineering School",
     },
     {
-      name: "Evil Corp.",
+      name: "CA Institute",
       logo: Command,
-      plan: "Free",
+      type: "Professional Certification",
     },
   ],
   navMain: [
     {
-      title: "Playground",
+      title: "Management",
       url: "#",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "History",
+          title: "Teachers",
           url: "#",
         },
         {
-          title: "Starred",
+          title: "Students",
           url: "#",
         },
         {
-          title: "Settings",
+          title: "Courses",
           url: "#",
         },
       ],
     },
     {
-      title: "Models",
+      title: "Analytics",
       url: "#",
       icon: Bot,
       items: [
         {
-          title: "Genesis",
+          title: "Platform Stats",
           url: "#",
         },
         {
-          title: "Explorer",
+          title: "Usage Reports",
           url: "#",
         },
         {
-          title: "Quantum",
+          title: "Performance",
           url: "#",
         },
       ],
     },
     {
-      title: "Documentation",
+      title: "Communications",
       url: "#",
       icon: BookOpen,
       items: [
         {
-          title: "Introduction",
+          title: "Invitations",
           url: "#",
         },
         {
-          title: "Get Started",
+          title: "Notifications",
           url: "#",
         },
         {
-          title: "Tutorials",
+          title: "Messages",
           url: "#",
         },
         {
-          title: "Changelog",
+          title: "Announcements",
           url: "#",
         },
       ],
@@ -165,37 +166,37 @@ const DATA = {
       icon: Settings2,
       items: [
         {
-          title: "General",
+          title: "System Config",
           url: "#",
         },
         {
-          title: "Team",
+          title: "Permissions",
           url: "#",
         },
         {
-          title: "Billing",
+          title: "Security",
           url: "#",
         },
         {
-          title: "Limits",
+          title: "Backup",
           url: "#",
         },
       ],
     },
   ],
-  projects: [
+  recentItems: [
     {
-      name: "Design Engineering",
+      name: "Recent Assignments",
       url: "#",
       icon: Frame,
     },
     {
-      name: "Sales & Marketing",
+      name: "Active Courses",
       url: "#",
       icon: PieChart,
     },
     {
-      name: "Travel",
+      name: "Pending Invitations",
       url: "#",
       icon: Map,
     },
@@ -204,15 +205,17 @@ const DATA = {
 
 export const RadixSidebarDemo = () => {
   const isMobile = useIsMobile();
-  const [activeTeam, setActiveTeam] = React.useState(DATA.teams[0]);
+  const [activeInstitution, setActiveInstitution] = React.useState(
+    DATA.institutions[0]
+  );
 
-  if (!activeTeam) return null;
+  if (!activeInstitution) return null;
 
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          {/* Team Switcher */}
+          {/* Institution Switcher */}
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
@@ -222,14 +225,14 @@ export const RadixSidebarDemo = () => {
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   >
                     <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                      <activeTeam.logo className="size-4" />
+                      <activeInstitution.logo className="size-4" />
                     </div>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {activeTeam.name}
+                        {activeInstitution.name}
                       </span>
                       <span className="truncate text-xs">
-                        {activeTeam.plan}
+                        {activeInstitution.type}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto" />
@@ -242,18 +245,18 @@ export const RadixSidebarDemo = () => {
                   sideOffset={4}
                 >
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    Teams
+                    Institutions
                   </DropdownMenuLabel>
-                  {DATA.teams.map((team, index) => (
+                  {DATA.institutions.map((institution, index) => (
                     <DropdownMenuItem
-                      key={team.name}
-                      onClick={() => setActiveTeam(team)}
+                      key={institution.name}
+                      onClick={() => setActiveInstitution(institution)}
                       className="gap-2 p-2"
                     >
                       <div className="flex size-6 items-center justify-center rounded-sm border">
-                        <team.logo className="size-4 shrink-0" />
+                        <institution.logo className="size-4 shrink-0" />
                       </div>
-                      {team.name}
+                      {institution.name}
                       <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                     </DropdownMenuItem>
                   ))}
@@ -263,20 +266,20 @@ export const RadixSidebarDemo = () => {
                       <Plus className="size-4" />
                     </div>
                     <div className="font-medium text-muted-foreground">
-                      Add team
+                      Add Institution
                     </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
-          {/* Team Switcher */}
+          {/* Institution Switcher */}
         </SidebarHeader>
 
         <SidebarContent>
           {/* Nav Main */}
           <SidebarGroup>
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupLabel>{DATA.user.role} Platform</SidebarGroupLabel>
             <SidebarMenu>
               {DATA.navMain.map((item) => (
                 <Collapsible
@@ -313,11 +316,11 @@ export const RadixSidebarDemo = () => {
           </SidebarGroup>
           {/* Nav Main */}
 
-          {/* Nav Project */}
+          {/* Recent Items */}
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel>Projects</SidebarGroupLabel>
+            <SidebarGroupLabel>Recent</SidebarGroupLabel>
             <SidebarMenu>
-              {DATA.projects.map((item) => (
+              {DATA.recentItems.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
@@ -339,16 +342,16 @@ export const RadixSidebarDemo = () => {
                     >
                       <DropdownMenuItem>
                         <Folder className="text-muted-foreground" />
-                        <span>View Project</span>
+                        <span>View Details</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Forward className="text-muted-foreground" />
-                        <span>Share Project</span>
+                        <span>Share</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem>
                         <Trash2 className="text-muted-foreground" />
-                        <span>Delete Project</span>
+                        <span>Remove</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -362,7 +365,7 @@ export const RadixSidebarDemo = () => {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
-          {/* Nav Project */}
+          {/* Recent Items */}
         </SidebarContent>
         <SidebarFooter>
           {/* Nav User */}
