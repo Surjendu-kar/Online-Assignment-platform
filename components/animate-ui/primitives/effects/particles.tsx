@@ -50,7 +50,7 @@ function Particle({
 }
 
 type ParticlesContextType = {
-  triggerParticles: (event: React.MouseEvent) => void;
+  triggerParticles: () => void;
   animate: boolean;
 };
 
@@ -74,47 +74,39 @@ function Particles({
   const [particles, setParticles] = React.useState<ParticleProps[]>([]);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const triggerParticles = React.useCallback(
-    (event: React.MouseEvent) => {
-      if (!containerRef.current) return;
+  const triggerParticles = React.useCallback(() => {
+    if (!containerRef.current) return;
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
 
-      const newParticles: ParticleProps[] = [];
+    const newParticles: ParticleProps[] = [];
 
-      for (let i = 0; i < particleCount; i++) {
-        newParticles.push({
-          id: `${Date.now()}-${i}`,
-          x: centerX + (Math.random() - 0.5) * 20,
-          y: centerY + (Math.random() - 0.5) * 20,
-          size: Math.random() * 4 + 2,
-          duration: Math.random() * 0.5 + 0.5,
-          delay: Math.random() * 0.1,
-          className: "bg-current opacity-70",
-        });
-      }
+    for (let i = 0; i < particleCount; i++) {
+      newParticles.push({
+        id: `${Date.now()}-${i}`,
+        x: centerX + (Math.random() - 0.5) * 20,
+        y: centerY + (Math.random() - 0.5) * 20,
+        size: Math.random() * 4 + 2,
+        duration: Math.random() * 0.5 + 0.5,
+        delay: Math.random() * 0.1,
+        className: "bg-current opacity-70",
+      });
+    }
 
-      setParticles(newParticles);
+    setParticles(newParticles);
 
-      // Clear particles after animation
-      setTimeout(() => {
-        setParticles([]);
-      }, 1000);
-    },
-    [particleCount]
-  );
+    // Clear particles after animation
+    setTimeout(() => {
+      setParticles([]);
+    }, 1000);
+  }, [particleCount]);
 
   React.useEffect(() => {
     if (animate) {
       // Trigger particles automatically when animate prop changes
-      const mockEvent = {
-        currentTarget: containerRef.current,
-        preventDefault: () => {},
-        stopPropagation: () => {},
-      } as unknown as React.MouseEvent;
-      triggerParticles(mockEvent);
+      triggerParticles();
     }
   }, [animate, triggerParticles]);
 
@@ -143,7 +135,9 @@ function Particles({
   );
 
   if (asChild && React.isValidElement(children)) {
-    const child = children as React.ReactElement<any>;
+    const child = children as React.ReactElement<
+      React.HTMLAttributes<HTMLElement>
+    >;
     return React.cloneElement(child, {
       ...child.props,
       className: cn(
@@ -169,12 +163,11 @@ function Particles({
 
 type ParticlesEffectProps = {
   className?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
-function ParticlesEffect({ className, ...props }: ParticlesEffectProps) {
-  // This is a placeholder component that doesn't render anything visible
-  // but provides the styling for particles
+function ParticlesEffect(props: ParticlesEffectProps) {
+  void props;
   return null;
 }
 

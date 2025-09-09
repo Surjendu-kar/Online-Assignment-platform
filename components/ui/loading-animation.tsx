@@ -69,7 +69,7 @@ export function LoadingAnimation({ onComplete }: LoadingAnimationProps) {
     sm: "85vh",
   };
 
-  const getDimension = (dimensions: any) => {
+  const getDimension = (dimensions: Record<string, string>) => {
     if (!breakpoint) return dimensions.sm;
     if (breakpoint === "lg") return dimensions.lg;
     if (breakpoint === "md") return dimensions.md;
@@ -99,7 +99,7 @@ export function LoadingAnimation({ onComplete }: LoadingAnimationProps) {
     sm: "3.5rem",
   };
 
-  const getFontSize = (sizes: any) => {
+  const getFontSize = (sizes: Record<string, string>) => {
     if (!breakpoint) return sizes.sm;
     if (breakpoint === "lg") return sizes.lg;
     if (breakpoint === "md") return sizes.md;
@@ -201,8 +201,6 @@ export function LoadingAnimation({ onComplete }: LoadingAnimationProps) {
                     }}
                     className="overflow-hidden relative top-1 left-1 lg:top-2 h-[3.2rem] md:h-[4rem] lg:h-[5.8rem] lg:w-[4rem] rounded-md bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
                   />
-                    
-                  
                 )}
                 <motion.h1
                   initial={{

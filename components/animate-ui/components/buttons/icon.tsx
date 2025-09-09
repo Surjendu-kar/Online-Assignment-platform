@@ -54,18 +54,11 @@ function IconButton({
   children,
   ...props
 }: IconButtonProps) {
-  const [isActive, setIsActive] = React.useState(false);
-  const [key, setKey] = React.useState(0);
-
   return (
     <ButtonPrimitive
       data-slot="icon-button"
       className={cn(buttonVariants({ variant, size, className }))}
-      onClick={(e) => {
-        setKey((prev) => prev + 1);
-        setIsActive(true);
-        onClick?.(e);
-      }}
+      onClick={onClick}
       {...props}
     >
       {children}
