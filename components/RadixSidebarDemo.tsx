@@ -71,7 +71,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ThemeToggle } from "./ui/theme-toggle";
+import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 
 const DATA = {
   user: {
@@ -477,7 +477,11 @@ export const RadixSidebarDemo = () => {
           </div>
           {/* Theme Toggle */}
           <div className="ml-auto px-4">
-            <ThemeToggle />
+            <ThemeTogglerButton
+              variant="ghost"
+              size="xs"
+              modes={["light", "dark"]}
+            />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
