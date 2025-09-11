@@ -245,6 +245,14 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     return DATA.navMain.find((item) => isPathInSection(item.url))?.title || "";
   });
 
+  // Update open section when pathname changes
+  React.useEffect(() => {
+    const currentSection = DATA.navMain.find((item) => isPathInSection(item.url));
+    if (currentSection) {
+      setOpenSection(currentSection.title);
+    }
+  }, [pathname]);
+
   const handleAddInstitution = (institution: {
     name: string;
     type: string;
@@ -345,7 +353,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                   onOpenChange={(isOpen) => {
                     if (isOpen) {
                       setOpenSection(item.title);
-                    } else {
+                    } else if (openSection === item.title) {
                       setOpenSection("");
                     }
                   }}

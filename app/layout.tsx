@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import { AnimatedSidebar } from "@/components/AnimatedSidebar";
+import ConditionalSidebar from "@/components/ConditionalSidebar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,7 +35,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AnimatedSidebar>{children}</AnimatedSidebar>
+          <ConditionalSidebar>{children}</ConditionalSidebar>
         </ThemeProvider>
       </body>
     </html>
