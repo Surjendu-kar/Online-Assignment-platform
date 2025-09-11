@@ -347,7 +347,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild>
+                            <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
                               <Link href={subItem.url}>
                                 <span>{subItem.title}</span>
                               </Link>
@@ -366,7 +366,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
               {DATA.recentItems.map((item) => (
                 <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.name}</span>
