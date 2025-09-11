@@ -102,7 +102,6 @@ const DATA = {
       title: "Management",
       url: "/admin/management",
       icon: SquareTerminal,
-      isActive: true,
       items: [
         {
           title: "Teachers",
@@ -236,6 +235,16 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
 
   const breadcrumbs = generateBreadcrumbs(pathname);
 
+  // Check if current path belongs to a navigation section
+  const isPathInSection = (sectionPath: string) => {
+    return pathname.startsWith(sectionPath);
+  };
+
+  // State to manage which section is open
+  const [openSection, setOpenSection] = React.useState(() => {
+    return DATA.navMain.find((item) => isPathInSection(item.url))?.title || "";
+  });
+
   const handleAddInstitution = (institution: {
     name: string;
     type: string;
@@ -332,7 +341,14 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                 <Collapsible
                   key={item.title}
                   asChild
-                  defaultOpen={item.isActive}
+                  open={openSection === item.title}
+                  onOpenChange={(isOpen) => {
+                    if (isOpen) {
+                      setOpenSection(item.title);
+                    } else {
+                      setOpenSection("");
+                    }
+                  }}
                   className="group/collapsible"
                 >
                   <SidebarMenuItem>
@@ -347,7 +363,10 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={pathname === subItem.url}
+                            >
                               <Link href={subItem.url}>
                                 <span>{subItem.title}</span>
                               </Link>
