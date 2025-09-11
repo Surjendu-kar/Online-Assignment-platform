@@ -61,7 +61,6 @@ import {
   LogOut,
   Map,
   MoreHorizontal,
-  PieChart,
   Plus,
   Settings2,
   Sparkles,
@@ -78,7 +77,7 @@ const DATA = {
     name: "John Smith",
     email: "john.smith@university.edu",
     role: "Admin",
-    avatar: "", 
+    avatar: "",
   },
   institutions: [
     {
