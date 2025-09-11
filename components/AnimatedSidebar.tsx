@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
@@ -99,82 +100,82 @@ const DATA = {
   navMain: [
     {
       title: "Management",
-      url: "#",
+      url: "/admin/management",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
           title: "Teachers",
-          url: "#",
+          url: "/admin/management/teachers",
         },
         {
           title: "Students",
-          url: "#",
+          url: "/admin/management/students",
         },
       ],
     },
     {
       title: "Analytics",
-      url: "#",
+      url: "/admin/analytics",
       icon: Bot,
       items: [
         {
           title: "Platform Stats",
-          url: "#",
+          url: "/admin/analytics/platform-stats",
         },
         {
           title: "Usage Reports",
-          url: "#",
+          url: "/admin/analytics/usage-reports",
         },
         {
           title: "Performance",
-          url: "#",
+          url: "/admin/analytics/performance",
         },
       ],
     },
     {
       title: "Communications",
-      url: "#",
+      url: "/admin/communications",
       icon: BookOpen,
       items: [
         {
           title: "Invitations",
-          url: "#",
+          url: "/admin/communications/invitations",
         },
         {
           title: "Notifications",
-          url: "#",
+          url: "/admin/communications/notifications",
         },
         {
           title: "Messages",
-          url: "#",
+          url: "/admin/communications/messages",
         },
         {
           title: "Announcements",
-          url: "#",
+          url: "/admin/communications/announcements",
         },
       ],
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/admin/settings",
       icon: Settings2,
       items: [
         {
           title: "System Config",
-          url: "#",
+          url: "/admin/settings/system-config",
         },
         {
           title: "Permissions",
-          url: "#",
+          url: "/admin/settings/permissions",
         },
         {
           title: "Security",
-          url: "#",
+          url: "/admin/settings/security",
         },
         {
           title: "Backup",
-          url: "#",
+          url: "/admin/settings/backup",
         },
       ],
     },
@@ -182,50 +183,76 @@ const DATA = {
   recentItems: [
     {
       name: "Recent Assignments",
-      url: "#",
+      url: "/admin/recent-assignments",
       icon: Frame,
     },
     {
       name: "Pending Invitations",
-      url: "#",
+      url: "/admin/pending-invitations",
       icon: Map,
     },
   ],
 };
 
-export const RadixSidebarDemo = () => {
+// Helper function to generate breadcrumbs from pathname
+function generateBreadcrumbs(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  const breadcrumbs = [];
+
+  // Skip 'admin' prefix for admin routes to avoid redundant breadcrumbs
+  if (segments[0] === "admin") {
+    segments.shift(); // Remove 'admin' from segments
+  }
+
+  let currentPath = "/admin"; // Start from admin base
+
+  for (let i = 0; i < segments.length; i++) {
+    currentPath += `/${segments[i]}`;
+    const isLast = i === segments.length - 1;
+
+    // Convert segment to title case
+    const title = segments[i]
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
+    breadcrumbs.push({
+      title,
+      url: currentPath,
+      isLast,
+    });
+  }
+
+  return breadcrumbs;
+}
+
+export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
+  const pathname = usePathname();
   const [institutions, setInstitutions] = React.useState(DATA.institutions);
   const [activeInstitution, setActiveInstitution] = React.useState(
     DATA.institutions[0]
   );
 
-  const handleAddInstitution = (newInstitution: {
+  const breadcrumbs = generateBreadcrumbs(pathname);
+
+  const handleAddInstitution = (institution: {
     name: string;
     type: string;
     logo: string;
   }) => {
-    const institutionWithIcon = {
-      ...newInstitution,
-      logo: GalleryVerticalEnd, // Default icon for new institutions
+    const newInstitution = {
+      ...institution,
+      logo: GalleryVerticalEnd,
     };
-
-    // Add to institutions list
-    setInstitutions((prev) => [...prev, institutionWithIcon]);
-
-    // Optionally set as active institution
-    setActiveInstitution(institutionWithIcon);
-
-    console.log("New Institution Added:", institutionWithIcon);
+    setInstitutions((prev) => [...prev, newInstitution]);
+    console.log("Institution added:", newInstitution);
   };
-
-  if (!activeInstitution) return null;
 
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          {/* Institution Switcher */}
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
@@ -257,54 +284,49 @@ export const RadixSidebarDemo = () => {
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
                     Institutions
                   </DropdownMenuLabel>
-                  {institutions
-                    .filter(
-                      (institution) =>
-                        institution.name !== activeInstitution.name
-                    )
-                    .map((institution, index) => (
-                      <DropdownMenuItem
-                        key={institution.name}
-                        onClick={() => setActiveInstitution(institution)}
-                        className="gap-2 p-2"
-                      >
-                        <div className="flex size-6 items-center justify-center rounded-sm border">
-                          <institution.logo className="size-4 shrink-0" />
-                        </div>
-                        <span className="capitalize">{institution.name}</span>
-                        <DropdownMenuShortcut>
-                          ⌘{index + 1}
-                        </DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                    ))}
+                  {institutions.map((institution, index) => (
+                    <DropdownMenuItem
+                      key={institution.name}
+                      onClick={() => setActiveInstitution(institution)}
+                      className="gap-2 p-2"
+                    >
+                      <div className="flex size-6 items-center justify-center rounded-sm border">
+                        <institution.logo className="size-4 shrink-0" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{institution.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {institution.type}
+                        </span>
+                      </div>
+                      <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                  ))}
                   <DropdownMenuSeparator />
                   <AddInstitutionDialog
-                    onAddInstitution={handleAddInstitution}
                     trigger={
                       <DropdownMenuItem
                         className="gap-2 p-2"
                         onSelect={(e) => e.preventDefault()}
                       >
-                        <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                        <div className="flex size-6 items-center justify-center rounded-md border border-dashed">
                           <Plus className="size-4" />
                         </div>
                         <div className="font-medium text-muted-foreground">
-                          Add Institution
+                          Add institution
                         </div>
                       </DropdownMenuItem>
                     }
+                    onAddInstitution={handleAddInstitution}
                   />
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
-          {/* Institution Switcher */}
         </SidebarHeader>
-
         <SidebarContent>
-          {/* Nav Main */}
           <SidebarGroup>
-            <SidebarGroupLabel>{DATA.user.role} Platform</SidebarGroupLabel>
+            <SidebarGroupLabel>Admin Platform</SidebarGroupLabel>
             <SidebarMenu>
               {DATA.navMain.map((item) => (
                 <Collapsible
@@ -318,7 +340,7 @@ export const RadixSidebarDemo = () => {
                       <SidebarMenuButton tooltip={item.title}>
                         {item.icon && <item.icon />}
                         <span>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-300 group-data-[state=open]/collapsible:rotate-90" />
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -326,9 +348,9 @@ export const RadixSidebarDemo = () => {
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild>
-                              <a href={subItem.url}>
+                              <Link href={subItem.url}>
                                 <span>{subItem.title}</span>
-                              </a>
+                              </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
@@ -339,19 +361,16 @@ export const RadixSidebarDemo = () => {
               ))}
             </SidebarMenu>
           </SidebarGroup>
-          {/* Nav Main */}
-
-          {/* Recent Items */}
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel>Recent</SidebarGroupLabel>
+            <SidebarGroupLabel>Projects</SidebarGroupLabel>
             <SidebarMenu>
               {DATA.recentItems.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.name}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -367,16 +386,16 @@ export const RadixSidebarDemo = () => {
                     >
                       <DropdownMenuItem>
                         <Folder className="text-muted-foreground" />
-                        <span>View Details</span>
+                        <span>View Project</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Forward className="text-muted-foreground" />
-                        <span>Share</span>
+                        <span>Share Project</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem>
                         <Trash2 className="text-muted-foreground" />
-                        <span>Remove</span>
+                        <span>Delete Project</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -390,10 +409,8 @@ export const RadixSidebarDemo = () => {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
-          {/* Recent Items */}
         </SidebarContent>
         <SidebarFooter>
-          {/* Nav User */}
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
@@ -478,7 +495,6 @@ export const RadixSidebarDemo = () => {
               </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
-          {/* Nav User */}
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
@@ -487,22 +503,27 @@ export const RadixSidebarDemo = () => {
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
-            {/* <Separator orientation="vertical" className="mr-2 h-4" /> */}
             <Breadcrumb>
               <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">
-                    Building Your Application
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                </BreadcrumbItem>
+                {breadcrumbs.map((breadcrumb, index) => (
+                  <React.Fragment key={breadcrumb.url}>
+                    <BreadcrumbItem>
+                      {breadcrumb.isLast ? (
+                        <BreadcrumbPage>{breadcrumb.title}</BreadcrumbPage>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {breadcrumb.title}
+                        </span>
+                      )}
+                    </BreadcrumbItem>
+                    {!breadcrumb.isLast && index < breadcrumbs.length - 1 && (
+                      <BreadcrumbSeparator className="hidden md:block" />
+                    )}
+                  </React.Fragment>
+                ))}
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          {/* Theme Toggle */}
           <div className="ml-auto px-4">
             <ThemeTogglerButton
               variant="ghost"
@@ -511,15 +532,8 @@ export const RadixSidebarDemo = () => {
             />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-          </div>
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
-        </div>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );
-};
+}

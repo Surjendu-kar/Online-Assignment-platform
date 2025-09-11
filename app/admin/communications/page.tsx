@@ -3,15 +3,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-function Page() {
+export default function CommunicationsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to admin teachers page by default
-    router.replace("/admin/management/teachers");
+    // Redirect to the first item (Invitations)
+    router.replace("/admin/communications/invitations");
   }, [router]);
 
   return null;
 }
-
-export default Page;

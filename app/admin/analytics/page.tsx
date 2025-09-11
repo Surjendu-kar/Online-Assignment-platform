@@ -3,15 +3,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-function Page() {
+export default function AnalyticsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to admin teachers page by default
-    router.replace("/admin/management/teachers");
+    // Redirect to the first item (Platform Stats)
+    router.replace("/admin/analytics/platform-stats");
   }, [router]);
 
   return null;
 }
-
-export default Page;

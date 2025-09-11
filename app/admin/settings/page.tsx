@@ -3,15 +3,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-function Page() {
+export default function SettingsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to admin teachers page by default
-    router.replace("/admin/management/teachers");
+    // Redirect to the first item (System Config)
+    router.replace("/admin/settings/system-config");
   }, [router]);
 
   return null;
 }
-
-export default Page;
