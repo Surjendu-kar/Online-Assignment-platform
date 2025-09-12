@@ -215,6 +215,70 @@ GET /api/user/pending-invitations
 POST /api/user/switch-institution
 ```
 
+## Teachers Management Page - Future Functionality
+
+### Bulk Actions (To be implemented later)
+
+- Select multiple teachers for bulk operations
+- Bulk status updates (activate/deactivate)
+- Bulk email sending
+- Bulk role assignments
+- Bulk delete (with confirmation)
+
+### Export Functionality (To be implemented later)
+
+- Export teacher data to CSV format
+- Export teacher data to Excel format
+- Custom export filters (date range, status, etc.)
+- Scheduled exports
+- Email export reports
+
+### API Endpoints for Teachers Management
+
+```
+GET /api/admin/teachers - Fetch teachers with pagination/filters
+POST /api/admin/teachers - Create new teacher
+PUT /api/admin/teachers/:id - Update teacher details
+DELETE /api/admin/teachers/:id - Delete teacher
+POST /api/admin/teachers/bulk-action - Bulk operations
+GET /api/admin/teachers/export - Export teachers data
+GET /api/admin/teachers/stats - Teacher statistics
+```
+
+### Teachers Data Structure
+
+```typescript
+interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+  status: "accepted" | "pending";
+  createdExams: number;
+  invitedStudents: number;
+  dateJoined: Date;
+  lastActive: Date;
+  profileImage?: string;
+  phone?: string;
+  department?: string;
+  subjects?: string[];
+}
+
+interface TeachersResponse {
+  teachers: Teacher[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  stats: {
+    totalTeachers: number;
+    activeTeachers: number;
+    inactiveTeachers: number;
+  };
+}
+```
+
 ## Performance Considerations
 
 - **Caching**: Cache user data and navigation config

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { motion } from "motion/react";
 
 import {
   Breadcrumb,
@@ -247,7 +248,9 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
 
   // Update open section when pathname changes
   React.useEffect(() => {
-    const currentSection = DATA.navMain.find((item) => isPathInSection(item.url));
+    const currentSection = DATA.navMain.find((item) =>
+      isPathInSection(item.url)
+    );
     if (currentSection) {
       setOpenSection(currentSection.title);
     }
@@ -534,17 +537,37 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
               <BreadcrumbList>
                 {breadcrumbs.map((breadcrumb, index) => (
                   <React.Fragment key={breadcrumb.url}>
-                    <BreadcrumbItem>
-                      {breadcrumb.isLast ? (
-                        <BreadcrumbPage>{breadcrumb.title}</BreadcrumbPage>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          {breadcrumb.title}
-                        </span>
-                      )}
-                    </BreadcrumbItem>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        duration: 0.4,
+                        delay: index * 0.15,
+                        ease: "easeOut",
+                      }}
+                    >
+                      <BreadcrumbItem>
+                        {breadcrumb.isLast ? (
+                          <BreadcrumbPage>{breadcrumb.title}</BreadcrumbPage>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            {breadcrumb.title}
+                          </span>
+                        )}
+                      </BreadcrumbItem>
+                    </motion.div>
                     {!breadcrumb.isLast && index < breadcrumbs.length - 1 && (
-                      <BreadcrumbSeparator className="hidden md:block" />
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{
+                          duration: 0.4,
+                          delay: index * 0.15 + 0.1,
+                          ease: "easeOut",
+                        }}
+                      >
+                        <BreadcrumbSeparator className="hidden md:block mt-1" />
+                      </motion.div>
                     )}
                   </React.Fragment>
                 ))}
