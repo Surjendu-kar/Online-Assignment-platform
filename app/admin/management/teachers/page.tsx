@@ -57,7 +57,7 @@ import {
   Trash,
   Mail,
   Trash2,
-  UserMinus,
+  User,
 } from "lucide-react";
 
 interface Teacher {
@@ -281,17 +281,16 @@ function StatsCard({ title, value, description, icon: Icon }: StatsCardProps) {
   );
 }
 
-
-function EmptyState() {
+function EmptyState({ onReset }: { onReset: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <UserMinus className="h-12 w-12 text-muted-foreground mb-4" />
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      <User className="h-8 w-8 text-muted-foreground mb-2" />
       <h3 className="text-lg font-semibold mb-2">No teachers found</h3>
-      <p className="text-muted-foreground mb-4 max-w-sm">
+      <p className="text-muted-foreground mb-4">
         No teachers match your current search and filter criteria. Try adjusting
         your filters or search terms.
       </p>
-      <Button variant="outline" onClick={() => window.location.reload()}>
+      <Button variant="outline" onClick={onReset}>
         Reset Filters
       </Button>
     </div>
@@ -404,6 +403,16 @@ export default function TeachersPage() {
 
     return { total, active, inactive };
   }, [teachers]);
+
+  const resetAllFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setDateFilter("all");
+    setCurrentPage(1);
+    setSortField("name");
+    setSortOrder("asc");
+    setSelectedRows(new Set());
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -694,7 +703,7 @@ export default function TeachersPage() {
                     {paginatedTeachers.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8}>
-                          <EmptyState />
+                          <EmptyState onReset={resetAllFilters} />
                         </TableCell>
                       </TableRow>
                     ) : (
