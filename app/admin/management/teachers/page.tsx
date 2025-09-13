@@ -42,20 +42,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { WarningDialog } from "@/components/WarningDialog";
+import { ViewTeacherDialog } from "@/components/ViewTeacherDialog";
 import {
   ChevronLeft,
   ChevronRight,
   Search,
   Plus,
-  MoreHorizontal,
   ArrowUpDown,
   Users,
   UserCheck,
   UserX,
-  Eye,
-  Edit,
-  Trash,
-  Mail,
   Trash2,
   User,
 } from "lucide-react";
@@ -310,7 +307,6 @@ export default function TeachersPage() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
-  const [isBulkDelete, setIsBulkDelete] = useState(false);
 
   const itemsPerPage = 5;
 
@@ -428,6 +424,24 @@ export default function TeachersPage() {
     setIsViewModalOpen(true);
   };
 
+  const handleEditTeacher = (teacher: Teacher) => {
+    // TODO: Implement edit functionality
+    console.log("Edit teacher:", teacher);
+    setIsViewModalOpen(false);
+  };
+
+  const handleSendEmail = (teacher: Teacher) => {
+    // TODO: Implement send email functionality
+    console.log("Send email to:", teacher.email);
+    setIsViewModalOpen(false);
+  };
+
+  const handleDeleteFromView = (teacher: Teacher) => {
+    setSelectedTeacher(null);
+    setIsViewModalOpen(false);
+    handleDeleteSingle(teacher);
+  };
+
   const toggleRowSelection = (teacherId: string) => {
     const newSelection = new Set(selectedRows);
     if (newSelection.has(teacherId)) {
@@ -447,7 +461,6 @@ export default function TeachersPage() {
   };
 
   const handleDeleteSelected = () => {
-    setIsBulkDelete(true);
     setIsDeleteModalOpen(true);
   };
 
@@ -457,8 +470,6 @@ export default function TeachersPage() {
       prev.filter((teacher) => !selectedIds.includes(teacher.id))
     );
     setSelectedRows(new Set());
-    setIsDeleteModalOpen(false);
-    setIsBulkDelete(false);
     // Reset to first page if current page becomes empty
     const remainingTeachers = teachers.filter(
       (teacher) => !selectedIds.includes(teacher.id)
@@ -471,7 +482,6 @@ export default function TeachersPage() {
 
   const handleDeleteSingle = (teacher: Teacher) => {
     setTeacherToDelete(teacher);
-    setIsBulkDelete(false);
     setIsDeleteModalOpen(true);
   };
 
@@ -487,7 +497,6 @@ export default function TeachersPage() {
       newSelection.delete(teacherToDelete.id);
       setSelectedRows(newSelection);
     }
-    setIsDeleteModalOpen(false);
     setTeacherToDelete(null);
     // Reset to first page if current page becomes empty
     const remainingTeachers = teachers.filter(
@@ -694,15 +703,12 @@ export default function TeachersPage() {
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
-                      <TableHead className="resize-x overflow-hidden min-w-[100px]">
-                        Actions
-                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedTeachers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8}>
+                        <TableCell colSpan={7}>
                           <EmptyState onReset={resetAllFilters} />
                         </TableCell>
                       </TableRow>
@@ -720,9 +726,10 @@ export default function TeachersPage() {
                             }}
                             transition={{ duration: 0.3, delay: index * 0.05 }}
                             layout
-                            className="border-b transition-all duration-200 hover:bg-muted/30 hover:shadow-sm data-[state=selected]:bg-muted group"
+                            className="border-b transition-all duration-200 hover:bg-muted/30 hover:shadow-sm data-[state=selected]:bg-muted group cursor-pointer"
+                            onClick={() => handleViewTeacher(teacher)}
                           >
-                            <TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                               <Checkbox
                                 checked={selectedRows.has(teacher.id)}
                                 onCheckedChange={() =>
@@ -772,42 +779,6 @@ export default function TeachersPage() {
                             <TableCell>{teacher.invitedStudents}</TableCell>
                             <TableCell>
                               {formatDate(teacher.dateJoined)}
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    className="h-8 w-8 p-0"
-                                  >
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => handleViewTeacher(teacher)}
-                                  >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit Teacher
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Mail className="mr-2 h-4 w-4" />
-                                    Send Email
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-red-600"
-                                    onClick={() => handleDeleteSingle(teacher)}
-                                  >
-                                    <Trash className="mr-2 h-4 w-4" />
-                                    Delete Teacher
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
                             </TableCell>
                           </motion.tr>
                         ))}
@@ -868,224 +839,99 @@ export default function TeachersPage() {
         </Card>
       </motion.div>
 
-      {/* View Teacher Modal */}
-      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Teacher Details</DialogTitle>
-            <DialogDescription>
-              View detailed information about this teacher
-            </DialogDescription>
-          </DialogHeader>
-          {selectedTeacher && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage
-                    src={selectedTeacher.profileImage}
-                    alt={selectedTeacher.name}
-                  />
-                  <AvatarFallback className="text-lg">
-                    {selectedTeacher.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {selectedTeacher.name}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {selectedTeacher.email}
-                  </p>
-                  <Badge
-                    variant={
-                      selectedTeacher.status === "accepted"
-                        ? "default"
-                        : "secondary"
-                    }
-                    className={
-                      selectedTeacher.status === "accepted"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }
-                  >
-                    {selectedTeacher.status.charAt(0).toUpperCase() +
-                      selectedTeacher.status.slice(1)}
-                  </Badge>
-                </div>
-              </div>
+      {/* View Teacher Dialog */}
+      <ViewTeacherDialog
+        teacher={selectedTeacher}
+        open={isViewModalOpen}
+        onOpenChange={setIsViewModalOpen}
+        onEdit={handleEditTeacher}
+        onSendEmail={handleSendEmail}
+        onDelete={handleDeleteFromView}
+      />
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Phone
-                  </label>
-                  <p className="font-medium">
-                    {selectedTeacher.phone || "Not provided"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Department
-                  </label>
-                  <p className="font-medium">
-                    {selectedTeacher.department || "Not assigned"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Created Exams
-                  </label>
-                  <p className="font-medium">{selectedTeacher.createdExams}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Invited Students
-                  </label>
-                  <p className="font-medium">
-                    {selectedTeacher.invitedStudents}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Date Joined
-                  </label>
-                  <p className="font-medium">
-                    {formatDate(selectedTeacher.dateJoined)}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Last Active
-                  </label>
-                  <p className="font-medium">
-                    {formatDate(selectedTeacher.lastActive)}
-                  </p>
-                </div>
-              </div>
-
-              {selectedTeacher.subjects &&
-                selectedTeacher.subjects.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Subjects
-                    </label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {selectedTeacher.subjects.map((subject, index) => (
-                        <Badge key={index} variant="outline">
-                          {subject}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash className="h-5 w-5" />
-              Confirm Deletion
-            </DialogTitle>
-            <DialogDescription>
-              {isBulkDelete
-                ? `Are you sure you want to delete ${
-                    selectedRows.size
-                  } selected teacher${
-                    selectedRows.size > 1 ? "s" : ""
-                  }? This action cannot be undone.`
-                : `Are you sure you want to delete ${teacherToDelete?.name}? This action cannot be undone.`}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            {isBulkDelete ? (
-              <div className="bg-muted p-3 rounded-md">
-                <p className="text-sm font-medium mb-2">
-                  Teachers to be deleted:
-                </p>
-                <div className="space-y-1">
-                  {Array.from(selectedRows).map((teacherId) => {
-                    const teacher = teachers.find((t) => t.id === teacherId);
-                    return teacher ? (
-                      <div key={teacherId} className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage
-                            src={teacher.profileImage}
-                            alt={teacher.name}
-                          />
-                          <AvatarFallback className="text-xs">
-                            {teacher.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{teacher.name}</span>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-            ) : teacherToDelete ? (
-              <div className="bg-muted p-3 rounded-md">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
+      {/* Bulk Delete Warning Dialog */}
+      <WarningDialog
+        open={isDeleteModalOpen && selectedRows.size > 0}
+        onOpenChange={setIsDeleteModalOpen}
+        title="Confirm Bulk Deletion"
+        description={`Are you sure you want to delete ${
+          selectedRows.size
+        } selected teacher${
+          selectedRows.size > 1 ? "s" : ""
+        }? This action cannot be undone.`}
+        confirmText={`Delete ${selectedRows.size} Teacher${
+          selectedRows.size > 1 ? "s" : ""
+        }`}
+        onConfirm={confirmDeleteSelected}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+        }}
+      >
+        <div className="bg-muted p-3 rounded-md">
+          <p className="text-sm font-medium mb-2">Teachers to be deleted:</p>
+          <div className="space-y-1">
+            {Array.from(selectedRows).map((teacherId) => {
+              const teacher = teachers.find((t) => t.id === teacherId);
+              return teacher ? (
+                <div key={teacherId} className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
                     <AvatarImage
-                      src={teacherToDelete.profileImage}
-                      alt={teacherToDelete.name}
+                      src={teacher.profileImage}
+                      alt={teacher.name}
                     />
-                    <AvatarFallback>
-                      {teacherToDelete.name
+                    <AvatarFallback className="text-xs">
+                      {teacher.name
                         .split(" ")
                         .map((n) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-medium">{teacherToDelete.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {teacherToDelete.email}
-                    </p>
-                  </div>
+                  <span className="text-sm">{teacher.name}</span>
                 </div>
+              ) : null;
+            })}
+          </div>
+        </div>
+      </WarningDialog>
+
+      {/* Single Delete Warning Dialog */}
+      <WarningDialog
+        open={isDeleteModalOpen && teacherToDelete !== null}
+        onOpenChange={setIsDeleteModalOpen}
+        title="Confirm Deletion"
+        description={`Are you sure you want to delete ${teacherToDelete?.name}? This action cannot be undone.`}
+        confirmText="Delete Teacher"
+        onConfirm={confirmDeleteSingle}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setTeacherToDelete(null);
+        }}
+      >
+        {teacherToDelete && (
+          <div className="bg-muted p-3 rounded-md">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage
+                  src={teacherToDelete.profileImage}
+                  alt={teacherToDelete.name}
+                />
+                <AvatarFallback>
+                  {teacherToDelete.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium">{teacherToDelete.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {teacherToDelete.email}
+                </p>
               </div>
-            ) : null}
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setTeacherToDelete(null);
-                  setIsBulkDelete(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={
-                  isBulkDelete ? confirmDeleteSelected : confirmDeleteSingle
-                }
-              >
-                <Trash className="h-4 w-4 mr-2" />
-                Delete{" "}
-                {isBulkDelete
-                  ? `${selectedRows.size} Teacher${
-                      selectedRows.size > 1 ? "s" : ""
-                    }`
-                  : "Teacher"}
-              </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+      </WarningDialog>
     </motion.div>
   );
 }
