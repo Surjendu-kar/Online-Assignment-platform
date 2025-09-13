@@ -254,7 +254,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     if (currentSection) {
       setOpenSection(currentSection.title);
     }
-  }, [pathname, isPathInSection]);
+  }, [pathname]);
 
   const handleAddInstitution = (institution: {
     name: string;
