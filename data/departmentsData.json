@@ -1,0 +1,32 @@
+[
+  {
+    "id": "all",
+    "name": "All Departments",
+    "code": "ALL",
+    "description": "View all departments"
+  },
+  {
+    "id": "bca",
+    "name": "BCA",
+    "code": "BCA",
+    "description": "Bachelor of Computer Applications"
+  },
+  {
+    "id": "bba",
+    "name": "BBA",
+    "code": "BBA",
+    "description": "Bachelor of Business Administration"
+  },
+  {
+    "id": "cse",
+    "name": "CSE",
+    "code": "CSE",
+    "description": "Computer Science Engineering"
+  },
+  {
+    "id": "ece",
+    "name": "ECE",
+    "code": "ECE",
+    "description": "Electronics & Communication Engineering"
+  }
+]

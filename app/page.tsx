@@ -7,8 +7,8 @@ function Page() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to admin teachers page by default
-    router.replace("/admin/management/teachers");
+    // Redirect to admin dashboard
+    router.replace("/admin");
   }, [router]);
 
   return null;

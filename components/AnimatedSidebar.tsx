@@ -43,7 +43,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/animate-ui/components/radix/dropdown-menu";
 import {
@@ -54,7 +53,6 @@ import {
   Bot,
   ChevronRight,
   ChevronsUpDown,
-  Command,
   CreditCard,
   Folder,
   Forward,
@@ -68,11 +66,53 @@ import {
   Sparkles,
   SquareTerminal,
   Trash2,
+  Edit,
+  MoreVertical,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
-import { AddInstitutionDialog } from "@/components/AddInstitutionDialog";
+import { DepartmentDialog } from "@/components/DepartmentDialog";
+import departmentsData from "@/data/departmentsData.json";
+
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  logo: React.ComponentType<{ className?: string }>;
+}
+
+interface DepartmentFormData {
+  name: string;
+  code: string;
+  description: string;
+}
+
+interface Breadcrumb {
+  title: string;
+  url: string;
+  isLast: boolean;
+}
+
+// Map departments data to include logos
+const DEPARTMENTS_WITH_LOGOS = departmentsData.map((dept) => ({
+  ...dept,
+  logo:
+    dept.code === "ALL"
+      ? GalleryVerticalEnd
+      : dept.code === "BCA"
+      ? SquareTerminal
+      : dept.code === "BBA"
+      ? AudioWaveform
+      : dept.code === "CSE"
+      ? Bot
+      : dept.code === "ECE"
+      ? BookOpen
+      : dept.code === "MBA"
+      ? Settings2
+      : GalleryVerticalEnd,
+}));
 
 const DATA = {
   user: {
@@ -81,23 +121,7 @@ const DATA = {
     role: "Admin",
     avatar: "",
   },
-  institutions: [
-    {
-      name: "Stanford University",
-      logo: GalleryVerticalEnd,
-      type: "Computer Science Department",
-    },
-    {
-      name: "MIT",
-      logo: AudioWaveform,
-      type: "Engineering School",
-    },
-    {
-      name: "CA Institute",
-      logo: Command,
-      type: "Professional Certification",
-    },
-  ],
+  departments: DEPARTMENTS_WITH_LOGOS,
   navMain: [
     {
       title: "Management",
@@ -195,9 +219,9 @@ const DATA = {
 };
 
 // Helper function to generate breadcrumbs from pathname
-function generateBreadcrumbs(pathname: string) {
+function generateBreadcrumbs(pathname: string): Breadcrumb[] {
   const segments = pathname.split("/").filter(Boolean);
-  const breadcrumbs = [];
+  const breadcrumbs: Breadcrumb[] = [];
 
   // Skip 'admin' prefix for admin routes to avoid redundant breadcrumbs
   if (segments[0] === "admin") {
@@ -229,15 +253,20 @@ function generateBreadcrumbs(pathname: string) {
 export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
-  const [institutions, setInstitutions] = React.useState(DATA.institutions);
-  const [activeInstitution, setActiveInstitution] = React.useState(
-    DATA.institutions[0]
+  const [departments, setDepartments] = React.useState<Department[]>(
+    DATA.departments
   );
+  const [activeDepartment, setActiveDepartment] = React.useState<Department>(
+    DATA.departments[0]
+  );
+  const [editingDepartment, setEditingDepartment] =
+    React.useState<Department | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
   const breadcrumbs = generateBreadcrumbs(pathname);
 
   // Check if current path belongs to a navigation section
-  const isPathInSection = (sectionPath: string) => {
+  const isPathInSection = (sectionPath: string): boolean => {
     return pathname.startsWith(sectionPath);
   };
 
@@ -256,17 +285,73 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     }
   }, [pathname]);
 
-  const handleAddInstitution = (institution: {
-    name: string;
-    type: string;
-    logo: string;
-  }) => {
-    const newInstitution = {
-      ...institution,
+  const handleAddDepartment = (department: DepartmentFormData): void => {
+    const newDepartment: Department = {
+      id: department.code.toLowerCase(),
+      name: department.name,
+      description: department.description || `${department.code} Department`,
+      code: department.code,
       logo: GalleryVerticalEnd,
     };
-    setInstitutions((prev) => [...prev, newInstitution]);
-    console.log("Institution added:", newInstitution);
+    setDepartments((prev) => [...prev, newDepartment]);
+    console.log("Department added:", newDepartment);
+  };
+
+  const handleUpdateDepartment = (department: DepartmentFormData): void => {
+    if (!editingDepartment) return;
+
+    const updatedDepartment: Department = {
+      ...editingDepartment,
+      name: department.name,
+      description: department.description || `${department.code} Department`,
+      code: department.code,
+    };
+
+    setDepartments((prev) =>
+      prev.map((dept) =>
+        dept.id === editingDepartment.id ? updatedDepartment : dept
+      )
+    );
+
+    // Update active department if it was the one being edited
+    if (activeDepartment.id === editingDepartment.id) {
+      setActiveDepartment(updatedDepartment);
+    }
+
+    setEditingDepartment(null);
+    console.log("Department updated:", updatedDepartment);
+  };
+
+  const handleSaveDepartment = (department: DepartmentFormData): void => {
+    if (editingDepartment) {
+      handleUpdateDepartment(department);
+    } else {
+      handleAddDepartment(department);
+    }
+  };
+
+  const handleEditDepartment = (department: Department): void => {
+    setEditingDepartment(department);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteDepartment = (department: Department): void => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${department.name} department?`
+      )
+    ) {
+      setDepartments((prev) =>
+        prev.filter((dept) => dept.id !== department.id)
+      );
+
+      // If the deleted department was active, switch to "All Departments"
+      if (activeDepartment.id === department.id) {
+        setActiveDepartment(departments[0]); // "All Departments"
+      }
+
+      console.log("Department deleted:", department);
+    }
   };
 
   return (
@@ -282,14 +367,14 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   >
                     <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                      <activeInstitution.logo className="size-4" />
+                      <activeDepartment.logo className="size-4" />
                     </div>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {activeInstitution.name}
+                        {activeDepartment.name}
                       </span>
                       <span className="truncate text-xs">
-                        {activeInstitution.type}
+                        {activeDepartment.description}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto" />
@@ -302,28 +387,66 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                   sideOffset={4}
                 >
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    Institutions
+                    Departments
                   </DropdownMenuLabel>
-                  {institutions.map((institution, index) => (
+                  {departments.map((department) => (
                     <DropdownMenuItem
-                      key={institution.name}
-                      onClick={() => setActiveInstitution(institution)}
+                      key={department.name}
+                      onClick={() => setActiveDepartment(department)}
                       className="gap-2 p-2"
                     >
                       <div className="flex size-6 items-center justify-center rounded-sm border">
-                        <institution.logo className="size-4 shrink-0" />
+                        <department.logo className="size-4 shrink-0" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-medium">{institution.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {institution.type}
+                        <span className="font-medium">{department.name}</span>
+                        <span className="text-xs text-muted-foreground w-50 truncate">
+                          {department.description}
                         </span>
                       </div>
-                      <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                      {department.code !== "ALL" && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="ml-auto p-1 cursor-pointer"
+                              title="More options"
+                              aria-label="More options"
+                            >
+                              <MoreVertical className="h-3 w-3" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            className="w-32"
+                            side="right"
+                            align="start"
+                          >
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditDepartment(department);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDepartment(department);
+                              }}
+                              className="cursor-pointer text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
-                  <AddInstitutionDialog
+                  <DepartmentDialog
                     trigger={
                       <DropdownMenuItem
                         className="gap-2 p-2"
@@ -333,12 +456,37 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                           <Plus className="size-4" />
                         </div>
                         <div className="font-medium text-muted-foreground">
-                          Add institution
+                          Add department
                         </div>
                       </DropdownMenuItem>
                     }
-                    onAddInstitution={handleAddInstitution}
+                    onSaveDepartment={handleSaveDepartment}
                   />
+                  {editingDepartment && (
+                    <DepartmentDialog
+                      key={editingDepartment.id}
+                      editDepartment={editingDepartment}
+                      isOpen={isEditDialogOpen}
+                      onOpenChange={(open) => {
+                        setIsEditDialogOpen(open);
+                        // Don't immediately clear editingDepartment - let the animation complete
+                        if (!open) {
+                          // Delay clearing the editingDepartment to allow close animation
+                          setTimeout(() => {
+                            setEditingDepartment(null);
+                          }, 500); // Match the dialog animation duration
+                        }
+                      }}
+                      onSaveDepartment={(dept) => {
+                        handleSaveDepartment(dept);
+                        setIsEditDialogOpen(false);
+                        // Clear editingDepartment after animation completes
+                        setTimeout(() => {
+                          setEditingDepartment(null);
+                        }, 500);
+                      }}
+                    />
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
