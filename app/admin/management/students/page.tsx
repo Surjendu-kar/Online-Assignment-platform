@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WarningDialog } from "@/components/WarningDialog";
 import { ViewStudentDialog } from "@/components/ViewStudentDialog";
+import { AddStudentDialog } from "@/components/AddStudentDialog";
 import studentsData from "@/data/studentsData.json";
 import {
   ChevronLeft,
@@ -135,6 +136,7 @@ export default function StudentsPage() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
 
   const itemsPerPage = 5;
 
@@ -267,6 +269,30 @@ export default function StudentsPage() {
     handleDeleteSingle(student);
   };
 
+  const handleAddStudent = (studentData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    department: string;
+    selectedExam: string;
+    expirationDate: string;
+  }) => {
+    const newStudent: Student = {
+      id: Date.now().toString(),
+      name: `${studentData.firstName} ${studentData.lastName}`,
+      email: studentData.email,
+      status: "pending",
+      assignedExams: 1,
+      completedExams: 0,
+      averageScore: 0,
+      dateJoined: new Date(),
+      lastActive: new Date(),
+      institution: studentData.department,
+      studentId: `STU${Date.now().toString().slice(-6)}`,
+    };
+    setStudents((prev) => [newStudent, ...prev]);
+  };
+
   const toggleRowSelection = (studentId: string) => {
     const newSelection = new Set(selectedRows);
     if (newSelection.has(studentId)) {
@@ -385,7 +411,7 @@ export default function StudentsPage() {
                   A list of all students in your institution
                 </CardDescription>
               </div>
-              <Button>
+              <Button onClick={() => setIsAddStudentOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Add New Student
               </Button>
@@ -677,6 +703,13 @@ export default function StudentsPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Add Student Dialog */}
+      <AddStudentDialog
+        isOpen={isAddStudentOpen}
+        onOpenChange={setIsAddStudentOpen}
+        onSaveStudent={handleAddStudent}
+      />
 
       <ViewStudentDialog
         student={selectedStudent}

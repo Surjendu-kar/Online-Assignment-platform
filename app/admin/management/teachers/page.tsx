@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WarningDialog } from "@/components/WarningDialog";
 import { ViewTeacherDialog } from "@/components/ViewTeacherDialog";
+import { AddTeacherDialog } from "@/components/AddTeacherDialog";
 import teachersData from "@/data/teachersData.json";
 import {
   ChevronLeft,
@@ -134,6 +135,7 @@ export default function TeachersPage() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
+  const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
 
   const itemsPerPage = 5;
 
@@ -269,6 +271,32 @@ export default function TeachersPage() {
     handleDeleteSingle(teacher);
   };
 
+  const handleAddTeacher = (teacherData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    department: string;
+    phone?: string;
+    subjects: string;
+    profileImageUrl?: string;
+  }) => {
+    const newTeacher: Teacher = {
+      id: Date.now().toString(),
+      name: `${teacherData.firstName} ${teacherData.lastName}`,
+      email: teacherData.email,
+      status: "pending",
+      createdExams: 0,
+      invitedStudents: 0,
+      dateJoined: new Date(),
+      lastActive: new Date(),
+      profileImage: teacherData.profileImageUrl,
+      phone: teacherData.phone,
+      department: teacherData.department,
+      subjects: teacherData.subjects.split(",").map((s) => s.trim()),
+    };
+    setTeachers((prev) => [newTeacher, ...prev]);
+  };
+
   const toggleRowSelection = (teacherId: string) => {
     const newSelection = new Set(selectedRows);
     if (newSelection.has(teacherId)) {
@@ -392,7 +420,7 @@ export default function TeachersPage() {
                   A list of all teachers in your institution
                 </CardDescription>
               </div>
-              <Button>
+              <Button onClick={() => setIsAddTeacherOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Add New Teacher
               </Button>
@@ -720,6 +748,13 @@ export default function TeachersPage() {
           </div>
         </div>
       </WarningDialog>
+
+      {/* Add Teacher Dialog */}
+      <AddTeacherDialog
+        isOpen={isAddTeacherOpen}
+        onOpenChange={setIsAddTeacherOpen}
+        onSaveTeacher={handleAddTeacher}
+      />
 
       {/* Single Delete Warning Dialog */}
       <WarningDialog
