@@ -16,40 +16,41 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Mail, Trash } from "lucide-react";
 
-interface Teacher {
+interface Student {
   id: string;
   name: string;
   email: string;
-  status: "accepted" | "pending";
-  createdExams: number;
-  invitedStudents: number;
+  status: "active" | "pending" | "suspended";
+  assignedExams: number;
+  completedExams: number;
+  averageScore: number;
   dateJoined: Date;
   lastActive: Date;
   profileImage?: string;
   phone?: string;
-  department?: string;
-  subjects?: string[];
+  institution?: string;
+  studentId?: string;
 }
 
-interface ViewTeacherDialogProps {
+interface ViewStudentDialogProps {
   trigger?: React.ReactNode;
-  teacher: Teacher | null;
+  student: Student | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onEdit?: (teacher: Teacher) => void;
-  onSendEmail?: (teacher: Teacher) => void;
-  onDelete?: (teacher: Teacher) => void;
+  onEdit?: (student: Student) => void;
+  onSendEmail?: (student: Student) => void;
+  onDelete?: (student: Student) => void;
 }
 
-export const ViewTeacherDialog = ({
+export const ViewStudentDialog = ({
   trigger,
-  teacher,
+  student,
   open,
   onOpenChange,
   onEdit,
   onSendEmail,
   onDelete,
-}: ViewTeacherDialogProps) => {
+}: ViewStudentDialogProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
   const handleOpenChange = (openState: boolean) => {
@@ -80,131 +81,129 @@ export const ViewTeacherDialog = ({
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-primary">
-            Teacher Details
+            Student Details
           </DialogTitle>
           <DialogDescription>
-            View detailed information about this teacher
+            View detailed information about this student
           </DialogDescription>
         </DialogHeader>
 
-        {teacher && (
+        {student && (
           <div className="space-y-6 py-4">
-            {/* Teacher Profile Section */}
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={teacher.profileImage} alt={teacher.name} />
+                <AvatarImage src={student.profileImage} alt={student.name} />
                 <AvatarFallback className="text-lg">
-                  {teacher.name
+                  {student.name
                     .split(" ")
                     .map((n) => n[0])
                     .join("")}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg">{teacher.name}</h3>
-                <p className="text-muted-foreground">{teacher.email}</p>
+                <h3 className="font-semibold text-lg">{student.name}</h3>
+                <p className="text-muted-foreground">{student.email}</p>
                 <Badge
                   variant={
-                    teacher.status === "accepted" ? "default" : "secondary"
+                    student.status === "active" ? "default" : "secondary"
                   }
                   className={
-                    teacher.status === "accepted"
+                    student.status === "active"
                       ? "bg-green-100 text-green-800 mt-1"
+                      : student.status === "suspended"
+                      ? "bg-red-100 text-red-800 mt-1"
                       : "bg-yellow-100 text-yellow-800 mt-1"
                   }
                 >
-                  {teacher.status.charAt(0).toUpperCase() +
-                    teacher.status.slice(1)}
+                  {student.status.charAt(0).toUpperCase() +
+                    student.status.slice(1)}
                 </Badge>
               </div>
             </div>
 
-            {/* Teacher Information Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Phone
-                </label>
-                <p className="font-medium">{teacher.phone || "Not provided"}</p>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Department
+                  Student ID
                 </label>
                 <p className="font-medium">
-                  {teacher.department || "Not assigned"}
+                  {student.studentId || "Not provided"}
                 </p>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Created Exams
+                  Phone
                 </label>
-                <p className="font-medium">{teacher.createdExams}</p>
+                <p className="font-medium">{student.phone || "Not provided"}</p>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Invited Students
+                  Institution
                 </label>
-                <p className="font-medium">{teacher.invitedStudents}</p>
+                <p className="font-medium">
+                  {student.institution || "Not assigned"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Average Score
+                </label>
+                <p className="font-medium">{student.averageScore}%</p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Assigned Exams
+                </label>
+                <p className="font-medium">{student.assignedExams}</p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Completed Exams
+                </label>
+                <p className="font-medium">{student.completedExams}</p>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
                   Date Joined
                 </label>
-                <p className="font-medium">{formatDate(teacher.dateJoined)}</p>
+                <p className="font-medium">{formatDate(student.dateJoined)}</p>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
                   Last Active
                 </label>
-                <p className="font-medium">{formatDate(teacher.lastActive)}</p>
+                <p className="font-medium">{formatDate(student.lastActive)}</p>
               </div>
             </div>
-
-            {/* Subjects Section */}
-            {teacher.subjects && teacher.subjects.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Subjects
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {teacher.subjects.map((subject, index) => (
-                    <Badge key={index} variant="outline">
-                      {subject}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <div className="flex gap-2 flex-1">
-            {teacher && onEdit && (
+            {student && onEdit && (
               <Button
                 variant="outline"
-                onClick={() => onEdit(teacher)}
+                onClick={() => onEdit(student)}
                 className="flex-1 sm:flex-none"
               >
                 <Edit className="h-4 w-4" />
                 Edit
               </Button>
             )}
-            {teacher && onSendEmail && (
+            {student && onSendEmail && (
               <Button
                 variant="outline"
-                onClick={() => onSendEmail(teacher)}
+                onClick={() => onSendEmail(student)}
                 className="flex-1 sm:flex-none"
               >
                 <Mail className="h-4 w-4" />
                 Email
               </Button>
             )}
-            {teacher && onDelete && (
+            {student && onDelete && (
               <Button
                 variant="destructive"
-                onClick={() => onDelete(teacher)}
+                onClick={() => onDelete(student)}
                 className="flex-1 sm:flex-none"
               >
                 <Trash className="h-4 w-4" />
