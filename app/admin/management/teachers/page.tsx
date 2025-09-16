@@ -136,6 +136,17 @@ export default function TeachersPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
   const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    department: string;
+    phone?: string;
+    subjects: string;
+    profileImageUrl?: string;
+    expirationDate: string;
+  } | null>(null);
 
   const itemsPerPage = 5;
 
@@ -254,8 +265,21 @@ export default function TeachersPage() {
   };
 
   const handleEditTeacher = (teacher: Teacher) => {
-    // TODO: Implement edit functionality
-    console.log("Edit teacher:", teacher);
+    const editData = {
+      id: teacher.id,
+      firstName: teacher.name.split(" ")[0],
+      lastName: teacher.name.split(" ").slice(1).join(" "),
+      email: teacher.email,
+      department: teacher.department || "",
+      phone: teacher.phone,
+      subjects: teacher.subjects?.join(", ") || "",
+      profileImageUrl: teacher.profileImage,
+      expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+    };
+    setEditingTeacher(editData);
+    setIsAddTeacherOpen(true);
     setIsViewModalOpen(false);
   };
 
@@ -279,22 +303,56 @@ export default function TeachersPage() {
     phone?: string;
     subjects: string;
     profileImageUrl?: string;
+    expirationDate: string;
   }) => {
-    const newTeacher: Teacher = {
-      id: Date.now().toString(),
-      name: `${teacherData.firstName} ${teacherData.lastName}`,
-      email: teacherData.email,
-      status: "pending",
-      createdExams: 0,
-      invitedStudents: 0,
-      dateJoined: new Date(),
-      lastActive: new Date(),
-      profileImage: teacherData.profileImageUrl,
-      phone: teacherData.phone,
-      department: teacherData.department,
-      subjects: teacherData.subjects.split(",").map((s) => s.trim()),
-    };
-    setTeachers((prev) => [newTeacher, ...prev]);
+    if (editingTeacher) {
+      // Update existing teacher
+      const updatedTeacher: Teacher = {
+        id: editingTeacher.id,
+        name: `${teacherData.firstName} ${teacherData.lastName}`,
+        email: teacherData.email,
+        status:
+          teachers.find((t) => t.id === editingTeacher.id)?.status || "pending",
+        createdExams:
+          teachers.find((t) => t.id === editingTeacher.id)?.createdExams || 0,
+        invitedStudents:
+          teachers.find((t) => t.id === editingTeacher.id)?.invitedStudents ||
+          0,
+        dateJoined:
+          teachers.find((t) => t.id === editingTeacher.id)?.dateJoined ||
+          new Date(),
+        lastActive:
+          teachers.find((t) => t.id === editingTeacher.id)?.lastActive ||
+          new Date(),
+        department: teacherData.department,
+        phone: teacherData.phone,
+        subjects: teacherData.subjects.split(",").map((s) => s.trim()),
+        profileImage: teacherData.profileImageUrl,
+      };
+      setTeachers((prev) =>
+        prev.map((teacher) =>
+          teacher.id === editingTeacher.id ? updatedTeacher : teacher
+        )
+      );
+      setEditingTeacher(null);
+    } else {
+      // Add new teacher
+      const newTeacher: Teacher = {
+        id: Date.now().toString(),
+        name: `${teacherData.firstName} ${teacherData.lastName}`,
+        email: teacherData.email,
+        status: "pending",
+        createdExams: 0,
+        invitedStudents: 0,
+        dateJoined: new Date(),
+        lastActive: new Date(),
+        profileImage: teacherData.profileImageUrl,
+        phone: teacherData.phone,
+        department: teacherData.department,
+        subjects: teacherData.subjects.split(",").map((s) => s.trim()),
+      };
+      setTeachers((prev) => [newTeacher, ...prev]);
+    }
   };
 
   const toggleRowSelection = (teacherId: string) => {
@@ -522,6 +580,12 @@ export default function TeachersPage() {
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+                      <TableHead className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[120px]">
+                        <div className="flex items-center space-x-2">
+                          <span>Department</span>
+                          <ArrowUpDown className="h-4 w-4" />
+                        </div>
+                      </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[100px]"
                         onClick={() => handleSort("status")}
@@ -563,7 +627,7 @@ export default function TeachersPage() {
                   <TableBody>
                     {paginatedTeachers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7}>
+                        <TableCell colSpan={8}>
                           <EmptyState onReset={resetAllFilters} />
                         </TableCell>
                       </TableRow>
@@ -613,6 +677,9 @@ export default function TeachersPage() {
                               </div>
                             </TableCell>
                             <TableCell>{teacher.email}</TableCell>
+                            <TableCell>
+                              {teacher.department || "Not assigned"}
+                            </TableCell>
                             <TableCell>
                               <Badge
                                 variant={
@@ -751,8 +818,14 @@ export default function TeachersPage() {
 
       {/* Add Teacher Dialog */}
       <AddTeacherDialog
+        editTeacher={editingTeacher}
         isOpen={isAddTeacherOpen}
-        onOpenChange={setIsAddTeacherOpen}
+        onOpenChange={(open) => {
+          setIsAddTeacherOpen(open);
+          if (!open) {
+            setEditingTeacher(null);
+          }
+        }}
         onSaveTeacher={handleAddTeacher}
       />
 

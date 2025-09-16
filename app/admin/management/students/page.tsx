@@ -33,6 +33,7 @@ import { WarningDialog } from "@/components/WarningDialog";
 import { ViewStudentDialog } from "@/components/ViewStudentDialog";
 import { AddStudentDialog } from "@/components/AddStudentDialog";
 import studentsData from "@/data/studentsData.json";
+import examsData from "@/data/examsData.json";
 import {
   ChevronLeft,
   ChevronRight,
@@ -57,9 +58,9 @@ interface Student {
   dateJoined: Date;
   lastActive: Date;
   profileImage?: string;
-  phone?: string;
-  institution?: string;
   studentId?: string;
+  department?: string;
+  assignedExam?: string;
 }
 
 const demoStudents: Student[] = studentsData.map((student) => ({
@@ -73,10 +74,9 @@ type SortField =
   | "name"
   | "email"
   | "status"
-  | "assignedExams"
-  | "completedExams"
-  | "averageScore"
-  | "dateJoined";
+  | "department"
+  | "assignedExam"
+  | "averageScore";
 type SortOrder = "asc" | "desc";
 
 interface StatsCardProps {
@@ -137,8 +137,22 @@ export default function StudentsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    department: string;
+    selectedExam: string;
+    expirationDate: string;
+  } | null>(null);
 
   const itemsPerPage = 5;
+
+  const getExamName = (examId: string) => {
+    const exam = examsData.find((exam) => exam.id === examId);
+    return exam ? exam.name : "No exam assigned";
+  };
 
   const filteredAndSortedStudents = useMemo(() => {
     const filtered = students.filter((student) => {
@@ -183,18 +197,14 @@ export default function StudentsPage() {
         case "name":
         case "email":
         case "status":
-          aValue = a[sortField];
-          bValue = b[sortField];
+        case "department":
+        case "assignedExam":
+          aValue = a[sortField] || "";
+          bValue = b[sortField] || "";
           break;
-        case "assignedExams":
-        case "completedExams":
         case "averageScore":
           aValue = a[sortField];
           bValue = b[sortField];
-          break;
-        case "dateJoined":
-          aValue = a.dateJoined;
-          bValue = b.dateJoined;
           break;
         default:
           return 0;
@@ -254,7 +264,19 @@ export default function StudentsPage() {
   };
 
   const handleEditStudent = (student: Student) => {
-    console.log("Edit student:", student);
+    const [firstName, lastName] = student.name.split(" ");
+    setEditingStudent({
+      id: student.id,
+      firstName: firstName || "",
+      lastName: lastName || "",
+      email: student.email,
+      department: student.department || "",
+      selectedExam: student.assignedExam || "",
+      expirationDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+    });
+    setIsAddStudentOpen(true);
     setIsViewModalOpen(false);
   };
 
@@ -277,20 +299,35 @@ export default function StudentsPage() {
     selectedExam: string;
     expirationDate: string;
   }) => {
-    const newStudent: Student = {
-      id: Date.now().toString(),
-      name: `${studentData.firstName} ${studentData.lastName}`,
-      email: studentData.email,
-      status: "pending",
-      assignedExams: 1,
-      completedExams: 0,
-      averageScore: 0,
-      dateJoined: new Date(),
-      lastActive: new Date(),
-      institution: studentData.department,
-      studentId: `STU${Date.now().toString().slice(-6)}`,
-    };
-    setStudents((prev) => [newStudent, ...prev]);
+    if (editingStudent) {
+      const updatedStudent: Student = {
+        ...students.find((s) => s.id === editingStudent.id)!,
+        name: `${studentData.firstName} ${studentData.lastName}`,
+        email: studentData.email,
+        department: studentData.department,
+        assignedExam: studentData.selectedExam,
+      };
+      setStudents((prev) =>
+        prev.map((s) => (s.id === editingStudent.id ? updatedStudent : s))
+      );
+      setEditingStudent(null);
+    } else {
+      const newStudent: Student = {
+        id: Date.now().toString(),
+        name: `${studentData.firstName} ${studentData.lastName}`,
+        email: studentData.email,
+        status: "pending",
+        assignedExams: 1,
+        completedExams: 0,
+        averageScore: 0,
+        dateJoined: new Date(),
+        lastActive: new Date(),
+        studentId: `STU${Date.now().toString().slice(-6)}`,
+        department: studentData.department,
+        assignedExam: studentData.selectedExam,
+      };
+      setStudents((prev) => [newStudent, ...prev]);
+    }
   };
 
   const toggleRowSelection = (studentId: string) => {
@@ -524,37 +561,28 @@ export default function StudentsPage() {
                       </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[120px] border-r"
-                        onClick={() => handleSort("assignedExams")}
+                        onClick={() => handleSort("department")}
                       >
                         <div className="flex items-center space-x-2">
-                          <span>Assigned Exams</span>
+                          <span>Department</span>
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
                       <TableHead
-                        className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[140px] border-r"
-                        onClick={() => handleSort("completedExams")}
+                        className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[150px] border-r"
+                        onClick={() => handleSort("assignedExam")}
                       >
                         <div className="flex items-center space-x-2">
-                          <span>Completed Exams</span>
-                          <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[120px] border-r"
-                        onClick={() => handleSort("averageScore")}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span>Average Score</span>
+                          <span>Assigned Exam</span>
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[120px]"
-                        onClick={() => handleSort("dateJoined")}
+                        onClick={() => handleSort("averageScore")}
                       >
                         <div className="flex items-center space-x-2">
-                          <span>Date Joined</span>
+                          <span>Average Score</span>
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
@@ -563,7 +591,7 @@ export default function StudentsPage() {
                   <TableBody>
                     {paginatedStudents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8}>
+                        <TableCell colSpan={7}>
                           <EmptyState onReset={resetAllFilters} />
                         </TableCell>
                       </TableRow>
@@ -635,17 +663,14 @@ export default function StudentsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell className="border-r">
-                              {student.assignedExams}
+                              {student.department || "Not assigned"}
                             </TableCell>
                             <TableCell className="border-r">
-                              {student.completedExams}
+                              {student.assignedExam
+                                ? getExamName(student.assignedExam)
+                                : "No exam assigned"}
                             </TableCell>
-                            <TableCell className="border-r">
-                              {student.averageScore}%
-                            </TableCell>
-                            <TableCell>
-                              {formatDate(student.dateJoined)}
-                            </TableCell>
+                            <TableCell>{student.averageScore}%</TableCell>
                           </motion.tr>
                         ))}
                       </AnimatePresence>
@@ -707,8 +732,14 @@ export default function StudentsPage() {
       {/* Add Student Dialog */}
       <AddStudentDialog
         isOpen={isAddStudentOpen}
-        onOpenChange={setIsAddStudentOpen}
+        onOpenChange={(open) => {
+          setIsAddStudentOpen(open);
+          if (!open) {
+            setEditingStudent(null);
+          }
+        }}
         onSaveStudent={handleAddStudent}
+        editStudent={editingStudent}
       />
 
       <ViewStudentDialog

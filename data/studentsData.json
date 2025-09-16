@@ -10,9 +10,9 @@
     "dateJoined": "2024-01-15",
     "lastActive": "2024-12-10",
     "profileImage": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 123-4567",
-    "institution": "Stanford University",
-    "studentId": "STU001"
+    "studentId": "STU001",
+    "department": "CSE",
+    "assignedExam": "1"
   },
   {
     "id": "2",
@@ -24,8 +24,9 @@
     "averageScore": 72,
     "dateJoined": "2024-02-20",
     "lastActive": "2024-12-08",
-    "institution": "MIT",
-    "studentId": "STU002"
+    "studentId": "STU002",
+    "department": "BCA",
+    "assignedExam": "2"
   },
   {
     "id": "3",
@@ -38,9 +39,9 @@
     "dateJoined": "2023-11-10",
     "lastActive": "2024-12-11",
     "profileImage": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 987-6543",
-    "institution": "Stanford University",
-    "studentId": "STU003"
+    "studentId": "STU003",
+    "department": "ECE",
+    "assignedExam": "3"
   },
   {
     "id": "4",
@@ -53,9 +54,9 @@
     "dateJoined": "2023-09-05",
     "lastActive": "2024-12-11",
     "profileImage": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 234-5678",
-    "institution": "MIT",
-    "studentId": "STU004"
+    "studentId": "STU004",
+    "department": "BBA",
+    "assignedExam": "4"
   },
   {
     "id": "5",
@@ -67,8 +68,9 @@
     "averageScore": 65,
     "dateJoined": "2024-03-12",
     "lastActive": "2024-11-30",
-    "institution": "CA Institute",
-    "studentId": "STU005"
+    "studentId": "STU005",
+    "department": "CSE",
+    "assignedExam": "5"
   },
   {
     "id": "6",
@@ -81,9 +83,9 @@
     "dateJoined": "2024-01-08",
     "lastActive": "2024-12-09",
     "profileImage": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 345-6789",
-    "institution": "Stanford University",
-    "studentId": "STU006"
+    "studentId": "STU006",
+    "department": "BCA",
+    "assignedExam": "6"
   },
   {
     "id": "7",
@@ -95,8 +97,9 @@
     "averageScore": 78,
     "dateJoined": "2024-11-15",
     "lastActive": "2024-12-05",
-    "institution": "MIT",
-    "studentId": "STU007"
+    "studentId": "STU007",
+    "department": "ECE",
+    "assignedExam": "7"
   },
   {
     "id": "8",
@@ -109,9 +112,9 @@
     "dateJoined": "2023-12-03",
     "lastActive": "2024-12-10",
     "profileImage": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 456-7890",
-    "institution": "CA Institute",
-    "studentId": "STU008"
+    "studentId": "STU008",
+    "department": "BBA",
+    "assignedExam": "8"
   },
   {
     "id": "9",
@@ -124,9 +127,9 @@
     "dateJoined": "2024-02-14",
     "lastActive": "2024-12-08",
     "profileImage": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 567-8901",
-    "institution": "Stanford University",
-    "studentId": "STU009"
+    "studentId": "STU009",
+    "department": "CSE",
+    "assignedExam": "4"
   },
   {
     "id": "10",
@@ -138,8 +141,9 @@
     "averageScore": 0,
     "dateJoined": "2024-11-28",
     "lastActive": "2024-12-01",
-    "institution": "MIT",
-    "studentId": "STU010"
+    "studentId": "STU010",
+    "department": "BCA",
+    "assignedExam": "7"
   },
   {
     "id": "11",
@@ -152,9 +156,9 @@
     "dateJoined": "2023-10-20",
     "lastActive": "2024-12-11",
     "profileImage": "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 678-9012",
-    "institution": "CA Institute",
-    "studentId": "STU011"
+    "studentId": "STU011",
+    "department": "ECE",
+    "assignedExam": "3"
   },
   {
     "id": "12",
@@ -166,8 +170,9 @@
     "averageScore": 58,
     "dateJoined": "2024-04-07",
     "lastActive": "2024-11-25",
-    "institution": "Stanford University",
-    "studentId": "STU012"
+    "studentId": "STU012",
+    "department": "BBA",
+    "assignedExam": "5"
   },
   {
     "id": "13",
@@ -180,9 +185,9 @@
     "dateJoined": "2023-11-28",
     "lastActive": "2024-12-10",
     "profileImage": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 789-0123",
-    "institution": "MIT",
-    "studentId": "STU013"
+    "studentId": "STU013",
+    "department": "CSE",
+    "assignedExam": "4"
   },
   {
     "id": "14",
@@ -194,8 +199,9 @@
     "averageScore": 75,
     "dateJoined": "2024-12-01",
     "lastActive": "2024-12-03",
-    "institution": "CA Institute",
-    "studentId": "STU014"
+    "studentId": "STU014",
+    "department": "BCA",
+    "assignedExam": "7"
   },
   {
     "id": "15",
@@ -208,8 +214,8 @@
     "dateJoined": "2023-08-15",
     "lastActive": "2024-12-11",
     "profileImage": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=32&h=32&fit=crop&crop=face",
-    "phone": "+1 (555) 890-1234",
-    "institution": "Stanford University",
-    "studentId": "STU015"
+    "studentId": "STU015",
+    "department": "ECE",
+    "assignedExam": "3"
   }
 ]

@@ -179,7 +179,7 @@ export const AddStudentDialog = ({
       <DialogContent
         from="bottom"
         showCloseButton={true}
-        className="sm:max-w-[425px]"
+        className="sm:max-w-[655px]"
       >
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -194,6 +194,7 @@ export const AddStudentDialog = ({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {/* First row: firstName, lastName */}
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-2">
                 <Label htmlFor="first-name">First Name *</Label>
@@ -232,96 +233,108 @@ export const AddStudentDialog = ({
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="john.doe@university.edu"
-                className={errors.email ? "border-red-500" : ""}
-              />
-              {errors.email && (
-                <span className="text-sm text-red-500">{errors.email}</span>
-              )}
-            </div>
+            {/* Second row: email, department */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="john.doe@university.edu"
+                  className={errors.email ? "border-red-500" : ""}
+                />
+                {errors.email && (
+                  <span className="text-sm text-red-500">{errors.email}</span>
+                )}
+              </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="department">Department *</Label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) =>
-                  handleInputChange("department", value)
-                }
-              >
-                <SelectTrigger
-                  className={errors.department ? "border-red-500" : ""}
+              <div className="grid gap-2">
+                <Label htmlFor="department">Department *</Label>
+                <Select
+                  value={formData.department}
+                  onValueChange={(value) =>
+                    handleInputChange("department", value)
+                  }
                 >
-                  <SelectValue placeholder="Select a department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.code}>
-                      {dept.name} ({dept.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.department && (
-                <span className="text-sm text-red-500">
-                  {errors.department}
-                </span>
-              )}
+                  <SelectTrigger
+                    className={`!w-full ${
+                      errors.department ? "border-red-500" : ""
+                    }`}
+                  >
+                    <SelectValue placeholder="Select a department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.code}>
+                        {dept.name} ({dept.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.department && (
+                  <span className="text-sm text-red-500">
+                    {errors.department}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="exam">Select Exam *</Label>
-              <Select
-                value={formData.selectedExam}
-                onValueChange={(value) =>
-                  handleInputChange("selectedExam", value)
-                }
-              >
-                <SelectTrigger
-                  className={errors.selectedExam ? "border-red-500" : ""}
+            {/* Third row: select exam, expiration date */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2">
+                <Label htmlFor="exam">Select Exam *</Label>
+                <Select
+                  value={formData.selectedExam}
+                  onValueChange={(value) =>
+                    handleInputChange("selectedExam", value)
+                  }
                 >
-                  <SelectValue placeholder="Choose an exam" />
-                </SelectTrigger>
-                <SelectContent>
-                  {examsData.map((exam) => (
-                    <SelectItem key={exam.id} value={exam.id}>
-                      {exam.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.selectedExam && (
-                <span className="text-sm text-red-500">
-                  {errors.selectedExam}
-                </span>
-              )}
-            </div>
+                  <SelectTrigger
+                    className={`!w-full ${
+                      errors.selectedExam ? "border-red-500" : ""
+                    }`}
+                  >
+                    <SelectValue placeholder="Choose an exam" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {examsData.map((exam) => (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.selectedExam && (
+                  <span className="text-sm text-red-500">
+                    {errors.selectedExam}
+                  </span>
+                )}
+              </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="expiration-date">Expiration Date *</Label>
-              <Input
-                id="expiration-date"
-                type="date"
-                value={formData.expirationDate}
-                onChange={(e) =>
-                  handleInputChange("expirationDate", e.target.value)
-                }
-                className={errors.expirationDate ? "border-red-500" : ""}
-              />
-              {errors.expirationDate && (
-                <span className="text-sm text-red-500">
-                  {errors.expirationDate}
-                </span>
-              )}
-              <span className="text-xs text-muted-foreground">
-                Default: 2 days from today
-              </span>
+              <div className="grid gap-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="expiration-date">Expiration Date *</Label>
+                  <span className="text-xs text-muted-foreground">
+                    Default: 2 days from today
+                  </span>
+                </div>
+                <Input
+                  id="expiration-date"
+                  type="date"
+                  value={formData.expirationDate}
+                  onChange={(e) =>
+                    handleInputChange("expirationDate", e.target.value)
+                  }
+                  className={errors.expirationDate ? "border-red-500" : ""}
+                />
+                {errors.expirationDate && (
+                  <span className="text-sm text-red-500">
+                    {errors.expirationDate}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

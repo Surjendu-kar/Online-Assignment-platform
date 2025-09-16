@@ -190,7 +190,7 @@ export const AddTeacherDialog = ({
       <DialogContent
         from="bottom"
         showCloseButton={true}
-        className="sm:max-w-[425px]"
+        className="sm:max-w-[755px]"
       >
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -205,7 +205,8 @@ export const AddTeacherDialog = ({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-2">
+            {/* First row: firstName, lastName, email */}
+            <div className="grid grid-cols-4 gap-2">
               <div className="grid gap-2">
                 <Label htmlFor="first-name">First Name *</Label>
                 <Input
@@ -241,76 +242,109 @@ export const AddTeacherDialog = ({
                   </span>
                 )}
               </div>
+
+              <div className="grid gap-2 col-span-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="john.doe@university.edu"
+                  className={errors.email ? "border-red-500" : ""}
+                />
+                {errors.email && (
+                  <span className="text-sm text-red-500">{errors.email}</span>
+                )}
+              </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="john.doe@university.edu"
-                className={errors.email ? "border-red-500" : ""}
-              />
-              {errors.email && (
-                <span className="text-sm text-red-500">{errors.email}</span>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="department">Department *</Label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) =>
-                  handleInputChange("department", value)
-                }
-              >
-                <SelectTrigger
-                  className={errors.department ? "border-red-500" : ""}
+            {/* Second row: department, phone */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2">
+                <Label htmlFor="department">Department *</Label>
+                <Select
+                  value={formData.department}
+                  onValueChange={(value) =>
+                    handleInputChange("department", value)
+                  }
                 >
-                  <SelectValue placeholder="Select a department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.code}>
-                      {dept.name} ({dept.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.department && (
-                <span className="text-sm text-red-500">
-                  {errors.department}
+                  <SelectTrigger
+                    className={`!w-full ${
+                      errors.department ? "border-red-500" : ""
+                    }`}
+                  >
+                    <SelectValue placeholder="Select a department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.code}>
+                        {dept.name} ({dept.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.department && (
+                  <span className="text-sm text-red-500">
+                    {errors.department}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Phone (Optional)</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  placeholder="+1 234 567 8900"
+                />
+              </div>
+            </div>
+
+            {/* Third row: subjects, expiration date */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2">
+                <Label htmlFor="subjects">Subjects *</Label>
+                <Input
+                  id="subjects"
+                  value={formData.subjects}
+                  onChange={(e) =>
+                    handleInputChange("subjects", e.target.value)
+                  }
+                  placeholder="e.g. Mathematics, Physics, Chemistry"
+                  className={errors.subjects ? "border-red-500" : ""}
+                />
+                {errors.subjects && (
+                  <span className="text-sm text-red-500">
+                    {errors.subjects}
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  Separate multiple subjects with commas
                 </span>
-              )}
-            </div>
+              </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Phone (Optional)</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                placeholder="+1 234 567 8900"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="subjects">Subjects *</Label>
-              <Input
-                id="subjects"
-                value={formData.subjects}
-                onChange={(e) => handleInputChange("subjects", e.target.value)}
-                placeholder="e.g. Mathematics, Physics, Chemistry"
-                className={errors.subjects ? "border-red-500" : ""}
-              />
-              {errors.subjects && (
-                <span className="text-sm text-red-500">{errors.subjects}</span>
-              )}
-              <span className="text-xs text-muted-foreground">
-                Separate multiple subjects with commas
-              </span>
+              <div className="grid gap-2">
+                <Label htmlFor="expiration-date">Expiration Date *</Label>
+                <Input
+                  id="expiration-date"
+                  type="date"
+                  value={formData.expirationDate}
+                  onChange={(e) =>
+                    handleInputChange("expirationDate", e.target.value)
+                  }
+                  className={errors.expirationDate ? "border-red-500" : ""}
+                />
+                {errors.expirationDate && (
+                  <span className="text-sm text-red-500">
+                    {errors.expirationDate}
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  Default: 7 days from today
+                </span>
+              </div>
             </div>
 
             <div className="grid gap-2">
@@ -325,27 +359,6 @@ export const AddTeacherDialog = ({
                 }
                 placeholder="https://example.com/image.jpg"
               />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="expiration-date">Expiration Date *</Label>
-              <Input
-                id="expiration-date"
-                type="date"
-                value={formData.expirationDate}
-                onChange={(e) =>
-                  handleInputChange("expirationDate", e.target.value)
-                }
-                className={errors.expirationDate ? "border-red-500" : ""}
-              />
-              {errors.expirationDate && (
-                <span className="text-sm text-red-500">
-                  {errors.expirationDate}
-                </span>
-              )}
-              <span className="text-xs text-muted-foreground">
-                Default: 7 days from today
-              </span>
             </div>
           </div>
 

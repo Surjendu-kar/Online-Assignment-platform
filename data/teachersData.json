@@ -10,7 +10,7 @@
     "lastActive": "2024-12-10",
     "profileImage": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
     "phone": "+1 (555) 123-4567",
-    "department": "Mathematics",
+    "department": "CSE",
     "subjects": ["Algebra", "Calculus"]
   },
   {
@@ -22,7 +22,7 @@
     "invitedStudents": 32,
     "dateJoined": "2024-02-20",
     "lastActive": "2024-12-08",
-    "department": "Science",
+    "department": "BCA",
     "subjects": ["Chemistry", "Biology"]
   },
   {
@@ -36,7 +36,7 @@
     "lastActive": "2024-12-11",
     "profileImage": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face",
     "phone": "+1 (555) 987-6543",
-    "department": "English",
+    "department": "BBA",
     "subjects": ["Literature", "Grammar"]
   },
   {
@@ -48,7 +48,7 @@
     "invitedStudents": 28,
     "dateJoined": "2024-03-05",
     "lastActive": "2024-12-09",
-    "department": "History",
+    "department": "ECE",
     "subjects": ["World History", "Geography"]
   },
   {
@@ -62,7 +62,7 @@
     "lastActive": "2024-12-05",
     "profileImage": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=32&h=32&fit=crop&crop=face",
     "phone": "+1 (555) 456-7890",
-    "department": "Physical Education",
+    "department": "BCA",
     "subjects": ["Sports", "Health"]
   },
   {
@@ -76,7 +76,7 @@
     "lastActive": "2024-12-11",
     "profileImage": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=32&h=32&fit=crop&crop=face",
     "phone": "+1 (555) 234-5678",
-    "department": "Computer Science",
+    "department": "CSE",
     "subjects": ["Programming", "Data Structures"]
   },
   {
@@ -88,7 +88,7 @@
     "invitedStudents": 22,
     "dateJoined": "2024-10-15",
     "lastActive": "2024-12-07",
-    "department": "Art",
+    "department": "BBA",
     "subjects": ["Drawing", "Painting"]
   },
   {
@@ -102,7 +102,7 @@
     "lastActive": "2024-12-10",
     "profileImage": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=32&h=32&fit=crop&crop=face",
     "phone": "+1 (555) 345-6789",
-    "department": "Music",
+    "department": "BCA",
     "subjects": ["Piano", "Music Theory"]
   },
   {
@@ -114,7 +114,7 @@
     "invitedStudents": 41,
     "dateJoined": "2024-04-18",
     "lastActive": "2024-12-09",
-    "department": "Physics",
+    "department": "ECE",
     "subjects": ["Mechanics", "Thermodynamics"]
   },
   {
@@ -128,7 +128,7 @@
     "lastActive": "2024-12-06",
     "profileImage": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=32&h=32&fit=crop&crop=face",
     "phone": "+1 (555) 456-7891",
-    "department": "Spanish",
+    "department": "BBA",
     "subjects": ["Spanish Language", "Literature"]
   },
   {
@@ -142,7 +142,7 @@
     "lastActive": "2024-12-11",
     "profileImage": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=32&h=32&fit=crop&crop=face",
     "phone": "+1 (555) 567-8901",
-    "department": "Geography",
+    "department": "ECE",
     "subjects": ["World Geography", "Environmental Science"]
   },
   {
@@ -154,7 +154,7 @@
     "invitedStudents": 34,
     "dateJoined": "2024-05-10",
     "lastActive": "2024-12-08",
-    "department": "Psychology",
+    "department": "BCA",
     "subjects": ["General Psychology", "Development"]
   }
 ]
