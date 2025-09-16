@@ -374,6 +374,7 @@ export default function TeachersPage() {
   };
 
   const handleDeleteSelected = () => {
+    setTeacherToDelete(null); // Clear single delete state
     setIsDeleteModalOpen(true);
   };
 
@@ -383,6 +384,7 @@ export default function TeachersPage() {
       prev.filter((teacher) => !selectedIds.includes(teacher.id))
     );
     setSelectedRows(new Set());
+    setTeacherToDelete(null); // Clear single delete state
     // Reset to first page if current page becomes empty
     const remainingTeachers = teachers.filter(
       (teacher) => !selectedIds.includes(teacher.id)
@@ -394,6 +396,7 @@ export default function TeachersPage() {
   };
 
   const handleDeleteSingle = (teacher: Teacher) => {
+    setSelectedRows(new Set()); // Clear bulk selection state
     setTeacherToDelete(teacher);
     setIsDeleteModalOpen(true);
   };

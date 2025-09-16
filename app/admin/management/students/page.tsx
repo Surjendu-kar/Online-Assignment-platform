@@ -349,6 +349,7 @@ export default function StudentsPage() {
   };
 
   const handleDeleteSelected = () => {
+    setStudentToDelete(null); // Clear single delete state
     setIsDeleteModalOpen(true);
   };
 
@@ -358,6 +359,7 @@ export default function StudentsPage() {
       prev.filter((student) => !selectedIds.includes(student.id))
     );
     setSelectedRows(new Set());
+    setStudentToDelete(null); // Clear single delete state
     const remainingStudents = students.filter(
       (student) => !selectedIds.includes(student.id)
     );
@@ -368,6 +370,7 @@ export default function StudentsPage() {
   };
 
   const handleDeleteSingle = (student: Student) => {
+    setSelectedRows(new Set()); // Clear bulk selection state
     setStudentToDelete(student);
     setIsDeleteModalOpen(true);
   };
