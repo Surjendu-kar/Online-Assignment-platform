@@ -136,6 +136,10 @@ const DATA = {
           title: "Students",
           url: "/admin/management/students",
         },
+        {
+          title: "Exams",
+          url: "/admin/management/exams",
+        },
       ],
     },
     {

@@ -1,34 +1,90 @@
 [
   {
     "id": "1",
-    "name": "Mathematics Final Exam"
+    "name": "Mathematics Final Exam",
+    "subject": "Mathematics",
+    "duration": 120,
+    "totalQuestions": 50,
+    "maxScore": 100,
+    "status": "active",
+    "createdDate": "2024-01-15",
+    "assignedStudents": 25
   },
   {
     "id": "2",
-    "name": "Physics Midterm"
+    "name": "Physics Midterm",
+    "subject": "Physics",
+    "duration": 90,
+    "totalQuestions": 30,
+    "maxScore": 75,
+    "status": "active",
+    "createdDate": "2024-02-10",
+    "assignedStudents": 18
   },
   {
     "id": "3",
-    "name": "Chemistry Lab Test"
+    "name": "Chemistry Lab Test",
+    "subject": "Chemistry",
+    "duration": 60,
+    "totalQuestions": 20,
+    "maxScore": 50,
+    "status": "draft",
+    "createdDate": "2024-03-05",
+    "assignedStudents": 0
   },
   {
     "id": "4",
-    "name": "Computer Science Project"
+    "name": "Computer Science Project",
+    "subject": "Computer Science",
+    "duration": 180,
+    "totalQuestions": 5,
+    "maxScore": 100,
+    "status": "active",
+    "createdDate": "2024-01-20",
+    "assignedStudents": 32
   },
   {
     "id": "5",
-    "name": "Business Ethics Quiz"
+    "name": "Business Ethics Quiz",
+    "subject": "Business",
+    "duration": 45,
+    "totalQuestions": 25,
+    "maxScore": 50,
+    "status": "active",
+    "createdDate": "2024-02-28",
+    "assignedStudents": 22
   },
   {
     "id": "6",
-    "name": "English Literature Essay"
+    "name": "English Literature Essay",
+    "subject": "English",
+    "duration": 120,
+    "totalQuestions": 3,
+    "maxScore": 100,
+    "status": "draft",
+    "createdDate": "2024-03-12",
+    "assignedStudents": 0
   },
   {
     "id": "7",
-    "name": "Database Management Systems"
+    "name": "Database Management Systems",
+    "subject": "Computer Science",
+    "duration": 90,
+    "totalQuestions": 40,
+    "maxScore": 80,
+    "status": "active",
+    "createdDate": "2024-01-30",
+    "assignedStudents": 28
   },
   {
     "id": "8",
-    "name": "Accounting Fundamentals"
+    "name": "Accounting Fundamentals",
+    "subject": "Business",
+    "duration": 75,
+    "totalQuestions": 35,
+    "maxScore": 70,
+    "status": "archived",
+    "createdDate": "2023-12-15",
+    "assignedStudents": 15
   }
 ]
