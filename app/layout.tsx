@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "react-hot-toast";
 import ConditionalSidebar from "@/components/ConditionalSidebar";
 import "./globals.css";
 
@@ -36,6 +37,32 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ConditionalSidebar>{children}</ConditionalSidebar>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: "hsl(var(--card))",
+                color: "hsl(var(--card-foreground))",
+                border: "1px solid hsl(var(--border))",
+                boxShadow: "0 4px 12px hsl(var(--shadow) / 0.15)",
+              },
+              success: {
+                style: {
+                  background: "hsl(var(--card))",
+                  color: "hsl(var(--card-foreground))",
+                  border: "1px solid hsl(142 76% 36%)",
+                },
+              },
+              error: {
+                style: {
+                  background: "hsl(var(--card))",
+                  color: "hsl(var(--card-foreground))",
+                  border: "1px solid hsl(0 84% 60%)",
+                },
+              },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -270,9 +271,12 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const breadcrumbs = generateBreadcrumbs(pathname);
 
   // Check if current path belongs to a navigation section
-  const isPathInSection = (sectionPath: string): boolean => {
-    return pathname.startsWith(sectionPath);
-  };
+  const isPathInSection = useCallback(
+    (sectionPath: string): boolean => {
+      return pathname.startsWith(sectionPath);
+    },
+    [pathname]
+  );
 
   // State to manage which section is open
   const [openSection, setOpenSection] = React.useState(() => {
@@ -287,7 +291,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     if (currentSection) {
       setOpenSection(currentSection.title);
     }
-  }, [pathname]);
+  }, [pathname, isPathInSection]);
 
   const handleAddDepartment = (department: DepartmentFormData): void => {
     const newDepartment: Department = {

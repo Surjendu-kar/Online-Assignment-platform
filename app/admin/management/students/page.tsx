@@ -396,14 +396,6 @@ export default function StudentsPage() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}

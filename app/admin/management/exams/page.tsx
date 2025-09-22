@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import toast from "react-hot-toast";
 import {
   Table,
   TableBody,
@@ -29,6 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import examsData from "@/data/examsData.json";
+import { AddExamDialog } from "@/components/AddExamDialog";
 import {
   ChevronLeft,
   ChevronRight,
@@ -42,15 +44,32 @@ import {
   FileText,
 } from "lucide-react";
 
+interface Question {
+  id: string;
+  type: "mcq" | "saq" | "coding";
+  question: string;
+  points: number;
+  options?: string[];
+  correctAnswer?: number;
+  gradingGuidelines?: string;
+  programmingLanguage?: string;
+  testCases?: { input: string; output: string }[];
+  codeTemplate?: string;
+  order?: number;
+}
+
 interface Exam {
   id: string;
   name: string;
+  startDate?: string;
+  endDate?: string;
   duration?: number;
   totalQuestions?: number;
   maxScore?: number;
   status?: "active" | "draft" | "archived";
   createdDate?: Date;
   assignedStudents?: number;
+  questions?: Question[];
 }
 
 const demoExams: Exam[] = examsData.map((exam) => ({
@@ -114,6 +133,8 @@ export default function ExamsPage() {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [isAddExamOpen, setIsAddExamOpen] = useState(false);
+  const [editingExam, setEditingExam] = useState<Exam | null>(null);
 
   const itemsPerPage = 5;
 
@@ -212,6 +233,81 @@ export default function ExamsPage() {
     }
   };
 
+  const handleAddExam = (examData: {
+    name: string;
+    startDate: string;
+    endDate: string;
+    duration: number;
+    questions: Question[];
+  }) => {
+    if (editingExam) {
+      // Update existing exam
+      const updatedExam: Exam = {
+        ...editingExam,
+        name: examData.name,
+        startDate: examData.startDate,
+        endDate: examData.endDate,
+        duration: examData.duration,
+        questions: examData.questions,
+        totalQuestions: examData.questions.length,
+        maxScore: examData.questions.reduce(
+          (total, q) => total + (q.points || 0),
+          0
+        ),
+      };
+      setExams((prev) =>
+        prev.map((exam) => (exam.id === editingExam.id ? updatedExam : exam))
+      );
+      setEditingExam(null);
+
+      toast.success(`Exam "${examData.name}" updated successfully!`, {
+        duration: 4000,
+        position: "top-right",
+      });
+    } else {
+      // Add new exam
+      const newExam: Exam = {
+        id: Date.now().toString(),
+        name: examData.name,
+        startDate: examData.startDate,
+        endDate: examData.endDate,
+        duration: examData.duration,
+        questions: examData.questions,
+        totalQuestions: examData.questions.length,
+        maxScore: examData.questions.reduce(
+          (total, q) => total + (q.points || 0),
+          0
+        ),
+        status: "draft",
+        createdDate: new Date(),
+        assignedStudents: 0,
+      };
+      setExams((prev) => [newExam, ...prev]);
+
+      // Navigate to first page to show the new exam
+      setCurrentPage(1);
+
+      // Show success toast
+      toast.success(
+        `Exam "${examData.name}" created successfully! It appears on page 1.`,
+        {
+          duration: 4000,
+          position: "top-right",
+        }
+      );
+    }
+  };
+
+  const handleEditExam = (exam: Exam) => {
+    setEditingExam(exam);
+    setIsAddExamOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsAddExamOpen(false);
+    setEditingExam(null);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -259,7 +355,7 @@ export default function ExamsPage() {
                   Manage all exams in your institution
                 </CardDescription>
               </div>
-              <Button>
+              <Button onClick={() => setIsAddExamOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Create New Exam
               </Button>
@@ -346,6 +442,11 @@ export default function ExamsPage() {
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+                      <TableHead className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[180px] border-r">
+                        <div className="flex items-center space-x-2">
+                          <span>Schedule</span>
+                        </div>
+                      </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[100px] border-r"
                         onClick={() => handleSort("status")}
@@ -369,7 +470,7 @@ export default function ExamsPage() {
                   <TableBody>
                     {paginatedExams.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5}>
+                        <TableCell colSpan={6}>
                           <EmptyState onReset={resetAllFilters} />
                         </TableCell>
                       </TableRow>
@@ -388,6 +489,7 @@ export default function ExamsPage() {
                             transition={{ duration: 0.3, delay: index * 0.05 }}
                             layout
                             className="border-b transition-all duration-200 hover:bg-muted/30 hover:shadow-sm data-[state=selected]:bg-muted group cursor-pointer"
+                            onClick={() => handleEditExam(exam)}
                           >
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <Checkbox
@@ -411,6 +513,39 @@ export default function ExamsPage() {
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3 text-muted-foreground" />
                                 {exam.duration || 60} min
+                              </div>
+                            </TableCell>
+                            <TableCell className="border-r">
+                              <div className="space-y-1 text-xs">
+                                {exam.startDate && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-muted-foreground">
+                                      Start:
+                                    </span>
+                                    <span>
+                                      {new Date(
+                                        exam.startDate
+                                      ).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                                {exam.endDate && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-muted-foreground">
+                                      End:
+                                    </span>
+                                    <span>
+                                      {new Date(
+                                        exam.endDate
+                                      ).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                                {!exam.startDate && !exam.endDate && (
+                                  <span className="text-muted-foreground">
+                                    Not scheduled
+                                  </span>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell className="border-r">
@@ -497,6 +632,24 @@ export default function ExamsPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <AddExamDialog
+        isOpen={isAddExamOpen}
+        onOpenChange={handleCloseDialog}
+        onSaveExam={handleAddExam}
+        editExam={
+          editingExam
+            ? {
+                id: editingExam.id,
+                name: editingExam.name,
+                startDate: editingExam.startDate || "",
+                endDate: editingExam.endDate || "",
+                duration: editingExam.duration || 60,
+                questions: editingExam.questions || [],
+              }
+            : null
+        }
+      />
     </motion.div>
   );
 }

@@ -8,7 +8,10 @@
     "maxScore": 100,
     "status": "active",
     "createdDate": "2024-01-15",
-    "assignedStudents": 25
+    "assignedStudents": 25,
+    "startDate": "2024-05-15T09:00",
+    "endDate": "2024-05-15T11:00",
+    "questions": []
   },
   {
     "id": "2",
@@ -19,7 +22,10 @@
     "maxScore": 75,
     "status": "active",
     "createdDate": "2024-02-10",
-    "assignedStudents": 18
+    "assignedStudents": 18,
+    "startDate": "2024-05-20T10:00",
+    "endDate": "2024-05-20T11:30",
+    "questions": []
   },
   {
     "id": "3",
@@ -30,7 +36,10 @@
     "maxScore": 50,
     "status": "draft",
     "createdDate": "2024-03-05",
-    "assignedStudents": 0
+    "assignedStudents": 0,
+    "startDate": "",
+    "endDate": "",
+    "questions": []
   },
   {
     "id": "4",
@@ -41,7 +50,10 @@
     "maxScore": 100,
     "status": "active",
     "createdDate": "2024-01-20",
-    "assignedStudents": 32
+    "assignedStudents": 32,
+    "startDate": "2024-05-25T14:00",
+    "endDate": "2024-05-25T17:00",
+    "questions": []
   },
   {
     "id": "5",
@@ -52,7 +64,10 @@
     "maxScore": 50,
     "status": "active",
     "createdDate": "2024-02-28",
-    "assignedStudents": 22
+    "assignedStudents": 22,
+    "startDate": "2024-05-18T08:00",
+    "endDate": "2024-05-18T08:45",
+    "questions": []
   },
   {
     "id": "6",
@@ -63,7 +78,10 @@
     "maxScore": 100,
     "status": "draft",
     "createdDate": "2024-03-12",
-    "assignedStudents": 0
+    "assignedStudents": 0,
+    "startDate": "",
+    "endDate": "",
+    "questions": []
   },
   {
     "id": "7",
@@ -74,7 +92,10 @@
     "maxScore": 80,
     "status": "active",
     "createdDate": "2024-01-30",
-    "assignedStudents": 28
+    "assignedStudents": 28,
+    "startDate": "2024-05-22T13:00",
+    "endDate": "2024-05-22T14:30",
+    "questions": []
   },
   {
     "id": "8",
@@ -85,6 +106,9 @@
     "maxScore": 70,
     "status": "archived",
     "createdDate": "2023-12-15",
-    "assignedStudents": 15
+    "assignedStudents": 15,
+    "startDate": "2023-12-20T09:00",
+    "endDate": "2023-12-20T10:15",
+    "questions": []
   }
 ]
