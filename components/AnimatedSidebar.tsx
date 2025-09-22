@@ -168,10 +168,6 @@ const DATA = {
       icon: BookOpen,
       items: [
         {
-          title: "Invitations",
-          url: "/admin/communications/invitations",
-        },
-        {
           title: "Notifications",
           url: "/admin/communications/notifications",
         },

@@ -11,7 +11,12 @@ export default function ConditionalSidebar({
   const pathname = usePathname();
 
   // Pages that should not show the sidebar
-  const noSidebarPages = ["/login", "/teacher_signup"];
+  const noSidebarPages = [
+    "/login",
+    "/teacher_signup",
+    "/student-invitation",
+    "/teacher-invitation",
+  ];
 
   // Check if current path starts with any no-sidebar path
   const shouldShowSidebar = !noSidebarPages.some((path) =>

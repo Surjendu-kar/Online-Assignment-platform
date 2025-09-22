@@ -64,6 +64,28 @@ function ThemeTogglerButton({
   ...props
 }: ThemeTogglerButtonProps) {
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return (
+      <button
+        data-slot="theme-toggler-button"
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          "relative overflow-hidden hover:bg-accent/50 transition-all duration-300"
+        )}
+        disabled
+        {...props}
+      >
+        <Sun className="size-4 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] dark:text-yellow-400 dark:drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]" />
+      </button>
+    );
+  }
 
   return (
     <ThemeTogglerPrimitive

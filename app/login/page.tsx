@@ -4,8 +4,8 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Eye, EyeOff } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
+import { PasswordToggle } from "@/components/ui/password-toggle";
 
 function Login() {
   const [showPassword, setShowPassword] = React.useState(false);
@@ -55,32 +55,11 @@ function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <AnimatePresence>
-                {password && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.2 }}
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    <motion.div
-                      key={showPassword ? "hide" : "show"}
-                      initial={{ rotateY: 90 }}
-                      animate={{ rotateY: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-blue-400 dark:text-blue-300" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-blue-400 dark:text-blue-300" />
-                      )}
-                    </motion.div>
-                  </motion.button>
-                )}
-              </AnimatePresence>
+              <PasswordToggle
+                showPassword={showPassword}
+                onToggle={() => setShowPassword(!showPassword)}
+                hasValue={!!password}
+              />
             </div>
           </LabelInputContainer>
 
