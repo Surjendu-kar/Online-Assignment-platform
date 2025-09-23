@@ -15,13 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader2, CheckCircle, AlertCircle, GraduationCap } from "lucide-react";
 import toast from "react-hot-toast";
 import departmentsData from "@/data/departmentsData.json";
@@ -89,7 +82,7 @@ export default function TeacherInvitationPage() {
         }
 
         setInvitation(mockInvitation);
-      } catch (err) {
+      } catch {
         setError("Invalid or expired invitation token");
       } finally {
         setLoading(false);
@@ -147,7 +140,7 @@ export default function TeacherInvitationPage() {
 
       // Redirect to teacher dashboard or login
       router.push("/login?role=teacher&success=account-created");
-    } catch (err) {
+    } catch {
       toast.error("Failed to create account. Please try again.");
     } finally {
       setSubmitting(false);

@@ -13,13 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader2, CheckCircle, AlertCircle, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import departmentsData from "@/data/departmentsData.json";
@@ -91,7 +84,7 @@ export default function StudentInvitationPage() {
         }
 
         setInvitation(mockInvitation);
-      } catch (err) {
+      } catch {
         setError("Invalid or expired invitation token");
       } finally {
         setLoading(false);
@@ -149,7 +142,7 @@ export default function StudentInvitationPage() {
 
       // Redirect to student dashboard or login
       router.push("/login?role=student&success=account-created");
-    } catch (err) {
+    } catch {
       toast.error("Failed to create account. Please try again.");
     } finally {
       setSubmitting(false);
