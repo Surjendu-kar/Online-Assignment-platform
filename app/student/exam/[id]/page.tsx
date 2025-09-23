@@ -590,8 +590,9 @@ export default function StudentExamPage() {
                         setCurrentQuestion(Math.max(0, currentQuestion - 1))
                       }
                       disabled={currentQuestion === 0}
+                      className="cursor-pointer"
                     >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      <ArrowLeft className="h-4 w-4" />
                       Previous
                     </Button>
 
@@ -601,14 +602,14 @@ export default function StudentExamPage() {
                       onClick={() => toggleFlag(currentQ.id)}
                       className={
                         answers[currentQ.id]?.flagged
-                          ? "bg-red-100 border-red-300"
-                          : ""
+                          ? "bg-red-100 border-red-300 cursor-pointer"
+                          : "cursor-pointer"
                       }
                     >
                       {answers[currentQ.id]?.flagged ? (
-                        <GrFlagFill className="h-4 w-4 mr-2" />
+                        <GrFlagFill className="h-4 w-4" />
                       ) : (
-                        <GrFlag className="h-4 w-4 mr-2" />
+                        <GrFlag className="h-4 w-4" />
                       )}
                       Mark
                     </Button>
@@ -626,9 +627,10 @@ export default function StudentExamPage() {
                         currentQuestion === examSession.totalQuestions - 1 ||
                         !answers[currentQ.id]?.answer?.trim()
                       }
+                      className="cursor-pointer"
                     >
                       Next
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                      <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
@@ -718,7 +720,7 @@ export default function StudentExamPage() {
 
               <Button
                 variant="destructive"
-                className="w-full hover:bg-red-600 hover:scale-105 transition-all duration-200"
+                className="cursor-pointer w-full hover:bg-red-600 hover:scale-105 transition-all duration-200"
                 onClick={handleSubmitExam}
               >
                 Submit Exam
@@ -747,13 +749,17 @@ export default function StudentExamPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowWarning(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowWarning(false)}
+              className="cursor-pointer"
+            >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={confirmSubmit}
-              className="hover:bg-red-600 hover:scale-105 transition-all duration-200"
+              className="cursor-pointer hover:bg-red-600 hover:scale-105 transition-all duration-200"
             >
               Submit
             </Button>
