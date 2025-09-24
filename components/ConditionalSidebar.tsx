@@ -19,9 +19,9 @@ export default function ConditionalSidebar({
   ];
 
   // Check if current path starts with any no-sidebar path
-  const shouldShowSidebar = !noSidebarPages.some((path) =>
-    pathname.startsWith(path)
-  );
+  const shouldShowSidebar =
+    !noSidebarPages.some((path) => pathname.startsWith(path)) &&
+    !pathname.includes("/start");
 
   if (shouldShowSidebar) {
     return <AnimatedSidebar>{children}</AnimatedSidebar>;
