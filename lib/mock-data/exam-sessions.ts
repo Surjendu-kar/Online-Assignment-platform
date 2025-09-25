@@ -1,6 +1,6 @@
 export interface Question {
   id: string;
-  type: "multiple-choice" | "essay" | "true-false";
+  type: "mcq" | "saq" | "coding";
   question: string;
   options?: string[];
   points: number;
@@ -35,65 +35,66 @@ export const mockExamSessions: { [key: string]: ExamSession } = {
     totalPoints: 100,
     passingScore: 70,
     questions: [
-      {
+       {
         id: "q1",
-        type: "multiple-choice",
+        type: "coding",
+        question:
+          "Write a function to solve quadratic equations. The function should take coefficients a, b, c as parameters and return the roots.",
+        points: 20,
+      },
+      {
+        id: "q2",
+        type: "mcq",
         question: "What is the derivative of f(x) = x² + 3x + 2?",
         options: ["2x + 3", "x² + 3", "2x + 2", "x + 3"],
         points: 5,
       },
       {
-        id: "q2",
-        type: "multiple-choice",
+        id: "q3",
+        type: "mcq",
         question: "Which of the following is a prime number?",
         options: ["15", "21", "17", "25"],
         points: 5,
       },
       {
-        id: "q3",
-        type: "essay",
+        id: "q4",
+        type: "saq",
         question:
           "Explain the fundamental theorem of calculus and provide an example of its application.",
         points: 15,
       },
       {
-        id: "q4",
-        type: "true-false",
+        id: "q5",
+        type: "mcq",
         question: "The integral of sin(x) is -cos(x) + C.",
         options: ["True", "False"],
         points: 3,
       },
       {
-        id: "q5",
-        type: "multiple-choice",
+        id: "q6",
+        type: "mcq",
         question: "What is the value of π (pi) to 3 decimal places?",
         options: ["3.141", "3.142", "3.143", "3.140"],
         points: 5,
       },
-      {
-        id: "q6",
-        type: "essay",
-        question:
-          "Describe three different methods for solving quadratic equations and give an example for each.",
-        points: 20,
-      },
+     
       {
         id: "q7",
-        type: "multiple-choice",
+        type: "mcq",
         question: "If f(x) = 2x + 1, what is f(3)?",
         options: ["5", "6", "7", "8"],
         points: 5,
       },
       {
         id: "q8",
-        type: "true-false",
+        type: "mcq",
         question: "A function can have more than one y-intercept.",
         options: ["True", "False"],
         points: 3,
       },
       {
         id: "q9",
-        type: "multiple-choice",
+        type: "mcq",
         question:
           "What is the slope of the line passing through points (2, 3) and (4, 7)?",
         options: ["2", "3", "4", "1"],
@@ -101,7 +102,7 @@ export const mockExamSessions: { [key: string]: ExamSession } = {
       },
       {
         id: "q10",
-        type: "essay",
+        type: "saq",
         question:
           "Prove that the sum of the first n natural numbers is n(n+1)/2.",
         points: 25,
@@ -123,14 +124,14 @@ export const mockExamSessions: { [key: string]: ExamSession } = {
     questions: [
       {
         id: "q1",
-        type: "multiple-choice",
+        type: "mcq",
         question: "What is the unit of force in the SI system?",
         options: ["Newton", "Joule", "Watt", "Pascal"],
         points: 5,
       },
       {
         id: "q2",
-        type: "multiple-choice",
+        type: "mcq",
         question:
           "Which law states that for every action, there is an equal and opposite reaction?",
         options: [
@@ -143,22 +144,23 @@ export const mockExamSessions: { [key: string]: ExamSession } = {
       },
       {
         id: "q3",
-        type: "essay",
+        type: "saq",
         question:
           "Calculate the force required to accelerate a 10 kg object at 5 m/s². Show your work.",
         points: 15,
       },
       {
         id: "q4",
-        type: "true-false",
+        type: "mcq",
         question: "Velocity is a scalar quantity.",
         options: ["True", "False"],
         points: 3,
       },
       {
         id: "q5",
-        type: "essay",
-        question: "Explain the concept of momentum and provide the formula.",
+        type: "coding",
+        question:
+          "Write a function to calculate momentum given mass and velocity.",
         points: 12,
       },
     ],

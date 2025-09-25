@@ -93,11 +93,11 @@ export default function StudentExamOverviewPage() {
 
   const getQuestionTypeIcon = (type: string) => {
     switch (type) {
-      case "multiple-choice":
+      case "mcq":
         return <CheckCircle className="h-4 w-4 text-blue-500" />;
-      case "essay":
+      case "saq":
         return <FileText className="h-4 w-4 text-green-500" />;
-      case "true-false":
+      case "coding":
         return <Target className="h-4 w-4 text-purple-500" />;
       default:
         return <FileText className="h-4 w-4 text-gray-500" />;
@@ -182,7 +182,13 @@ export default function StudentExamOverviewPage() {
                         <div className="flex items-center space-x-2">
                           {getQuestionTypeIcon(type)}
                           <span className="capitalize text-sm">
-                            {type.replace("-", " ")}
+                            {type === "mcq"
+                              ? "Multiple Choice"
+                              : type === "saq"
+                              ? "Short Answer"
+                              : type === "coding"
+                              ? "Coding"
+                              : type.replace("-", " ")}
                           </span>
                         </div>
                         <Badge variant="outline">{count} questions</Badge>
