@@ -76,7 +76,7 @@ print("Hello, World!")
 # Function example
 def solve(input_data):
     # Your code here
-    return result
+    return input_data
 
 # Test your function
 result = solve("test input")
@@ -206,7 +206,6 @@ export default function ExamStartPage() {
   const [fontSize, setFontSize] = useState(14);
   const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'vs-light'>('vs-dark');
   const [isFullscreen, setIsFullscreen] = useState<{ [key: string]: boolean }>({});
-  const [autoSaveEnabled] = useState(true);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const editorRef = useRef<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null);
   const { theme } = useTheme();
@@ -221,32 +220,7 @@ export default function ExamStartPage() {
     setLoading(false);
   }, [examId]);
   
-  // Auto-save effect
-  useEffect(() => {
-    if (!autoSaveEnabled) return;
-    
-    const autoSaveInterval = setInterval(() => {
-      // Save current answers to localStorage
-      if (Object.keys(answers).length > 0) {
-        localStorage.setItem(`exam_${examId}_answers`, JSON.stringify(answers));
-      }
-    }, 3000); // Auto-save every 3 seconds
-    
-    return () => clearInterval(autoSaveInterval);
-  }, [answers, examId, autoSaveEnabled]);
-  
-  // Load saved answers on mount
-  useEffect(() => {
-    const savedAnswers = localStorage.getItem(`exam_${examId}_answers`);
-    if (savedAnswers) {
-      try {
-        const parsed = JSON.parse(savedAnswers);
-        setAnswers(parsed);
-      } catch (e) {
-        console.error('Failed to load saved answers:', e);
-      }
-    }
-  }, [examId]);
+  // Auto-save effect - Removed localStorage to prevent exam integrity issues
   
   // Initialize templates for coding questions
   useEffect(() => {
@@ -254,7 +228,7 @@ export default function ExamStartPage() {
       setAnswers(prevAnswers => {
         const newAnswers = { ...prevAnswers };
         examSession.questions.forEach(question => {
-          if (question.type === 'coding' && !newAnswers[question.id]?.answer) {
+          if (question.type === 'coding' && !newAnswers[question.id]) {
             const defaultLanguage = 'javascript';
             newAnswers[question.id] = {
               questionId: question.id,
@@ -325,11 +299,8 @@ export default function ExamStartPage() {
       [questionId]: newLanguage,
     }));
     
-    // Update code template when language changes
-    const currentAnswer = answers[questionId]?.answer || '';
-    if (!currentAnswer.trim() || Object.values(CODE_TEMPLATES).includes(currentAnswer)) {
-      handleAnswerChange(questionId, CODE_TEMPLATES[newLanguage]);
-    }
+    // Always update template when language changes to ensure consistency
+    handleAnswerChange(questionId, CODE_TEMPLATES[newLanguage]);
   };
   
   const formatCode = () => {
