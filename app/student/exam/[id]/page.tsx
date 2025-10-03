@@ -203,7 +203,7 @@ export default function StudentExamOverviewPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <Card>
+          <Card className="gap-3">
             <CardHeader>
               <CardTitle className="text-sm">Quick Stats</CardTitle>
             </CardHeader>
@@ -235,41 +235,41 @@ export default function StudentExamOverviewPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="gap-3">
             <CardHeader>
               <CardTitle className="text-sm">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button
-                className="w-full hover:scale-105 transition-all duration-200"
+                className="w-full hover:scale-105 transition-all duration-200 cursor-pointer"
                 onClick={startExam}
                 disabled={navigating}
               >
                 {navigating ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Starting Exam...
                   </>
                 ) : (
                   <>
-                    <Play className="h-4 w-4 mr-2" />
+                    <Play className="h-4 w-4" />
                     Start Exam
                   </>
                 )}
               </Button>
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full cursor-pointer"
                 onClick={() => router.push("/student")}
                 disabled={navigating}
               >
-                <Home className="h-4 w-4 mr-2" />
+                <Home className="h-4 w-4" />
                 Back to Dashboard
               </Button>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="gap-3">
             <CardHeader>
               <CardTitle className="text-sm">Instructor</CardTitle>
             </CardHeader>

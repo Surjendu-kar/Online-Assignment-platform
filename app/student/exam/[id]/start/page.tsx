@@ -55,129 +55,7 @@ import {
   mockExamSessions,
   type ExamSession,
 } from "@/lib/mock-data/exam-sessions";
-
-// Code templates for different languages
-const CODE_TEMPLATES: Record<string, string> = {
-  javascript: `// JavaScript Template
-console.log("Hello, World!");
-
-// Function example
-function solve(input) {
-    // Your code here
-    return input;
-}
-
-// Test your function
-const result = solve("test input");
-console.log(result);`,
-  python: `# Python Template
-print("Hello, World!")
-
-# Function example
-def solve(input_data):
-    # Your code here
-    return input_data
-
-# Test your function
-result = solve("test input")
-print(result)`,
-  java: `// Java Template
-public class Solution {
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
-        
-        // Test your solution
-        Solution sol = new Solution();
-        String result = sol.solve("test input");
-        System.out.println(result);
-    }
-    
-    public String solve(String input) {
-        // Your code here
-        return "result";
-    }
-}`,
-  cpp: `// C++ Template
-#include <iostream>
-#include <string>
-using namespace std;
-
-string solve(string input) {
-    // Your code here
-    return "result";
-}
-
-int main() {
-    cout << "Hello, World!" << endl;
-    
-    // Test your solution
-    string result = solve("test input");
-    cout << result << endl;
-    
-    return 0;
-}`,
-  c: `// C Template
-#include <stdio.h>
-#include <string.h>
-
-void solve(char* input, char* output) {
-    // Your code here
-    strcpy(output, "result");
-}
-
-int main() {
-    printf("Hello, World!\\n");
-    
-    // Test your solution
-    char result[100];
-    solve("test input", result);
-    printf("%s\\n", result);
-    
-    return 0;
-}`,
-  ruby: `# Ruby Template
-puts "Hello, World!"
-
-# Method example
-def solve(input)
-    # Your code here
-    return "result"
-end
-
-# Test your method
-result = solve("test input")
-puts result`,
-  go: `// Go Template
-package main
-
-import "fmt"
-
-func solve(input string) string {
-    // Your code here
-    return "result"
-}
-
-func main() {
-    fmt.Println("Hello, World!")
-    
-    // Test your function
-    result := solve("test input")
-    fmt.Println(result)
-}`,
-  rust: `// Rust Template
-fn solve(input: &str) -> String {
-    // Your code here
-    String::from("result")
-}
-
-fn main() {
-    println!("Hello, World!");
-    
-    // Test your function
-    let result = solve("test input");
-    println!("{}", result);
-}`
-};
+import { CODE_TEMPLATES, LANGUAGE_CONFIG } from "@/data/codeTemplates";
 
 interface Answer {
   questionId: string;
@@ -757,54 +635,14 @@ export default function ExamStartPage() {
                                   <SelectValue placeholder="Language" />
                                 </SelectTrigger>
                                 <SelectContent className={editorTheme === 'vs-dark' ? 'bg-[#2D2D30] border-[#3C3C3C]' : 'bg-white border-[#CCCCCC]'}>
-                                  <SelectItem value="javascript" className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                    <span className="flex items-center space-x-2">
-                                      <span className="w-2 h-2 rounded-full bg-[#F7DF1E]"></span>
-                                      <span>JavaScript</span>
-                                    </span>
-                                  </SelectItem>
-                                  <SelectItem value="python" className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                    <span className="flex items-center space-x-2">
-                                      <span className="w-2 h-2 rounded-full bg-[#3776AB]"></span>
-                                      <span>Python</span>
-                                    </span>
-                                  </SelectItem>
-                                  <SelectItem value="java" className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                    <span className="flex items-center space-x-2">
-                                      <span className="w-2 h-2 rounded-full bg-[#ED8B00]"></span>
-                                      <span>Java</span>
-                                    </span>
-                                  </SelectItem>
-                                  <SelectItem value="cpp" className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                    <span className="flex items-center space-x-2">
-                                      <span className="w-2 h-2 rounded-full bg-[#00599C]"></span>
-                                      <span>C++</span>
-                                    </span>
-                                  </SelectItem>
-                                  <SelectItem value="c" className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                    <span className="flex items-center space-x-2">
-                                      <span className="w-2 h-2 rounded-full bg-[#A8B9CC]"></span>
-                                      <span>C</span>
-                                    </span>
-                                  </SelectItem>
-                                  <SelectItem value="ruby" className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                    <span className="flex items-center space-x-2">
-                                      <span className="w-2 h-2 rounded-full bg-[#CC342D]"></span>
-                                      <span>Ruby</span>
-                                    </span>
-                                  </SelectItem>
-                                  <SelectItem value="go" className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                    <span className="flex items-center space-x-2">
-                                      <span className="w-2 h-2 rounded-full bg-[#00ADD8]"></span>
-                                      <span>Go</span>
-                                    </span>
-                                  </SelectItem>
-                                  <SelectItem value="rust" className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                    <span className="flex items-center space-x-2">
-                                      <span className="w-2 h-2 rounded-full bg-[#CE422B]"></span>
-                                      <span>Rust</span>
-                                    </span>
-                                  </SelectItem>
+                                  {Object.entries(LANGUAGE_CONFIG).map(([key, config]) => (
+                                    <SelectItem key={key} value={key} className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
+                                      <span className="flex items-center space-x-2">
+                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }}></span>
+                                        <span>{config.name}</span>
+                                      </span>
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                           </div>
