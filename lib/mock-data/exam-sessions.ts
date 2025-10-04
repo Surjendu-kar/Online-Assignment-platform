@@ -165,4 +165,111 @@ export const mockExamSessions: { [key: string]: ExamSession } = {
       },
     ],
   },
+  "3": {
+    id: "3",
+    title: "Chemistry Lab Report",
+    subject: "Chemistry",
+    totalQuestions: 8,
+    timeLimit: 90,
+    startTime: new Date(),
+    instructions:
+      "Complete the chemistry lab report questions. Show all calculations and explain your reasoning.",
+    teacher: "Dr. Williams",
+    totalPoints: 100,
+    passingScore: 70,
+    questions: [
+      {
+        id: "q1",
+        type: "saq",
+        question:
+          "Explain the process of titration and its applications in analytical chemistry.",
+        points: 20,
+      },
+      {
+        id: "q2",
+        type: "mcq",
+        question: "What is the pH of a neutral solution at 25°C?",
+        options: ["0", "7", "14", "10"],
+        points: 5,
+      },
+      {
+        id: "q3",
+        type: "coding",
+        question:
+          "Write a function to calculate the molarity of a solution given moles of solute and volume in liters.",
+        points: 15,
+      },
+      {
+        id: "q4",
+        type: "saq",
+        question:
+          "Describe the difference between exothermic and endothermic reactions with examples.",
+        points: 20,
+      },
+      {
+        id: "q5",
+        type: "mcq",
+        question: "Which element has the highest electronegativity?",
+        options: ["Oxygen", "Fluorine", "Nitrogen", "Chlorine"],
+        points: 5,
+      },
+      {
+        id: "q6",
+        type: "mcq",
+        question: "The atomic number of carbon is 6.",
+        options: ["True", "False"],
+        points: 3,
+      },
+      {
+        id: "q7",
+        type: "saq",
+        question:
+          "Explain the concept of chemical equilibrium and Le Chatelier's principle.",
+        points: 22,
+      },
+      {
+        id: "q8",
+        type: "mcq",
+        question: "What is the formula for water?",
+        options: ["H2O", "CO2", "NaCl", "O2"],
+        points: 10,
+      },
+    ],
+  },
+  "4": {
+    id: "4",
+    title: "English Literature Essay",
+    subject: "English",
+    totalQuestions: 3,
+    timeLimit: 180,
+    startTime: new Date(),
+    instructions:
+      "Write comprehensive essays on the given topics. Each essay should be well-structured with introduction, body paragraphs, and conclusion.",
+    teacher: "Prof. Brown",
+    totalPoints: 100,
+    passingScore: 70,
+    questions: [
+      {
+        id: "q1",
+        type: "saq",
+        question:
+          "Analyze the themes of power and corruption in Shakespeare's 'Macbeth'. Support your analysis with specific examples from the text.",
+        points: 35,
+      },
+      {
+        id: "q2",
+        type: "saq",
+        question:
+          "Discuss the role of symbolism in F. Scott Fitzgerald's 'The Great Gatsby'. How do symbols contribute to the novel's critique of the American Dream?",
+        points: 35,
+      },
+      {
+        id: "q3",
+        type: "saq",
+        question:
+          "Compare and contrast the protagonists in 'Pride and Prejudice' and 'Jane Eyre'. How do their journeys reflect the social constraints of their respective time periods?",
+        points: 30,
+      },
+    ],
+  },
 };

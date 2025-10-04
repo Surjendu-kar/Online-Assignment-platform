@@ -3,12 +3,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export default function StudentPage() {
+export default function TeacherPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to the dashboard
-    router.replace("/student/dashboard");
+    // Redirect to the first item (Students under Management)
+    router.replace("/teacher/management/students");
   }, [router]);
 
   return null;

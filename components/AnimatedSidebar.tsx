@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -69,12 +69,18 @@ import {
   Trash2,
   Edit,
   MoreVertical,
+  User,
+  FileText,
+  Calendar,
+  BarChart3,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 import { DepartmentDialog } from "@/components/DepartmentDialog";
 import departmentsData from "@/data/departmentsData.json";
+import { supabase } from "@/lib/supabase/client";
+import { signOut } from '@/lib/auth';
 
 interface Department {
   id: string;
@@ -96,6 +102,16 @@ interface Breadcrumb {
   isLast: boolean;
 }
 
+interface NavItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType;
+  items?: {
+    title: string;
+    url: string;
+  }[];
+}
+
 // Map departments data to include logos
 const DEPARTMENTS_WITH_LOGOS = departmentsData.map((dept) => ({
   ...dept,
@@ -115,15 +131,9 @@ const DEPARTMENTS_WITH_LOGOS = departmentsData.map((dept) => ({
       : GalleryVerticalEnd,
 }));
 
-const DATA = {
-  user: {
-    name: "John Smith",
-    email: "john.smith@university.edu",
-    role: "Admin",
-    avatar: "",
-  },
-  departments: DEPARTMENTS_WITH_LOGOS,
-  navMain: [
+// Define navigation items for different roles
+const NAV_ITEMS: Record<string, NavItem[]> = {
+  admin: [
     {
       title: "Management",
       url: "/admin/management",
@@ -146,7 +156,7 @@ const DATA = {
     {
       title: "Analytics",
       url: "/admin/analytics",
-      icon: Bot,
+      icon: BarChart3,
       items: [
         {
           title: "Platform Stats",
@@ -205,7 +215,59 @@ const DATA = {
       ],
     },
   ],
-  recentItems: [
+  teacher: [
+    {
+      title: "Management",
+      url: "/teacher/management",
+      icon: SquareTerminal,
+      items: [
+        {
+          title: "Students",
+          url: "/teacher/management/students",
+        },
+        {
+          title: "Exams",
+          url: "/teacher/management/exams",
+        },
+      ],
+    },
+    {
+      title: "Analytics",
+      url: "/teacher/analytics",
+      icon: BarChart3,
+      items: [
+        {
+          title: "Student Performance",
+          url: "/teacher/analytics/performance",
+        },
+        {
+          title: "Exam Results",
+          url: "/teacher/analytics/results",
+        },
+      ],
+    },
+  ],
+  student: [
+    {
+      title: "Dashboard",
+      url: "/student/dashboard",
+      icon: SquareTerminal,
+    },
+    {
+      title: "Exams",
+      url: "/student/exams",
+      icon: FileText,
+    },
+    {
+      title: "Results",
+      url: "/student/results",
+      icon: BarChart3,
+    },
+  ],
+};
+
+const RECENT_ITEMS: Record<string, any[]> = {
+  admin: [
     {
       name: "Recent Assignments",
       url: "/admin/recent-assignments",
@@ -217,6 +279,30 @@ const DATA = {
       icon: Map,
     },
   ],
+  teacher: [
+    {
+      name: "Recent Exams",
+      url: "/teacher/recent-exams",
+      icon: Frame,
+    },
+    {
+      name: "Pending Invitations",
+      url: "/teacher/pending-invitations",
+      icon: Map,
+    },
+  ],
+  student: [
+    {
+      name: "Upcoming Exams",
+      url: "/student/upcoming-exams",
+      icon: Calendar,
+    },
+    {
+      name: "Recent Results",
+      url: "/student/recent-results",
+      icon: BarChart3,
+    },
+  ],
 };
 
 // Helper function to generate breadcrumbs from pathname
@@ -224,12 +310,12 @@ function generateBreadcrumbs(pathname: string): Breadcrumb[] {
   const segments = pathname.split("/").filter(Boolean);
   const breadcrumbs: Breadcrumb[] = [];
 
-  // Skip 'admin' prefix for admin routes to avoid redundant breadcrumbs
-  if (segments[0] === "admin") {
-    segments.shift(); // Remove 'admin' from segments
+  // Skip role prefix for breadcrumbs
+  if (segments[0] === "admin" || segments[0] === "teacher" || segments[0] === "student") {
+    segments.shift(); // Remove role from segments
   }
 
-  let currentPath = "/admin"; // Start from admin base
+  let currentPath = pathname.split("/").slice(0, 2).join("/"); // Start from role base
 
   for (let i = 0; i < segments.length; i++) {
     currentPath += `/${segments[i]}`;
@@ -251,20 +337,159 @@ function generateBreadcrumbs(pathname: string): Breadcrumb[] {
   return breadcrumbs;
 }
 
+// Extract sidebar content to prevent unnecessary re-renders
+const SidebarContentMemo = React.memo(({
+  navItems,
+  recentItems,
+  pathname,
+  openSection,
+  setOpenSection,
+  isPathInSection
+}: {
+  navItems: NavItem[];
+  recentItems: any[];
+  pathname: string;
+  openSection: string;
+  setOpenSection: (section: string) => void;
+  isPathInSection: (sectionPath: string) => boolean;
+}) => {
+  const isMobile = useIsMobile();
+  
+  return (
+    <>
+      <SidebarGroup>
+        <SidebarGroupLabel>Platform</SidebarGroupLabel>
+        <SidebarMenu>
+          {navItems.map((item: NavItem) => (
+            item.items && item.items.length > 0 ? (
+              // Items with sub-items (use collapsible)
+              <Collapsible
+                key={item.title}
+                asChild
+                open={openSection === item.title}
+                onOpenChange={(isOpen) => {
+                  if (isOpen) {
+                    setOpenSection(item.title);
+                  } else if (openSection === item.title) {
+                    setOpenSection("");
+                  }
+                }}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={item.title}>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.items?.map((subItem: { title: string; url: string }) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={pathname === subItem.url}
+                          >
+                            <Link href={subItem.url}>
+                              <span>{subItem.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            ) : (
+              // Items without sub-items (simple link)
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.url}
+                  tooltip={item.title}
+                >
+                  <Link href={item.url}>
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          ))}
+        </SidebarMenu>
+      </SidebarGroup>
+      <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+        <SidebarGroupLabel>Quick Access</SidebarGroupLabel>
+        <SidebarMenu>
+          {recentItems.map((item: any) => (
+            <SidebarMenuItem key={item.name}>
+              <SidebarMenuButton asChild isActive={pathname === item.url}>
+                <Link href={item.url}>
+                  <item.icon />
+                  <span>{item.name}</span>
+                </Link>
+              </SidebarMenuButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuAction showOnHover>
+                    <MoreHorizontal />
+                    <span className="sr-only">More</span>
+                  </SidebarMenuAction>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-48 rounded-lg"
+                  side={isMobile ? "bottom" : "right"}
+                  align={isMobile ? "end" : "start"}
+                >
+                  <DropdownMenuItem>
+                    <Folder className="text-muted-foreground" />
+                    <span>View Project</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Forward className="text-muted-foreground" />
+                    <span>Share Project</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Trash2 className="text-muted-foreground" />
+                    <span>Delete Project</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          ))}
+          <SidebarMenuItem>
+            <SidebarMenuButton className="text-sidebar-foreground/70">
+              <MoreHorizontal className="text-sidebar-foreground/70" />
+              <span>More</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroup>
+    </>
+  );
+});
+
 export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
   const [departments, setDepartments] = React.useState<Department[]>(
-    DATA.departments
+    DEPARTMENTS_WITH_LOGOS
   );
   const [activeDepartment, setActiveDepartment] = React.useState<Department>(
-    DATA.departments[0]
+    DEPARTMENTS_WITH_LOGOS[0]
   );
   const [editingDepartment, setEditingDepartment] =
     React.useState<Department | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userData, setUserData] = useState<any>(null);
 
-  const breadcrumbs = generateBreadcrumbs(pathname);
+  const breadcrumbs = useMemo(() => {
+    return generateBreadcrumbs(pathname);
+  }, [pathname]);
 
   // Check if current path belongs to a navigation section
   const isPathInSection = useCallback(
@@ -275,21 +500,78 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   );
 
   // State to manage which section is open
-  const [openSection, setOpenSection] = React.useState(() => {
-    return DATA.navMain.find((item) => isPathInSection(item.url))?.title || "";
+  const [openSection, setOpenSection] = React.useState<string>(() => {
+    if (userRole) {
+      return NAV_ITEMS[userRole]?.find((item) => isPathInSection(item.url))?.title || "";
+    }
+    return "";
   });
 
-  // Update open section when pathname changes
-  React.useEffect(() => {
-    const currentSection = DATA.navMain.find((item) =>
-      isPathInSection(item.url)
-    );
-    if (currentSection) {
-      setOpenSection(currentSection.title);
-    }
-  }, [pathname, isPathInSection]);
+  // Fetch user data and role
+  useEffect(() => {
+    // First, try to get role from localStorage
+    const storedRole = localStorage.getItem('userRole');
+    const storedFirstName = localStorage.getItem('userFirstName') || '';
+    const storedLastName = localStorage.getItem('userLastName') || '';
+    
+    if (storedRole) {
+      setUserRole(storedRole.toLowerCase());
+      setUserData({
+        first_name: storedFirstName,
+        last_name: storedLastName,
+        role: storedRole
+      });
+    } else {
+      // Fallback to API call if localStorage doesn't have the role
+      const fetchUserData = async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            // Get user profile to determine role
+            const { data: profileData, error: profileError } = await supabase
+              .from('user_profiles')
+              .select('role, first_name, last_name')
+              .eq('id', user.id)
+              .single();
+            
+            if (!profileError && profileData) {
+              setUserRole(profileData.role.toLowerCase());
+              setUserData({
+                ...user,
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+                role: profileData.role
+              });
+              
+              // Also store in localStorage for future use
+              localStorage.setItem('userRole', profileData.role);
+              localStorage.setItem('userFirstName', profileData.first_name || '');
+              localStorage.setItem('userLastName', profileData.last_name || '');
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      };
 
-  const handleAddDepartment = (department: DepartmentFormData): void => {
+      fetchUserData();
+    }
+  }, []); // Empty dependency array means this runs only once
+
+  // Update open section when pathname or userRole changes
+  useEffect(() => {
+    if (userRole) {
+      const currentSection = NAV_ITEMS[userRole]?.find((item) =>
+        isPathInSection(item.url)
+      );
+      if (currentSection) {
+        setOpenSection(currentSection.title);
+      }
+    }
+  }, [pathname, isPathInSection, userRole]);
+
+  // Memoize department functions to prevent unnecessary re-renders
+  const handleAddDepartment = useCallback((department: DepartmentFormData): void => {
     const newDepartment: Department = {
       id: department.code.toLowerCase(),
       name: department.name,
@@ -298,10 +580,9 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
       logo: GalleryVerticalEnd,
     };
     setDepartments((prev) => [...prev, newDepartment]);
-    console.log("Department added:", newDepartment);
-  };
+  }, []);
 
-  const handleUpdateDepartment = (department: DepartmentFormData): void => {
+  const handleUpdateDepartment = useCallback((department: DepartmentFormData): void => {
     if (!editingDepartment) return;
 
     const updatedDepartment: Department = {
@@ -323,23 +604,22 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     }
 
     setEditingDepartment(null);
-    console.log("Department updated:", updatedDepartment);
-  };
+  }, [activeDepartment.id, editingDepartment]);
 
-  const handleSaveDepartment = (department: DepartmentFormData): void => {
+  const handleSaveDepartment = useCallback((department: DepartmentFormData): void => {
     if (editingDepartment) {
       handleUpdateDepartment(department);
     } else {
       handleAddDepartment(department);
     }
-  };
+  }, [editingDepartment, handleAddDepartment, handleUpdateDepartment]);
 
-  const handleEditDepartment = (department: Department): void => {
+  const handleEditDepartment = useCallback((department: Department): void => {
     setEditingDepartment(department);
     setIsEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteDepartment = (department: Department): void => {
+  const handleDeleteDepartment = useCallback((department: Department): void => {
     if (
       window.confirm(
         `Are you sure you want to delete ${department.name} department?`
@@ -351,12 +631,19 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
 
       // If the deleted department was active, switch to "All Departments"
       if (activeDepartment.id === department.id) {
-        setActiveDepartment(departments[0]); // "All Departments"
+        setActiveDepartment(DEPARTMENTS_WITH_LOGOS[0]); // "All Departments"
       }
-
-      console.log("Department deleted:", department);
     }
-  };
+  }, [activeDepartment.id]);
+
+  // Memoize navigation items to prevent unnecessary re-renders
+  const navItems = useMemo(() => {
+    return userRole ? NAV_ITEMS[userRole] || [] : [];
+  }, [userRole]);
+  
+  const recentItems = useMemo(() => {
+    return userRole ? RECENT_ITEMS[userRole] || [] : [];
+  }, [userRole]);
 
   return (
     <SidebarProvider>
@@ -497,100 +784,14 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Admin Platform</SidebarGroupLabel>
-            <SidebarMenu>
-              {DATA.navMain.map((item) => (
-                <Collapsible
-                  key={item.title}
-                  asChild
-                  open={openSection === item.title}
-                  onOpenChange={(isOpen) => {
-                    if (isOpen) {
-                      setOpenSection(item.title);
-                    } else if (openSection === item.title) {
-                      setOpenSection("");
-                    }
-                  }}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items?.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={pathname === subItem.url}
-                            >
-                              <Link href={subItem.url}>
-                                <span>{subItem.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel>Projects</SidebarGroupLabel>
-            <SidebarMenu>
-              {DATA.recentItems.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <SidebarMenuAction showOnHover>
-                        <MoreHorizontal />
-                        <span className="sr-only">More</span>
-                      </SidebarMenuAction>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      className="w-48 rounded-lg"
-                      side={isMobile ? "bottom" : "right"}
-                      align={isMobile ? "end" : "start"}
-                    >
-                      <DropdownMenuItem>
-                        <Folder className="text-muted-foreground" />
-                        <span>View Project</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Forward className="text-muted-foreground" />
-                        <span>Share Project</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <Trash2 className="text-muted-foreground" />
-                        <span>Delete Project</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuItem>
-              ))}
-              <SidebarMenuItem>
-                <SidebarMenuButton className="text-sidebar-foreground/70">
-                  <MoreHorizontal className="text-sidebar-foreground/70" />
-                  <span>More</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
+          <SidebarContentMemo 
+            navItems={navItems}
+            recentItems={recentItems}
+            pathname={pathname}
+            openSection={openSection}
+            setOpenSection={setOpenSection}
+            isPathInSection={isPathInSection}
+          />
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
@@ -603,17 +804,20 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                   >
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage
-                        src={DATA.user.avatar}
-                        alt={DATA.user.name}
+                        src={userData?.user_metadata?.avatar_url || ""}
+                        alt={userData?.first_name || "User"}
                       />
-                      <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                      <AvatarFallback className="rounded-lg">
+                        {userData?.first_name?.charAt(0) || "U"}
+                        {userData?.last_name?.charAt(0) || "U"}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {DATA.user.name}
+                        {userData?.first_name} {userData?.last_name}
                       </span>
                       <span className="truncate text-xs">
-                        {DATA.user.email}
+                        {userData?.email}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4" />
@@ -629,19 +833,20 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                       <Avatar className="h-8 w-8 rounded-lg">
                         <AvatarImage
-                          src={DATA.user.avatar}
-                          alt={DATA.user.name}
+                          src={userData?.user_metadata?.avatar_url || ""}
+                          alt={userData?.first_name || "User"}
                         />
                         <AvatarFallback className="rounded-lg">
-                          CN
+                          {userData?.first_name?.charAt(0) || "U"}
+                          {userData?.last_name?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
                         <span className="truncate font-semibold">
-                          {DATA.user.name}
+                          {userData?.first_name} {userData?.last_name}
                         </span>
                         <span className="truncate text-xs">
-                          {DATA.user.email}
+                          {userData?.email}
                         </span>
                       </div>
                     </div>
@@ -649,27 +854,14 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem>
-                      <Sparkles />
-                      Upgrade to Pro
+                      <User />
+                      Profile
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem>
-                      <BadgeCheck />
-                      Account
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <CreditCard />
-                      Billing
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Bell />
-                      Notifications
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    await signOut();
+                  }}>
                     <LogOut />
                     Log out
                   </DropdownMenuItem>
@@ -687,7 +879,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="-ml-1" />
             <Breadcrumb>
               <BreadcrumbList>
-                {breadcrumbs.map((breadcrumb, index) => (
+                {breadcrumbs.map((breadcrumb: Breadcrumb, index: number) => (
                   <React.Fragment key={breadcrumb.url}>
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}

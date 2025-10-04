@@ -6,14 +6,56 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 import { PasswordToggle } from "@/components/ui/password-toggle";
+import { signIn, getRedirectPath } from "@/lib/auth";
+import { supabase } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 function Login() {
   const [showPassword, setShowPassword] = React.useState(false);
+  const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Login form submitted");
+    setLoading(true);
+    
+    try {
+      const { data, error } = await signIn(email, password);
+      
+      if (error) {
+        toast.error(error.message || "Failed to sign in");
+        setLoading(false);
+        return;
+      }
+      
+      if (data?.user) {
+        // Get user role from localStorage (set in signIn function)
+        const userRole = localStorage.getItem('userRole') || 'student';
+        
+        // Use existing getRedirectPath function with the correct parameter
+        const redirectPath = getRedirectPath({ role: userRole });
+        console.log("Redirecting to:", redirectPath);
+        
+        // Trigger redirect animation
+        setIsRedirecting(true);
+        
+        // Redirect after animation completes
+        setTimeout(() => {
+          router.push(redirectPath);
+        }, 300);
+        
+        toast.success("Signed in successfully");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,9 +66,12 @@ function Login() {
       className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-[#020618]"
     >
       <motion.div
-        initial={{ scale: 0.95 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={isRedirecting ? 
+          { opacity: 0, scale: 0.95, filter: "blur(10px)" } : 
+          { scale: 1, opacity: 1 }
+        }
+        transition={{ duration: 0.3 }}
         className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-[#0f172b]"
       >
         <h2 className="text-xl text-center font-bold text-neutral-800 dark:text-neutral-200">
@@ -43,6 +88,9 @@ function Login() {
               id="email"
               placeholder="your.email@university.edu"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </LabelInputContainer>
           <LabelInputContainer className="mb-8">
@@ -54,6 +102,7 @@ function Login() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
               <PasswordToggle
                 showPassword={showPassword}
@@ -69,8 +118,9 @@ function Login() {
             transition={{ duration: 0.2 }}
             className="group/btn relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-600 font-medium text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-gradient-to-br dark:from-[#020618] dark:to-[#0f172b] dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset]"
             type="submit"
+            disabled={loading || isRedirecting}
           >
-            Sign in &rarr;
+            {loading ? "Signing in..." : "Sign in"} &rarr;
             <BottomGradient />
           </motion.button>
         </form>

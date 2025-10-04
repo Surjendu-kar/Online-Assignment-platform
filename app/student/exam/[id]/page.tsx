@@ -80,7 +80,7 @@ export default function StudentExamOverviewPage() {
             </p>
             <Button
               className="w-full mt-4"
-              onClick={() => router.push("/student")}
+              onClick={() => router.push("/student/dashboard")}
             >
               <Home className="h-4 w-4 mr-2" />
               Go Back
@@ -260,7 +260,7 @@ export default function StudentExamOverviewPage() {
               <Button
                 variant="outline"
                 className="w-full cursor-pointer"
-                onClick={() => router.push("/student")}
+                onClick={() => router.push("/student/dashboard")}
                 disabled={navigating}
               >
                 <Home className="h-4 w-4" />

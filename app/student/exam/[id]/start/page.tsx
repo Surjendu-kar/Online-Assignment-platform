@@ -247,7 +247,7 @@ export default function ExamStartPage() {
 
     // Auto redirect to dashboard after 3 seconds
     setTimeout(() => {
-      router.push("/student");
+      router.push("/student/dashboard");
     }, 3000);
   };
 
@@ -285,10 +285,21 @@ export default function ExamStartPage() {
       let error = false;
 
       if (result.success) {
-        output = `🟢 Execution completed successfully\n\n${result.output.trim()}\n\n✨ Program finished with exit code 0\n⏱️  Time: ${result.time || '0'}s | Memory: ${result.memory || '0'}KB`;
+        output = `🟢 Execution completed successfully
+
+${result.output.trim()}
+
+✨ Program finished with exit code 0
+⏱️  Time: ${result.time || '0'}s | Memory: ${result.memory || '0'}KB`;
       } else {
         error = true;
-        output = `🔴 Execution failed\n\n❌ ${result.status}\n\n${result.output.trim()}\n\n💡 Check your code and try again`;
+        output = `🔴 Execution failed
+
+❌ ${result.status}
+
+${result.output.trim()}
+
+💡 Check your code and try again`;
       }
 
       setCodeOutput((prev) => ({
@@ -304,7 +315,11 @@ export default function ExamStartPage() {
         ...prev,
         [questionId]: {
           language,
-          output: `🔴 Network Error\n\n❌ ${(err as Error).message}\n\n💡 Check your internet connection and try again`,
+          output: `🔴 Network Error
+
+❌ ${(err as Error).message}
+
+💡 Check your internet connection and try again`,
           error: true,
         },
       }));
@@ -348,7 +363,7 @@ export default function ExamStartPage() {
             </p>
             <Button
               className="w-full mt-4"
-              onClick={() => router.push("/student")}
+              onClick={() => router.push("/student/dashboard")}
             >
               <Home className="h-4 w-4 mr-2" />
               Go Back
@@ -407,7 +422,7 @@ export default function ExamStartPage() {
             {!redirecting && (
               <Button
                 className="w-full"
-                onClick={() => router.push("/student")}
+                onClick={() => router.push("/student/dashboard")}
               >
                 <Home className="h-4 w-4 mr-2" />
                 Return to Dashboard
