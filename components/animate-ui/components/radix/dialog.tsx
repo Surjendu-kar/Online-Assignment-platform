@@ -24,10 +24,18 @@ import {
 import { cn } from '@/lib/utils';
 import { XIcon } from 'lucide-react';
 
-type DialogProps = DialogPrimitiveProps;
+type DialogProps = DialogPrimitiveProps & {
+  disableCloseOnClickOutside?: boolean;
+  closeOnEscape?: boolean;
+};
 
-function Dialog(props: DialogProps) {
-  return <DialogPrimitive {...props} />;
+function Dialog({ disableCloseOnClickOutside = false, closeOnEscape = true, ...props }: DialogProps) {
+  return (
+    <DialogPrimitive 
+      modal={disableCloseOnClickOutside ? true : props.modal}
+      {...props} 
+    />
+  );
 }
 
 type DialogTriggerProps = DialogTriggerPrimitiveProps;
@@ -42,12 +50,15 @@ function DialogClose(props: DialogCloseProps) {
   return <DialogClosePrimitive {...props} />;
 }
 
-type DialogOverlayProps = DialogOverlayPrimitiveProps;
+type DialogOverlayProps = DialogOverlayPrimitiveProps & {
+  disableCloseOnClickOutside?: boolean;
+};
 
-function DialogOverlay({ className, ...props }: DialogOverlayProps) {
+function DialogOverlay({ className, disableCloseOnClickOutside = false, ...props }: DialogOverlayProps) {
   return (
     <DialogOverlayPrimitive
       className={cn('fixed inset-0 z-50 bg-black/50', className)}
+      onClick={disableCloseOnClickOutside ? (e) => e.preventDefault() : undefined}
       {...props}
     />
   );
@@ -55,24 +66,26 @@ function DialogOverlay({ className, ...props }: DialogOverlayProps) {
 
 type DialogContentProps = DialogContentPrimitiveProps & {
   showCloseButton?: boolean;
+  disableCloseOnClickOutside?: boolean;
 };
 
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  disableCloseOnClickOutside = false,
   ...props
-}: DialogContentProps & {
-  showCloseButton?: boolean;
-}) {
+}: DialogContentProps) {
   return (
     <DialogPortalPrimitive>
-      <DialogOverlay />
+      <DialogOverlay disableCloseOnClickOutside={disableCloseOnClickOutside} />
       <DialogContentPrimitive
         className={cn(
           "bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg sm:max-w-lg",
           className
         )}
+        onPointerDownOutside={disableCloseOnClickOutside ? (e) => e.preventDefault() : undefined}
+        onInteractOutside={disableCloseOnClickOutside ? (e) => e.preventDefault() : undefined}
         {...props}
       >
         {children}

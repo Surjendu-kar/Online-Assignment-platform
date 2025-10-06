@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
+import { ProfileChecker } from "@/components/ProfileChecker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +37,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ProfileChecker>
+            {children}
+          </ProfileChecker>
           <Toaster
             position="top-center"
             toastOptions={{
