@@ -49,12 +49,16 @@ export default function RootLayout({
                 color: "hsl(var(--card-foreground))",
                 border: "1px solid hsl(var(--border))",
                 boxShadow: "0 4px 12px hsl(var(--shadow) / 0.15)",
+                backdropFilter: "blur(30px)",
+                WebkitBackdropFilter: "blur(30px)",
               },
               success: {
                 style: {
                   background: "hsl(var(--card))",
                   color: "hsl(var(--card-foreground))",
                   border: "1px solid hsl(142 76% 36%)",
+                  backdropFilter: "blur(30px)",
+                  WebkitBackdropFilter: "blur(30px)",
                 },
               },
               error: {
@@ -62,6 +66,8 @@ export default function RootLayout({
                   background: "hsl(var(--card))",
                   color: "hsl(var(--card-foreground))",
                   border: "1px solid hsl(0 84% 60%)",
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
                 },
               },
             }}

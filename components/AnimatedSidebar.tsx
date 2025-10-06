@@ -81,6 +81,8 @@ import { DepartmentDialog } from "@/components/DepartmentDialog";
 import departmentsData from "@/data/departmentsData.json";
 import { supabase } from "@/lib/supabase/client";
 import { signOut } from '@/lib/auth';
+import toast from 'react-hot-toast';
+import { WarningDialog } from "@/components/WarningDialog";
 
 interface Department {
   id: string;
@@ -112,23 +114,27 @@ interface NavItem {
   }[];
 }
 
+interface RecentItem {
+  name: string;
+  url: string;
+  icon: React.ComponentType;
+}
+
+interface UserProfile {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  role?: string;
+  user_metadata?: {
+    avatar_url?: string;
+  };
+}
+
 // Map departments data to include logos
 const DEPARTMENTS_WITH_LOGOS = departmentsData.map((dept) => ({
   ...dept,
-  logo:
-    dept.code === "ALL"
-      ? GalleryVerticalEnd
-      : dept.code === "BCA"
-      ? SquareTerminal
-      : dept.code === "BBA"
-      ? AudioWaveform
-      : dept.code === "CSE"
-      ? Bot
-      : dept.code === "ECE"
-      ? BookOpen
-      : dept.code === "MBA"
-      ? Settings2
-      : GalleryVerticalEnd,
+  logo: GalleryVerticalEnd,
 }));
 
 // Define navigation items for different roles
@@ -266,7 +272,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
 };
 
-const RECENT_ITEMS: Record<string, any[]> = {
+const RECENT_ITEMS: Record<string, RecentItem[]> = {
   admin: [
     {
       name: "Recent Assignments",
@@ -347,7 +353,7 @@ const SidebarContentMemo = React.memo(({
   isPathInSection
 }: {
   navItems: NavItem[];
-  recentItems: any[];
+  recentItems: RecentItem[];
   pathname: string;
   openSection: string;
   setOpenSection: (section: string) => void;
@@ -423,7 +429,7 @@ const SidebarContentMemo = React.memo(({
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel>Quick Access</SidebarGroupLabel>
         <SidebarMenu>
-          {recentItems.map((item: any) => (
+          {recentItems.map((item: RecentItem) => (
             <SidebarMenuItem key={item.name}>
               <SidebarMenuButton asChild isActive={pathname === item.url}>
                 <Link href={item.url}>
@@ -475,17 +481,16 @@ const SidebarContentMemo = React.memo(({
 export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
-  const [departments, setDepartments] = React.useState<Department[]>(
-    DEPARTMENTS_WITH_LOGOS
-  );
-  const [activeDepartment, setActiveDepartment] = React.useState<Department>(
-    DEPARTMENTS_WITH_LOGOS[0]
-  );
+  const [departments, setDepartments] = React.useState<Department[]>(DEPARTMENTS_WITH_LOGOS);
+  const [activeDepartment, setActiveDepartment] = React.useState<Department>(DEPARTMENTS_WITH_LOGOS[0]);
   const [editingDepartment, setEditingDepartment] =
     React.useState<Department | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<UserProfile | null>(null);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = React.useState<Department | null>(null);
 
   const breadcrumbs = useMemo(() => {
     return generateBreadcrumbs(pathname);
@@ -578,45 +583,208 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, isPathInSection, userRole]);
 
-  // Memoize department functions to prevent unnecessary re-renders
-  const handleAddDepartment = useCallback((department: DepartmentFormData): void => {
-    const newDepartment: Department = {
-      id: department.code.toLowerCase(),
-      name: department.name,
-      description: department.description || `${department.code} Department`,
-      code: department.code,
-      logo: GalleryVerticalEnd,
+  // Fetch departments from API
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        setLoadingDepartments(true);
+        const response = await fetch('/api/departments');
+        const departmentsData = await response.json();
+        
+        if (response.ok) {
+          // Add default logo to all departments from API
+          const processedDepartments = departmentsData.map((dept: Department) => ({
+            ...dept,
+            logo: GalleryVerticalEnd,
+          }));
+          
+          // Ensure we always have "All Departments" as the first option
+          const allDept = processedDepartments.find((d: Department) => 
+            (d.code || '').toUpperCase() === "ALL"
+          );
+          
+          const finalDepartments = allDept 
+            ? [allDept, ...processedDepartments.filter((d: Department) => 
+                (d.code || '').toUpperCase() !== "ALL"
+              )]
+            : [
+                {
+                  id: "all",
+                  name: "All Departments",
+                  code: "ALL",
+                  description: "View all departments",
+                  logo: GalleryVerticalEnd,
+                },
+                ...processedDepartments
+              ];
+          
+          setDepartments(finalDepartments);
+          
+          // Keep the currently active department if it still exists, otherwise switch to first
+          const currentActiveStillExists = finalDepartments.some(
+            (dept) => dept.id === activeDepartment.id
+          );
+          
+          if (!currentActiveStillExists) {
+            setActiveDepartment(finalDepartments[0]);
+          }
+        } else {
+          console.error('Failed to fetch departments:', departmentsData.error);
+        }
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+      } finally {
+        setLoadingDepartments(false);
+      }
     };
-    setDepartments((prev) => [...prev, newDepartment]);
+
+    fetchDepartments();
   }, []);
 
-  const handleUpdateDepartment = useCallback((department: DepartmentFormData): void => {
+  // Memoize department functions to prevent unnecessary re-renders
+  const handleAddDepartment = useCallback(async (department: DepartmentFormData): Promise<void> => {
+    try {
+      const loadingToast = toast.loading('Adding department...');
+      
+      const response = await fetch('/api/departments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: department.name,
+          code: department.code,
+          description: department.description
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.dismiss(loadingToast);
+        toast.success(result.message || 'Department added successfully');
+        
+        // Refresh departments list to ensure "All Departments" is always present
+        const refreshResponse = await fetch('/api/departments');
+        const departmentsData = await refreshResponse.json();
+        
+        if (refreshResponse.ok) {
+          // Map departments data to include logos
+          const departmentsWithLogos = departmentsData.map((dept: Department) => ({
+            ...dept,
+            logo: GalleryVerticalEnd, // Default logo for all departments
+          }));
+          
+          // Ensure we always have "All Departments" as the first option
+          const allDept = departmentsWithLogos.find((d: Department) => 
+            (d.code || '').toUpperCase() === "ALL"
+          );
+          
+          const finalDepartments = allDept 
+            ? [allDept, ...departmentsWithLogos.filter((d: Department) => 
+                (d.code || '').toUpperCase() !== "ALL"
+              )]
+            : [
+                {
+                  id: "all",
+                  name: "All Departments",
+                  code: "ALL",
+                  description: "View all departments",
+                  logo: GalleryVerticalEnd,
+                },
+                ...departmentsWithLogos
+              ];
+          
+          setDepartments(finalDepartments);
+        }
+      } else {
+        toast.dismiss(loadingToast);
+        toast.error(result.error || 'Failed to add department');
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred');
+      console.error('Error adding department:', error);
+    }
+  }, []);
+
+  const handleUpdateDepartment = useCallback(async (department: DepartmentFormData): Promise<void> => {
     if (!editingDepartment) return;
 
-    const updatedDepartment: Department = {
-      ...editingDepartment,
-      name: department.name,
-      description: department.description || `${department.code} Department`,
-      code: department.code,
-    };
-
-    setDepartments((prev) =>
-      prev.map((dept) =>
-        dept.id === editingDepartment.id ? updatedDepartment : dept
-      )
-    );
-
-    // Update active department if it was the one being edited
-    if (activeDepartment.id === editingDepartment.id) {
-      setActiveDepartment(updatedDepartment);
+    try {
+      const loadingToast = toast.loading('Updating department...');
+      
+      const response = await fetch(`/api/departments/${editingDepartment.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: department.name,
+          code: department.code,
+          description: department.description
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.dismiss(loadingToast);
+        toast.success(result.message || 'Department updated successfully');
+        
+        // Refresh departments list to ensure "All Departments" is always present
+        const refreshResponse = await fetch('/api/departments');
+        const departmentsData = await refreshResponse.json();
+        
+        if (refreshResponse.ok) {
+          // Add default logo to all departments from API
+          const processedDepartments = departmentsData.map((dept: Department) => ({
+            ...dept,
+            logo: GalleryVerticalEnd,
+          }));
+          
+          // Ensure we always have "All Departments" as the first option
+          const allDept = processedDepartments.find((d: Department) => 
+            (d.code || '').toUpperCase() === "ALL"
+          );
+          
+          const finalDepartments = allDept 
+            ? [allDept, ...processedDepartments.filter((d: Department) => 
+                (d.code || '').toUpperCase() !== "ALL"
+              )]
+            : [
+                {
+                  id: "all",
+                  name: "All Departments",
+                  code: "ALL",
+                  description: "View all departments",
+                  logo: GalleryVerticalEnd,
+                },
+                ...processedDepartments
+              ];
+          
+          setDepartments(finalDepartments);
+          
+          // Update active department if it was the one being edited
+          const updatedDept = finalDepartments.find((dept: Department) => dept.id === editingDepartment.id);
+          if (updatedDept && activeDepartment.id === editingDepartment.id) {
+            setActiveDepartment(updatedDept);
+          }
+        }
+        
+        setEditingDepartment(null);
+      } else {
+        toast.dismiss(loadingToast);
+        toast.error(result.error || 'Failed to update department');
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred');
+      console.error('Error updating department:', error);
     }
-
-    setEditingDepartment(null);
   }, [activeDepartment.id, editingDepartment]);
 
-  const handleSaveDepartment = useCallback((department: DepartmentFormData): void => {
+  const handleSaveDepartment = useCallback(async (department: DepartmentFormData): Promise<void> => {
     if (editingDepartment) {
-      handleUpdateDepartment(department);
+      await handleUpdateDepartment(department);
     } else {
       handleAddDepartment(department);
     }
@@ -627,22 +795,84 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     setIsEditDialogOpen(true);
   }, []);
 
-  const handleDeleteDepartment = useCallback((department: Department): void => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete ${department.name} department?`
-      )
-    ) {
-      setDepartments((prev) =>
-        prev.filter((dept) => dept.id !== department.id)
-      );
+  const handleDeleteDepartment = useCallback(async (department: Department): Promise<void> => {
+    setDepartmentToDelete(department);
+    setShowDeleteDialog(true);
+  }, []);
 
-      // If the deleted department was active, switch to "All Departments"
-      if (activeDepartment.id === department.id) {
-        setActiveDepartment(DEPARTMENTS_WITH_LOGOS[0]); // "All Departments"
+  const confirmDeleteDepartment = useCallback(async (): Promise<void> => {
+    if (!departmentToDelete) return;
+
+    try {
+      const loadingToast = toast.loading('Deleting department...');
+      
+      const response = await fetch(`/api/departments/${departmentToDelete.id}`, {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.dismiss(loadingToast);
+        toast.success(result.message || 'Department deleted successfully');
+        
+        // Refresh departments list to ensure "All Departments" is always present
+        const refreshResponse = await fetch('/api/departments');
+        const departmentsData = await refreshResponse.json();
+        
+        if (refreshResponse.ok) {
+          // Add default logo to all departments from API
+          const processedDepartments = departmentsData.map((dept: Department) => ({
+            ...dept,
+            logo: GalleryVerticalEnd,
+          }));
+          
+          // Ensure we always have "All Departments" as the first option
+          const allDept = processedDepartments.find((d: Department) => 
+            (d.code || '').toUpperCase() === "ALL"
+          );
+          
+          const finalDepartments = allDept 
+            ? [allDept, ...processedDepartments.filter((d: Department) => 
+                (d.code || '').toUpperCase() !== "ALL"
+              )]
+            : [
+                {
+                  id: "all",
+                  name: "All Departments",
+                  code: "ALL",
+                  description: "View all departments",
+                  logo: GalleryVerticalEnd,
+                },
+                ...processedDepartments
+              ];
+          
+          setDepartments(finalDepartments);
+          
+          // If the deleted department was active, switch to "All Departments"
+          if (activeDepartment.id === departmentToDelete.id) {
+            const allDept = finalDepartments.find((dept: Department) => 
+              (dept.code || '').toUpperCase() === "ALL"
+            );
+            if (allDept) {
+              setActiveDepartment(allDept);
+            } else {
+              setActiveDepartment(finalDepartments[0]);
+            }
+          }
+        }
+      } else {
+        toast.dismiss(loadingToast);
+        toast.error(result.error || 'Failed to delete department');
       }
+    } catch (error) {
+      toast.error('An unexpected error occurred');
+      console.error('Error deleting department:', error);
+    } finally {
+      setShowDeleteDialog(false);
+      setDepartmentToDelete(null);
     }
-  }, [activeDepartment.id]);
+  }, [activeDepartment.id, departmentToDelete]);
 
   // Memoize navigation items to prevent unnecessary re-renders
   const navItems = useMemo(() => {
@@ -732,7 +962,8 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteDepartment(department);
+                                setDepartmentToDelete(department);
+                                setShowDeleteDialog(true);
                               }}
                               className="cursor-pointer text-red-600 focus:text-red-600"
                             >
@@ -936,6 +1167,22 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
       </SidebarInset>
+      
+      {/* Warning Dialog for Department Deletion */}
+      <WarningDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Department"
+        description={`Are you sure you want to delete ${departmentToDelete?.name} department? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={confirmDeleteDepartment}
+        onCancel={() => {
+          setShowDeleteDialog(false);
+          setDepartmentToDelete(null);
+        }}
+      />
     </SidebarProvider>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "@/components/animate-ui/components/radix/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import toast from 'react-hot-toast';
 
 interface DepartmentDialogProps {
   trigger?: React.ReactNode;
@@ -70,23 +71,29 @@ export const DepartmentDialog = ({
       newErrors.name = "Department name is required";
     }
 
-    if (!formData.code.trim()) {
-      newErrors.code = "Department code is required";
-    }
+    // Remove the validation for code being required
+    // Code is now optional
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (validateForm()) {
-      onSaveDepartment?.(formData);
-      if (!isEditing) {
-        setFormData({ name: "", code: "", description: "" });
+      try {
+        if (onSaveDepartment) {
+          onSaveDepartment(formData);
+        }
+        
+        if (!isEditing) {
+          setFormData({ name: "", code: "", description: "" });
+        }
+        setIsOpen(false);
+      } catch (error) {
+        console.error('Error saving department:', error);
       }
-      setIsOpen(false);
     }
   };
 
@@ -142,7 +149,9 @@ export const DepartmentDialog = ({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="department-code">Department Code *</Label>
+              <Label htmlFor="department-code">
+                Department Code (Optional)
+              </Label>
               <Input
                 id="department-code"
                 value={formData.code}
