@@ -513,12 +513,14 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     const storedRole = localStorage.getItem('userRole');
     const storedFirstName = localStorage.getItem('userFirstName') || '';
     const storedLastName = localStorage.getItem('userLastName') || '';
-    
+    const storedEmail = localStorage.getItem('userEmail') || '';
+
     if (storedRole) {
       setUserRole(storedRole.toLowerCase());
       setUserData({
         first_name: storedFirstName,
         last_name: storedLastName,
+        email: storedEmail,
         role: storedRole
       });
     } else {
@@ -527,26 +529,32 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            // Get user profile to determine role
-            const { data: profileData, error: profileError } = await supabase
-              .from('user_profiles')
-              .select('role, first_name, last_name')
-              .eq('id', user.id)
-              .single();
-            
-            if (!profileError && profileData) {
-              setUserRole(profileData.role.toLowerCase());
-              setUserData({
-                ...user,
-                first_name: profileData.first_name,
-                last_name: profileData.last_name,
-                role: profileData.role
-              });
+            try {
+              // Fetch user profile data directly using the user ID
+              const { data: profileData, error: profileError } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
               
-              // Also store in localStorage for future use
-              localStorage.setItem('userRole', profileData.role);
-              localStorage.setItem('userFirstName', profileData.first_name || '');
-              localStorage.setItem('userLastName', profileData.last_name || '');
+              if (!profileError && profileData) {
+                setUserRole(profileData.role.toLowerCase());
+                setUserData({
+                  ...user,
+                  first_name: profileData.first_name,
+                  last_name: profileData.last_name,
+                  role: profileData.role,
+                  email: profileData.email
+                });
+                
+                // Also store in localStorage for future use
+                localStorage.setItem('userRole', profileData.role);
+                localStorage.setItem('userFirstName', profileData.first_name || '');
+                localStorage.setItem('userLastName', profileData.last_name || '');
+                localStorage.setItem('userEmail', profileData.email || '');
+              }
+            } catch (error) {
+              console.error('Error fetching user profile:', error);
             }
           }
         } catch (error) {
