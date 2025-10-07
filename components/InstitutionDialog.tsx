@@ -16,38 +16,31 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import toast from 'react-hot-toast';
 
-interface DepartmentDialogProps {
+interface InstitutionDialogProps {
   trigger?: React.ReactNode;
-  onSaveDepartment?: (department: {
+  onSaveInstitution?: (institution: {
     name: string;
-    code: string;
     description: string;
-    institution_id?: string;
   }) => void;
-  editDepartment?: {
+  editInstitution?: {
     id: string;
     name: string;
-    code: string;
     description?: string;
-    institution_id?: string;
   } | null;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  institutionId?: string; // Add institutionId prop
 }
 
-export const DepartmentDialog = ({
+export const InstitutionDialog = ({
   trigger,
-  onSaveDepartment,
-  editDepartment,
+  onSaveInstitution,
+  editInstitution,
   isOpen: externalIsOpen,
   onOpenChange: externalOnOpenChange,
-  institutionId, // Add institutionId prop
-}: DepartmentDialogProps) => {
+}: InstitutionDialogProps) => {
   const [formData, setFormData] = React.useState({
-    name: editDepartment?.name || "",
-    code: editDepartment?.code || "",
-    description: editDepartment?.description || "",
+    name: editInstitution?.name || "",
+    description: editInstitution?.description || "",
   });
   const [internalIsOpen, setInternalIsOpen] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -55,31 +48,27 @@ export const DepartmentDialog = ({
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const setIsOpen = externalOnOpenChange || setInternalIsOpen;
 
-  const isEditing = !!editDepartment;
+  const isEditing = !!editInstitution;
 
-  // Update form data when editDepartment changes
+  // Update form data when editInstitution changes
   React.useEffect(() => {
-    if (editDepartment) {
+    if (editInstitution) {
       setFormData({
-        name: editDepartment.name,
-        code: editDepartment.code,
-        description: editDepartment.description || "",
+        name: editInstitution.name,
+        description: editInstitution.description || "",
       });
     } else {
-      // Reset form when editDepartment is null (adding new department)
-      setFormData({ name: "", code: "", description: "" });
+      // Reset form when editInstitution is null (adding new institution)
+      setFormData({ name: "", description: "" });
     }
-  }, [editDepartment]);
+  }, [editInstitution]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Department name is required";
+      newErrors.name = "Institution name is required";
     }
-
-    // Remove the validation for code being required
-    // Code is now optional
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -90,20 +79,18 @@ export const DepartmentDialog = ({
 
     if (validateForm()) {
       try {
-        if (onSaveDepartment) {
-          // Include institution_id when saving
-          onSaveDepartment({
+        if (onSaveInstitution) {
+          onSaveInstitution({
             ...formData,
-            institution_id: institutionId
           });
         }
         
         if (!isEditing) {
-          setFormData({ name: "", code: "", description: "" });
+          setFormData({ name: "", description: "" });
         }
         setIsOpen(false);
       } catch (error) {
-        console.error('Error saving department:', error);
+        console.error('Error saving institution:', error);
       }
     }
   };
@@ -119,7 +106,7 @@ export const DepartmentDialog = ({
     setIsOpen(open);
     if (open && !isEditing) {
       // Reset form and errors when dialog opens for adding
-      setFormData({ name: "", code: "", description: "" });
+      setFormData({ name: "", description: "" });
       setErrors({});
     }
   };
@@ -135,23 +122,23 @@ export const DepartmentDialog = ({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit Department" : "Add New Department"}
+              {isEditing ? "Edit Institution" : "Add New Institution"}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Update the department details below."
-                : "Add a new department to your institution. Fill in the details below."}
+                ? "Update the institution details below."
+                : "Add a new institution. Fill in the details below."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="department-name">Department Name *</Label>
+              <Label htmlFor="institution-name">Institution Name *</Label>
               <Input
-                id="department-name"
+                id="institution-name"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="e.g. Computer Science"
+                placeholder="e.g. ABC High School"
                 className={errors.name ? "border-red-500" : ""}
               />
               {errors.name && (
@@ -160,32 +147,16 @@ export const DepartmentDialog = ({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="department-code">
-                Department Code (Optional)
-              </Label>
-              <Input
-                id="department-code"
-                value={formData.code}
-                onChange={(e) => handleInputChange("code", e.target.value)}
-                placeholder="e.g. CS"
-                className={errors.code ? "border-red-500" : ""}
-              />
-              {errors.code && (
-                <span className="text-sm text-red-500">{errors.code}</span>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="department-description">
+              <Label htmlFor="institution-description">
                 Description (Optional)
               </Label>
               <Input
-                id="department-description"
+                id="institution-description"
                 value={formData.description}
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
                 }
-                placeholder="Brief description of the department"
+                placeholder="Brief description of the institution"
               />
             </div>
           </div>
@@ -197,7 +168,7 @@ export const DepartmentDialog = ({
               </Button>
             </DialogClose>
             <Button type="submit">
-              {isEditing ? "Update Department" : "Add Department"}
+              {isEditing ? "Update Institution" : "Add Institution"}
             </Button>
           </DialogFooter>
         </form>

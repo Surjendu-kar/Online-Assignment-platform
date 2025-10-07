@@ -24,7 +24,9 @@ export async function GET(request: Request) {
       name: dept.name,
       // Only include code and description if they exist in the database
       ...(dept.code && { code: dept.code }),
-      ...(dept.description && { description: dept.description })
+      ...(dept.description && { description: dept.description }),
+      // Always include institution_id if it exists, even if it's null
+      ...(dept.institution_id !== undefined && { institution_id: dept.institution_id })
     }));
 
     // Return the departments data exactly as it is in the database
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
 // POST - Create a new department
 export async function POST(request: Request) {
   try {
-    const { name, code, description } = await request.json();
+    const { name, code, description, institution_id } = await request.json();
 
     // Validate required fields
     if (!name) {
@@ -57,6 +59,11 @@ export async function POST(request: Request) {
     
     if (description !== undefined && description !== null && description !== '') {
       departmentData.description = description;
+    }
+    
+    // Add institution_id if provided
+    if (institution_id !== undefined && institution_id !== null) {
+      departmentData.institution_id = institution_id;
     }
 
     const { data, error } = await supabase

@@ -52,6 +52,7 @@ import {
   Bell,
   BookOpen,
   Bot,
+  Building,
   ChevronRight,
   ChevronsUpDown,
   CreditCard,
@@ -78,17 +79,30 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 import { DepartmentDialog } from "@/components/DepartmentDialog";
+import { InstitutionDialog } from "@/components/InstitutionDialog";
 import departmentsData from "@/data/departmentsData.json";
 import { supabase } from "@/lib/supabase/client";
 import { signOut } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import { WarningDialog } from "@/components/WarningDialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter,
+  DialogTrigger
+} from "@/components/animate-ui/components/radix/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 interface Department {
   id: string;
   name: string;
   code: string;
   description: string;
+  institution_id?: string;
   logo: React.ComponentType<{ className?: string }>;
 }
 
@@ -129,6 +143,16 @@ interface UserProfile {
   user_metadata?: {
     avatar_url?: string;
   };
+}
+
+interface Institution {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface InstitutionWithDepartmentInfo extends Institution {
+  departmentCount?: number;
 }
 
 // Map departments data to include logos
@@ -481,8 +505,13 @@ const SidebarContentMemo = React.memo(({
 export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
+  const [institutions, setInstitutions] = React.useState<InstitutionWithDepartmentInfo[]>([] as InstitutionWithDepartmentInfo[]);
+  const [loadingInstitutions, setLoadingInstitutions] = React.useState(true);
   const [departments, setDepartments] = React.useState<Department[]>(DEPARTMENTS_WITH_LOGOS);
   const [activeDepartment, setActiveDepartment] = React.useState<Department>(DEPARTMENTS_WITH_LOGOS[0]);
+  const [activeInstitution, setActiveInstitution] = React.useState<InstitutionWithDepartmentInfo | null>(null);
+  const [editingInstitution, setEditingInstitution] = useState<Institution | null>(null);
+  const [institutionToDelete, setInstitutionToDelete] = useState<Institution | null>(null);
   const [editingDepartment, setEditingDepartment] =
     React.useState<Department | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -491,6 +520,11 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const [loadingDepartments, setLoadingDepartments] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [departmentToDelete, setDepartmentToDelete] = React.useState<Department | null>(null);
+  const [isInstitutionDialogOpen, setIsInstitutionDialogOpen] = useState(false);
+  const [isDepartmentDialogOpen, setIsDepartmentDialogOpen] = useState(false);
+  const [isDepartmentsListDialogOpen, setIsDepartmentsListDialogOpen] = useState(false);
+  const [isEditInstitutionDialogOpen, setIsEditInstitutionDialogOpen] = useState(false);
+  const [showDeleteInstitutionDialog, setShowDeleteInstitutionDialog] = useState(false);
 
   const breadcrumbs = useMemo(() => {
     return generateBreadcrumbs(pathname);
@@ -583,6 +617,58 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, isPathInSection, userRole]);
 
+  // Fetch institutions from API
+  useEffect(() => {
+    const fetchInstitutions = async () => {
+      try {
+        setLoadingInstitutions(true);
+        
+        // Fetch both institutions and departments
+        const [institutionsResponse, departmentsResponse] = await Promise.all([
+          fetch('/api/institutions'),
+          fetch('/api/departments')
+        ]);
+        
+        const institutionsData = await institutionsResponse.json();
+        const departmentsData = await departmentsResponse.json();
+        
+        if (institutionsResponse.ok && departmentsResponse.ok) {
+          // Create a map of institution ID to department count
+          const departmentCountMap: Record<string, number> = {};
+          
+          // Count departments for each institution
+          departmentsData.forEach((dept: Department) => {
+            if (dept.institution_id) {
+              departmentCountMap[dept.institution_id] = 
+                (departmentCountMap[dept.institution_id] || 0) + 1;
+            }
+          });
+          
+          // Add department count to each institution
+          const institutionsWithDepartmentInfo = institutionsData.map((inst: Institution) => ({
+            ...inst,
+            departmentCount: departmentCountMap[inst.id] || 0
+          }));
+          
+          setInstitutions(institutionsWithDepartmentInfo);
+          
+          // Set active institution from localStorage or first institution
+          const storedInstitutionId = localStorage.getItem('activeInstitutionId');
+          const storedInstitution = institutionsWithDepartmentInfo.find(
+            (inst: InstitutionWithDepartmentInfo) => inst.id === storedInstitutionId
+          );
+          setActiveInstitution(storedInstitution || institutionsWithDepartmentInfo[0] || null);
+        }
+      } catch (error) {
+        console.error('Error fetching institutions and departments:', error);
+      } finally {
+        setLoadingInstitutions(false);
+      }
+    };
+
+    fetchInstitutions();
+  }, []);
+
   // Fetch departments from API
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -592,41 +678,58 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
         const departmentsData = await response.json();
         
         if (response.ok) {
-          // Add default logo to all departments from API
-          const processedDepartments = departmentsData.map((dept: Department) => ({
-            ...dept,
-            logo: GalleryVerticalEnd,
-          }));
+          let processedDepartments = [];
+          let institutionDepartments = [];
           
-          // Ensure we always have "All Departments" as the first option
-          const allDept = processedDepartments.find((d: Department) => 
-            (d.code || '').toUpperCase() === "ALL"
-          );
+          // If we have an active institution, filter departments by that institution
+          if (activeInstitution) {
+            institutionDepartments = departmentsData
+              .filter((dept: Department) => {
+                return dept.institution_id === activeInstitution.id;
+              })
+              .map((dept: Department) => ({
+                ...dept,
+                logo: GalleryVerticalEnd,
+              }));
+          } else {
+            // Otherwise, use all departments (for backward compatibility)
+            institutionDepartments = departmentsData.map((dept: Department) => ({
+              ...dept,
+              logo: GalleryVerticalEnd,
+            }));
+          }
           
-          const finalDepartments = allDept 
-            ? [allDept, ...processedDepartments.filter((d: Department) => 
-                (d.code || '').toUpperCase() !== "ALL"
-              )]
-            : [
-                {
-                  id: "all",
-                  name: "All Departments",
-                  code: "ALL",
-                  description: "View all departments",
-                  logo: GalleryVerticalEnd,
-                },
-                ...processedDepartments
-              ];
+          // Only add "All Departments" option if there are actual departments
+          if (institutionDepartments.length > 0) {
+            const allDept = {
+              id: "all",
+              name: "All Departments",
+              code: "ALL",
+              description: activeInstitution 
+                ? `View all departments in ${activeInstitution.name}` 
+                : "View all departments",
+              logo: GalleryVerticalEnd,
+            };
+            
+            processedDepartments = [allDept, ...institutionDepartments];
+          } else {
+            // No departments available
+            processedDepartments = institutionDepartments;
+          }
           
-          setDepartments(finalDepartments);
+          setDepartments(processedDepartments);
           
-          // Keep the currently active department if it still exists, otherwise switch to first
-          const currentActiveStillExists = finalDepartments.some(
-            (dept) => dept.id === activeDepartment.id
+          // Keep the currently active department if it still exists, otherwise switch to first or "all"
+          const currentActiveStillExists = processedDepartments.some(
+            (dept: Department) => dept.id === activeDepartment.id
           );
           
           if (!currentActiveStillExists) {
-            setActiveDepartment(finalDepartments[0]);
+            // If there are departments, select the first one or "all"
+            // If no departments, keep current selection
+            if (processedDepartments.length > 0) {
+              setActiveDepartment(processedDepartments[0]);
+            }
           }
         } else {
           console.error('Failed to fetch departments:', departmentsData.error);
@@ -639,7 +742,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     };
 
     fetchDepartments();
-  }, []);
+  }, [activeInstitution]);
 
   // Memoize department functions to prevent unnecessary re-renders
   const handleAddDepartment = useCallback(async (department: DepartmentFormData): Promise<void> => {
@@ -654,7 +757,8 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           name: department.name,
           code: department.code,
-          description: department.description
+          description: department.description,
+          institution_id: activeInstitution?.id
         }),
       });
       
@@ -664,24 +768,26 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
         toast.dismiss(loadingToast);
         toast.success(result.message || 'Department added successfully');
         
-        // Refresh departments list to ensure "All Departments" is always present
+        // Refresh departments list for the current institution
         const refreshResponse = await fetch('/api/departments');
         const departmentsData = await refreshResponse.json();
         
-        if (refreshResponse.ok) {
-          // Map departments data to include logos
-          const departmentsWithLogos = departmentsData.map((dept: Department) => ({
-            ...dept,
-            logo: GalleryVerticalEnd, // Default logo for all departments
-          }));
-          
+        if (refreshResponse.ok && activeInstitution) {
+          // Filter departments by institution
+          const institutionDepartments = departmentsData
+            .filter((dept: Department) => dept.institution_id === activeInstitution.id)
+            .map((dept: Department) => ({
+              ...dept,
+              logo: GalleryVerticalEnd,
+            }));
+        
           // Ensure we always have "All Departments" as the first option
-          const allDept = departmentsWithLogos.find((d: Department) => 
+          const allDept = institutionDepartments.find((d: Department) => 
             (d.code || '').toUpperCase() === "ALL"
           );
-          
+        
           const finalDepartments = allDept 
-            ? [allDept, ...departmentsWithLogos.filter((d: Department) => 
+            ? [allDept, ...institutionDepartments.filter((d: Department) => 
                 (d.code || '').toUpperCase() !== "ALL"
               )]
             : [
@@ -689,23 +795,50 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                   id: "all",
                   name: "All Departments",
                   code: "ALL",
-                  description: "View all departments",
+                  description: `View all departments in ${activeInstitution.name}`,
                   logo: GalleryVerticalEnd,
                 },
-                ...departmentsWithLogos
+                ...institutionDepartments
               ];
+        
+        setDepartments(finalDepartments);
+        
+        // Update institution department counts
+        const [institutionsResponse] = await Promise.all([
+          fetch('/api/institutions'),
+        ]);
+        
+        if (institutionsResponse.ok) {
+          const institutionsData = await institutionsResponse.json();
+          // Create a map of institution ID to department count
+          const departmentCountMap: Record<string, number> = {};
           
-          setDepartments(finalDepartments);
+          // Count departments for each institution
+          departmentsData.forEach((dept: Department) => {
+            if (dept.institution_id) {
+              departmentCountMap[dept.institution_id] = 
+                (departmentCountMap[dept.institution_id] || 0) + 1;
+            }
+          });
+          
+          // Add department count to each institution
+          const institutionsWithDepartmentInfo = institutionsData.map((inst: Institution) => ({
+            ...inst,
+            departmentCount: departmentCountMap[inst.id] || 0
+          }));
+          
+          setInstitutions(institutionsWithDepartmentInfo);
         }
-      } else {
-        toast.dismiss(loadingToast);
-        toast.error(result.error || 'Failed to add department');
       }
-    } catch (error) {
-      toast.error('An unexpected error occurred');
-      console.error('Error adding department:', error);
+    } else {
+      toast.dismiss(loadingToast);
+      toast.error(result.error || 'Failed to add department');
     }
-  }, []);
+  } catch (error) {
+    toast.error('An unexpected error occurred');
+    console.error('Error adding department:', error);
+  }
+}, [activeInstitution]);
 
   const handleUpdateDepartment = useCallback(async (department: DepartmentFormData): Promise<void> => {
     if (!editingDepartment) return;
@@ -721,7 +854,8 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           name: department.name,
           code: department.code,
-          description: department.description
+          description: department.description,
+          institution_id: activeInstitution?.id
         }),
       });
       
@@ -730,57 +864,86 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         toast.dismiss(loadingToast);
         toast.success(result.message || 'Department updated successfully');
-        
-        // Refresh departments list to ensure "All Departments" is always present
+      
+        // Refresh departments list for the current institution
         const refreshResponse = await fetch('/api/departments');
         const departmentsData = await refreshResponse.json();
-        
-        if (refreshResponse.ok) {
-          // Add default logo to all departments from API
-          const processedDepartments = departmentsData.map((dept: Department) => ({
-            ...dept,
-            logo: GalleryVerticalEnd,
-          }));
-          
-          // Ensure we always have "All Departments" as the first option
-          const allDept = processedDepartments.find((d: Department) => 
-            (d.code || '').toUpperCase() === "ALL"
-          );
-          
-          const finalDepartments = allDept 
-            ? [allDept, ...processedDepartments.filter((d: Department) => 
-                (d.code || '').toUpperCase() !== "ALL"
-              )]
-            : [
-                {
-                  id: "all",
-                  name: "All Departments",
-                  code: "ALL",
-                  description: "View all departments",
-                  logo: GalleryVerticalEnd,
-                },
-                ...processedDepartments
-              ];
-          
-          setDepartments(finalDepartments);
-          
-          // Update active department if it was the one being edited
-          const updatedDept = finalDepartments.find((dept: Department) => dept.id === editingDepartment.id);
-          if (updatedDept && activeDepartment.id === editingDepartment.id) {
-            setActiveDepartment(updatedDept);
-          }
+      
+        if (refreshResponse.ok && activeInstitution) {
+          // Filter departments by institution
+          const institutionDepartments = departmentsData
+            .filter((dept: Department) => dept.institution_id === activeInstitution.id)
+            .map((dept: Department) => ({
+              ...dept,
+              logo: GalleryVerticalEnd,
+            }));
+      
+        // Ensure we always have "All Departments" as the first option
+        const allDept = institutionDepartments.find((d: Department) => 
+          (d.code || '').toUpperCase() === "ALL"
+        );
+      
+        const finalDepartments = allDept 
+          ? [allDept, ...institutionDepartments.filter((d: Department) => 
+              (d.code || '').toUpperCase() !== "ALL"
+            )]
+        : [
+            {
+              id: "all",
+              name: "All Departments",
+              code: "ALL",
+              description: `View all departments in ${activeInstitution.name}`,
+              logo: GalleryVerticalEnd,
+            },
+            ...institutionDepartments
+          ];
+      
+        setDepartments(finalDepartments);
+      
+        // Update active department if it was the one being edited
+        const updatedDept = finalDepartments.find((dept: Department) => dept.id === editingDepartment.id);
+        if (updatedDept && activeDepartment.id === editingDepartment.id) {
+          setActiveDepartment(updatedDept);
         }
         
-        setEditingDepartment(null);
-      } else {
-        toast.dismiss(loadingToast);
-        toast.error(result.error || 'Failed to update department');
+        // Update institution department counts
+        const [institutionsResponse] = await Promise.all([
+          fetch('/api/institutions'),
+        ]);
+        
+        if (institutionsResponse.ok) {
+          const institutionsData = await institutionsResponse.json();
+          // Create a map of institution ID to department count
+          const departmentCountMap: Record<string, number> = {};
+          
+          // Count departments for each institution
+          departmentsData.forEach((dept: Department) => {
+            if (dept.institution_id) {
+              departmentCountMap[dept.institution_id] = 
+                (departmentCountMap[dept.institution_id] || 0) + 1;
+            }
+          });
+          
+          // Add department count to each institution
+          const institutionsWithDepartmentInfo = institutionsData.map((inst: Institution) => ({
+            ...inst,
+            departmentCount: departmentCountMap[inst.id] || 0
+          }));
+          
+          setInstitutions(institutionsWithDepartmentInfo);
+        }
       }
-    } catch (error) {
-      toast.error('An unexpected error occurred');
-      console.error('Error updating department:', error);
+      
+      setEditingDepartment(null);
+    } else {
+      toast.dismiss(loadingToast);
+      toast.error(result.error || 'Failed to update department');
     }
-  }, [activeDepartment.id, editingDepartment]);
+  } catch (error) {
+    toast.error('An unexpected error occurred');
+    console.error('Error updating department:', error);
+  }
+}, [activeDepartment.id, editingDepartment, activeInstitution]);
 
   const handleSaveDepartment = useCallback(async (department: DepartmentFormData): Promise<void> => {
     if (editingDepartment) {
@@ -792,7 +955,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
 
   const handleEditDepartment = useCallback((department: Department): void => {
     setEditingDepartment(department);
-    setIsEditDialogOpen(true);
+    setIsDepartmentDialogOpen(true);
   }, []);
 
   const handleDeleteDepartment = useCallback(async (department: Department): Promise<void> => {
@@ -816,63 +979,329 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
         toast.dismiss(loadingToast);
         toast.success(result.message || 'Department deleted successfully');
         
-        // Refresh departments list to ensure "All Departments" is always present
+        // Refresh departments list for the current institution
         const refreshResponse = await fetch('/api/departments');
         const departmentsData = await refreshResponse.json();
         
-        if (refreshResponse.ok) {
-          // Add default logo to all departments from API
-          const processedDepartments = departmentsData.map((dept: Department) => ({
-            ...dept,
-            logo: GalleryVerticalEnd,
+        if (refreshResponse.ok && activeInstitution) {
+          // Filter departments by institution
+          const institutionDepartments = departmentsData
+            .filter((dept: Department) => dept.institution_id === activeInstitution.id)
+            .map((dept: Department) => ({
+              ...dept,
+              logo: GalleryVerticalEnd,
+            }));
+        
+        // Ensure we always have "All Departments" as the first option
+        const allDept = institutionDepartments.find((d: Department) => 
+          (d.code || '').toUpperCase() === "ALL"
+        );
+        
+        const finalDepartments = allDept 
+          ? [allDept, ...institutionDepartments.filter((d: Department) => 
+              (d.code || '').toUpperCase() !== "ALL"
+            )]
+          : [
+              {
+                id: "all",
+                name: "All Departments",
+                code: "ALL",
+                description: `View all departments in ${activeInstitution.name}`,
+                logo: GalleryVerticalEnd,
+              },
+              ...institutionDepartments
+            ];
+        
+        setDepartments(finalDepartments);
+        
+        // If the deleted department was active, switch to "All Departments"
+        if (activeDepartment.id === departmentToDelete.id) {
+          const allDept = finalDepartments.find((dept: Department) => 
+            (dept.code || '').toUpperCase() === "ALL"
+          );
+          if (allDept) {
+            setActiveDepartment(allDept);
+          } else {
+            setActiveDepartment(finalDepartments[0]);
+          }
+        }
+        
+        // Update institution department counts
+        const [institutionsResponse] = await Promise.all([
+          fetch('/api/institutions'),
+        ]);
+        
+        if (institutionsResponse.ok) {
+          const institutionsData = await institutionsResponse.json();
+          // Create a map of institution ID to department count
+          const departmentCountMap: Record<string, number> = {};
+          
+          // Count departments for each institution
+          departmentsData.forEach((dept: Department) => {
+            if (dept.institution_id) {
+              departmentCountMap[dept.institution_id] = 
+                (departmentCountMap[dept.institution_id] || 0) + 1;
+            }
+          });
+          
+          // Add department count to each institution
+          const institutionsWithDepartmentInfo = institutionsData.map((inst: Institution) => ({
+            ...inst,
+            departmentCount: departmentCountMap[inst.id] || 0
           }));
           
-          // Ensure we always have "All Departments" as the first option
-          const allDept = processedDepartments.find((d: Department) => 
-            (d.code || '').toUpperCase() === "ALL"
-          );
+          setInstitutions(institutionsWithDepartmentInfo);
+        }
+      }
+    } else {
+      toast.dismiss(loadingToast);
+      toast.error(result.error || 'Failed to delete department');
+    }
+  } catch (error) {
+    toast.error('An unexpected error occurred');
+    console.error('Error deleting department:', error);
+  } finally {
+    setShowDeleteDialog(false);
+    setDepartmentToDelete(null);
+    // Clear editing department state to ensure form is reset
+    setEditingDepartment(null);
+  }
+}, [activeDepartment.id, departmentToDelete, activeInstitution]);
+
+  // Institution management functions
+  const handleAddInstitution = useCallback(async (institution: { name: string; description: string }): Promise<void> => {
+    try {
+      const loadingToast = toast.loading('Adding institution...');
+      
+      const response = await fetch('/api/institutions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(institution),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.dismiss(loadingToast);
+        toast.success('Institution added successfully');
+        
+        // Refresh institutions list with department counts
+        const [institutionsResponse, departmentsResponse] = await Promise.all([
+          fetch('/api/institutions'),
+          fetch('/api/departments')
+        ]);
+        
+        if (institutionsResponse.ok && departmentsResponse.ok) {
+          const institutionsData = await institutionsResponse.json();
+          const departmentsData = await departmentsResponse.json();
           
-          const finalDepartments = allDept 
-            ? [allDept, ...processedDepartments.filter((d: Department) => 
-                (d.code || '').toUpperCase() !== "ALL"
-              )]
-            : [
-                {
-                  id: "all",
-                  name: "All Departments",
-                  code: "ALL",
-                  description: "View all departments",
-                  logo: GalleryVerticalEnd,
-                },
-                ...processedDepartments
-              ];
+          // Create a map of institution ID to department count
+          const departmentCountMap: Record<string, number> = {};
           
-          setDepartments(finalDepartments);
+          // Count departments for each institution
+          departmentsData.forEach((dept: Department) => {
+            if (dept.institution_id) {
+              departmentCountMap[dept.institution_id] = 
+                (departmentCountMap[dept.institution_id] || 0) + 1;
+            }
+          });
           
-          // If the deleted department was active, switch to "All Departments"
-          if (activeDepartment.id === departmentToDelete.id) {
-            const allDept = finalDepartments.find((dept: Department) => 
-              (dept.code || '').toUpperCase() === "ALL"
-            );
-            if (allDept) {
-              setActiveDepartment(allDept);
-            } else {
-              setActiveDepartment(finalDepartments[0]);
+          // Add department count to each institution
+          const institutionsWithDepartmentInfo = institutionsData.map((inst: Institution) => ({
+            ...inst,
+            departmentCount: departmentCountMap[inst.id] || 0
+          }));
+          
+          setInstitutions(institutionsWithDepartmentInfo);
+        }
+      } else {
+        toast.dismiss(loadingToast);
+        toast.error(result.error || 'Failed to add institution');
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred');
+      console.error('Error adding institution:', error);
+    }
+  }, []);
+
+  const handleUpdateInstitution = useCallback(async (institution: { name: string; description: string }): Promise<void> => {
+    if (!editingInstitution) return;
+
+    try {
+      const loadingToast = toast.loading('Updating institution...');
+      
+      const response = await fetch(`/api/institutions/${editingInstitution.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(institution),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.dismiss(loadingToast);
+        toast.success('Institution updated successfully');
+        
+        // Refresh institutions list with department counts
+        const [institutionsResponse, departmentsResponse] = await Promise.all([
+          fetch('/api/institutions'),
+          fetch('/api/departments')
+        ]);
+        
+        if (institutionsResponse.ok && departmentsResponse.ok) {
+          const institutionsData = await institutionsResponse.json();
+          const departmentsData = await departmentsResponse.json();
+          
+          // Create a map of institution ID to department count
+          const departmentCountMap: Record<string, number> = {};
+          
+          // Count departments for each institution
+          departmentsData.forEach((dept: Department) => {
+            if (dept.institution_id) {
+              departmentCountMap[dept.institution_id] = 
+                (departmentCountMap[dept.institution_id] || 0) + 1;
+            }
+          });
+          
+          // Add department count to each institution
+          const institutionsWithDepartmentInfo = institutionsData.map((inst: Institution) => ({
+            ...inst,
+            departmentCount: departmentCountMap[inst.id] || 0
+          }));
+          
+          setInstitutions(institutionsWithDepartmentInfo);
+          
+          // Update active institution if it was the one being edited
+          if (activeInstitution?.id === editingInstitution.id) {
+            const updatedInstitution = institutionsWithDepartmentInfo.find((inst: Institution) => inst.id === editingInstitution.id);
+            if (updatedInstitution) {
+              setActiveInstitution(updatedInstitution);
             }
           }
         }
       } else {
         toast.dismiss(loadingToast);
-        toast.error(result.error || 'Failed to delete department');
+        toast.error(result.error || 'Failed to update institution');
       }
     } catch (error) {
       toast.error('An unexpected error occurred');
-      console.error('Error deleting department:', error);
+      console.error('Error updating institution:', error);
     } finally {
-      setShowDeleteDialog(false);
-      setDepartmentToDelete(null);
+      setEditingInstitution(null);
     }
-  }, [activeDepartment.id, departmentToDelete]);
+  }, [activeInstitution, editingInstitution]);
+
+  const handleSaveInstitution = useCallback(async (institution: { name: string; description: string }): Promise<void> => {
+    if (editingInstitution) {
+      await handleUpdateInstitution(institution);
+    } else {
+      handleAddInstitution(institution);
+    }
+  }, [editingInstitution, handleAddInstitution, handleUpdateInstitution]);
+
+  const handleEditInstitution = useCallback((institution: InstitutionWithDepartmentInfo): void => {
+    setEditingInstitution({
+      id: institution.id,
+      name: institution.name,
+      description: institution.description
+    } as InstitutionWithDepartmentInfo);
+    setIsEditInstitutionDialogOpen(true);
+  }, []);
+
+  const confirmDeleteInstitution = useCallback(async (): Promise<void> => {
+    if (!institutionToDelete) return;
+
+    let loadingToast: string | undefined;
+    
+    try {
+      loadingToast = toast.loading('Deleting institution...');
+      
+      const response = await fetch(`/api/institutions/${institutionToDelete.id}`, {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.dismiss(loadingToast);
+        toast.success(result.message || 'Institution deleted successfully');
+      
+        // Refresh institutions list
+        const refreshResponse = await fetch('/api/institutions');
+        const institutionsData = await refreshResponse.json();
+      
+        if (refreshResponse.ok) {
+          // Also refresh departments to get updated counts
+          const departmentsResponse = await fetch('/api/departments');
+          const departmentsData = await departmentsResponse.json();
+          
+          if (departmentsResponse.ok) {
+            // Create a map of institution ID to department count
+            const departmentCountMap: Record<string, number> = {};
+            
+            // Count departments for each institution
+            departmentsData.forEach((dept: Department) => {
+              if (dept.institution_id) {
+                departmentCountMap[dept.institution_id] = 
+                  (departmentCountMap[dept.institution_id] || 0) + 1;
+              }
+            });
+            
+            // Add department count to each institution
+            const institutionsWithDepartmentInfo = institutionsData.map((inst: Institution) => ({
+              ...inst,
+              departmentCount: departmentCountMap[inst.id] || 0
+            }));
+            
+            setInstitutions(institutionsWithDepartmentInfo);
+            
+            // If the deleted institution was active, switch to first institution or null
+            if (activeInstitution?.id === institutionToDelete.id) {
+              setActiveInstitution(institutionsWithDepartmentInfo[0] || null);
+              // Also reset departments since institution changed
+              setDepartments([
+                {
+                  id: "all",
+                  name: "All Departments",
+                  code: "ALL",
+                  description: institutionsWithDepartmentInfo[0] 
+                    ? `View all departments in ${institutionsWithDepartmentInfo[0].name}` 
+                    : "View all departments",
+                  logo: GalleryVerticalEnd,
+                }
+              ]);
+              setActiveDepartment({
+                id: "all",
+                name: "All Departments",
+                code: "ALL",
+                description: institutionsWithDepartmentInfo[0] 
+                  ? `View all departments in ${institutionsWithDepartmentInfo[0].name}` 
+                  : "View all departments",
+                logo: GalleryVerticalEnd,
+              });
+            }
+          }
+        }
+      } else {
+        if (loadingToast) toast.dismiss(loadingToast);
+        toast.error(result.error || 'Failed to delete institution');
+        console.error('Failed to delete institution:', result.error || 'Unknown error');
+      }
+    } catch (error) {
+      if (loadingToast) toast.dismiss(loadingToast);
+      toast.error('An unexpected error occurred while deleting the institution');
+      console.error('Error deleting institution:', error);
+    } finally {
+      setShowDeleteInstitutionDialog(false);
+      setInstitutionToDelete(null);
+      // Clear editing institution state to ensure form is reset
+      setEditingInstitution(null);
+    }
+  }, [activeInstitution, institutionToDelete]);
 
   // Memoize navigation items to prevent unnecessary re-renders
   const navItems = useMemo(() => {
@@ -889,138 +1318,323 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    size="lg"
-                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                  >
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                      <activeDepartment.logo className="size-4" />
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                onClick={() => setIsInstitutionDialogOpen(true)}
+              >
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <activeDepartment.logo className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">
+                    {activeInstitution?.name || "Select Institution"}
+                  </span>
+                  <span className="truncate text-xs">
+                    {departments.length === 0
+                      ? "No departments available"
+                      : activeDepartment.id === "all" 
+                      ? "View all Departments" 
+                      : activeDepartment.name}
+                  </span>
+                </div>
+                <ChevronsUpDown className="ml-auto" />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          
+          {/* Custom Institution Selection Dialog */}
+          <Dialog open={isInstitutionDialogOpen} onOpenChange={setIsInstitutionDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Select Institution</DialogTitle>
+                <DialogDescription>
+                  Choose an institution to view its departments
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-2 py-2 max-h-60 overflow-y-auto">
+                {loadingInstitutions ? (
+                  // Show skeleton loaders while loading institutions
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 rounded-md">
+                      <div className="h-5 w-5 rounded bg-muted animate-pulse" />
+                      <div className="flex-1">
+                        <div className="h-4 w-32 rounded bg-muted animate-pulse mb-1" />
+                        <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                      </div>
                     </div>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">
-                        {activeDepartment.name}
-                      </span>
-                      <span className="truncate text-xs">
-                        {activeDepartment.description}
-                      </span>
+                  ))
+                ) : institutions.length === 0 ? (
+                  // Show message when no institutions are available
+                  <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <div className="text-muted-foreground mb-2">
+                      <Building className="h-12 w-12 mx-auto" />
                     </div>
-                    <ChevronsUpDown className="ml-auto" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                  align="start"
-                  side={isMobile ? "bottom" : "right"}
-                  sideOffset={4}
-                >
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    Departments
-                  </DropdownMenuLabel>
-                  {departments.map((department) => (
-                    <DropdownMenuItem
-                      key={department.name}
-                      onClick={() => setActiveDepartment(department)}
-                      className="gap-2 p-2"
+                    <h3 className="font-medium mb-1">No institutions found</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      No institutions have been created yet.
+                    </p>
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={() => {
+                        setIsInstitutionDialogOpen(false);
+                        setEditingInstitution(null);
+                        setIsEditInstitutionDialogOpen(true);
+                      }}
                     >
-                      <div className="flex size-6 items-center justify-center rounded-sm border">
-                        <department.logo className="size-4 shrink-0" />
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Institution
+                    </Button>
+                  </div>
+                ) : (
+                  // Show actual institutions when loaded
+                  institutions.map((institution) => (
+                    <div 
+                      key={institution.id}
+                      className="flex items-center gap-2 p-2 rounded-md hover:bg-muted cursor-pointer group relative pr-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveInstitution(institution);
+                        localStorage.setItem('activeInstitutionId', institution.id);
+                        setIsInstitutionDialogOpen(false);
+                        setTimeout(() => setIsDepartmentsListDialogOpen(true), 100);
+                      }}
+                    >
+                      <GalleryVerticalEnd className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex-1">
+                        <p className="font-medium">{institution.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {!institution.departmentCount || institution.departmentCount === 0 
+                            ? "No departments" 
+                            : `${institution.departmentCount} department${institution.departmentCount > 1 ? 's' : ''}`}
+                        </p>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{department.name}</span>
-                        <span className="text-xs text-muted-foreground w-50 truncate">
-                          {department.description}
-                        </span>
-                      </div>
-                      {department.code !== "ALL" && (
+                      {activeInstitution?.id === institution.id && (
+                        <BadgeCheck className="h-4 w-4 text-green-500" />
+                      )}
+                      {/* Add dropdown menu for institutions */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button
-                              className="ml-auto p-1 cursor-pointer"
-                              title="More options"
-                              aria-label="More options"
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <MoreVertical className="h-3 w-3" />
-                            </button>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            className="w-32"
-                            side="right"
-                            align="start"
-                          >
+                          <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleEditDepartment(department);
+                                // Handle edit institution
+                                handleEditInstitution(institution);
+                                setIsInstitutionDialogOpen(false);
                               }}
-                              className="cursor-pointer"
                             >
-                              <Edit className="mr-2 h-4 w-4" />
-                              <span>Edit</span>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                              className="text-red-500 focus:text-red-600"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDepartmentToDelete(department);
-                                setShowDeleteDialog(true);
+                                // Handle delete institution
+                                setInstitutionToDelete(institution);
+                                setIsInstitutionDialogOpen(false);
+                                setShowDeleteInstitutionDialog(true);
                               }}
-                              className="cursor-pointer text-red-600 focus:text-red-600"
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" className="w-full" onClick={() => {
+                  setIsInstitutionDialogOpen(false);
+                  // Clear editing institution and open dialog for new institution
+                  setEditingInstitution(null);
+                  setIsEditInstitutionDialogOpen(true);
+                }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Institution
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Departments List Dialog */}
+          <Dialog open={isDepartmentsListDialogOpen} onOpenChange={setIsDepartmentsListDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Departments</DialogTitle>
+                <DialogDescription>
+                  Departments in {activeInstitution?.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-2 py-2 max-h-60 overflow-y-auto">
+                {loadingDepartments ? (
+                  // Show skeleton loaders while loading
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 rounded-md">
+                      <div className="h-5 w-5 rounded bg-muted animate-pulse" />
+                      <div className="flex-1">
+                        <div className="h-4 w-24 rounded bg-muted animate-pulse mb-1" />
+                        <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+                      </div>
+                    </div>
+                  ))
+                ) : departments.length === 0 ? (
+                  // Show message when no departments are available
+                  <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <div className="text-muted-foreground mb-2">
+                      <Folder className="h-12 w-12 mx-auto" />
+                    </div>
+                    <h3 className="font-medium mb-1">No departments found</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {activeInstitution 
+                        ? `No departments have been created for ${activeInstitution.name} yet.` 
+                        : "No departments available."}
+                    </p>
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={() => {
+                        setIsDepartmentsListDialogOpen(false);
+                        setEditingDepartment(null);
+                        setIsDepartmentDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Department
+                    </Button>
+                  </div>
+                ) : (
+                  // Show actual departments when loaded
+                  departments.map((department) => (
+                    <div 
+                      key={department.id}
+                      className="flex items-center gap-2 p-2 rounded-md hover:bg-muted cursor-pointer group relative pr-10"
+                      onClick={() => {
+                        setActiveDepartment(department);
+                        setIsDepartmentsListDialogOpen(false);
+                      }}
+                    >
+                      <department.logo className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex-1">
+                        <p className="font-medium">{department.name}</p>
+                        {department.description && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {department.description}
+                          </p>
+                        )}
+                      </div>
+                      {activeDepartment.id === department.id && (
+                        <BadgeCheck className="h-4 w-4 text-green-500" />
                       )}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DepartmentDialog
-                    trigger={
-                      <DropdownMenuItem
-                        className="gap-2 p-2"
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <div className="flex size-6 items-center justify-center rounded-md border border-dashed">
-                          <Plus className="size-4" />
-                        </div>
-                        <div className="font-medium text-muted-foreground">
-                          Add department
-                        </div>
-                      </DropdownMenuItem>
-                    }
-                    onSaveDepartment={handleSaveDepartment}
-                  />
-                  {editingDepartment && (
-                    <DepartmentDialog
-                      key={editingDepartment.id}
-                      editDepartment={editingDepartment}
-                      isOpen={isEditDialogOpen}
-                      onOpenChange={(open) => {
-                        setIsEditDialogOpen(open);
-                        // Don't immediately clear editingDepartment - let the animation complete
-                        if (!open) {
-                          // Delay clearing the editingDepartment to allow close animation
-                          setTimeout(() => {
-                            setEditingDepartment(null);
-                          }, 500); // Match the dialog animation duration
-                        }
-                      }}
-                      onSaveDepartment={(dept) => {
-                        handleSaveDepartment(dept);
-                        setIsEditDialogOpen(false);
-                        // Clear editingDepartment after animation completes
-                        setTimeout(() => {
-                          setEditingDepartment(null);
-                        }, 500);
-                      }}
-                    />
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
+                      {/* Add dropdown menu for departments */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle edit department
+                                handleEditDepartment(department);
+                                setIsDepartmentsListDialogOpen(false);
+                              }}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500 focus:text-red-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle delete department
+                                setDepartmentToDelete(department);
+                                setIsDepartmentsListDialogOpen(false);
+                                setShowDeleteDialog(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {/* Only show the footer with "Add Department" button when there are departments */}
+              {departments.length > 0 && (
+                <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="outline" className="w-full" onClick={() => {
+                    setIsDepartmentsListDialogOpen(false);
+                    // Clear editing department and open dialog for new department
+                    setEditingDepartment(null);
+                    setIsDepartmentDialogOpen(true);
+                  }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Department
+                  </Button>
+                </DialogFooter>
+              )}
+            </DialogContent>
+          </Dialog>
+          
+          {/* Department Dialog for adding/editing departments */}
+          <DepartmentDialog
+            isOpen={isDepartmentDialogOpen}
+            onOpenChange={setIsDepartmentDialogOpen}
+            onSaveDepartment={handleSaveDepartment}
+            institutionId={activeInstitution?.id}
+            {...(editingDepartment && { editDepartment: editingDepartment })}
+          />
+          
+          {/* Institution Dialog for adding/editing institutions */}
+          <InstitutionDialog
+            isOpen={isEditInstitutionDialogOpen}
+            onOpenChange={setIsEditInstitutionDialogOpen}
+            onSaveInstitution={handleSaveInstitution}
+            {...(editingInstitution && { editInstitution: editingInstitution })}
+          />
+          
+          {/* Warning Dialog for Institution Deletion */}
+          <WarningDialog
+            open={showDeleteInstitutionDialog}
+            onOpenChange={setShowDeleteInstitutionDialog}
+            title="Delete Institution"
+            description={`Are you sure you want to delete ${institutionToDelete?.name} institution? This action cannot be undone and will also delete all associated departments.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+            variant="destructive"
+            onConfirm={confirmDeleteInstitution}
+            onCancel={() => {
+              setShowDeleteInstitutionDialog(false);
+              setInstitutionToDelete(null);
+            }}
+          />
         </SidebarHeader>
         <SidebarContent>
           <SidebarContentMemo 

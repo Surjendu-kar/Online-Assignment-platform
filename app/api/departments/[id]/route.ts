@@ -28,6 +28,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       // Allow setting description to null/empty to clear it
       updateData.description = updates.description || null;
     }
+    
+    if (updates.institution_id !== undefined) {
+      // Allow setting institution_id to null/empty to clear it
+      updateData.institution_id = updates.institution_id || null;
+    }
 
     // Update department only if there are fields to update
     if (Object.keys(updateData).length === 0) {

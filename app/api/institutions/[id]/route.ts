@@ -50,14 +50,25 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Institution ID is required' }, { status: 400 });
     }
 
-    // Delete institution
-    const { error } = await supabase
+    // First, delete all departments associated with this institution
+    const { error: deptDeleteError } = await supabase
+      .from('departments')
+      .delete()
+      .eq('institution_id', id);
+
+    if (deptDeleteError) {
+      console.error('Error deleting institution departments:', deptDeleteError);
+      return NextResponse.json({ error: 'Failed to delete institution departments' }, { status: 500 });
+    }
+
+    // Then delete the institution itself
+    const { error: instDeleteError } = await supabase
       .from('institutions')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting institution:', error);
+    if (instDeleteError) {
+      console.error('Error deleting institution:', instDeleteError);
       return NextResponse.json({ error: 'Failed to delete institution' }, { status: 500 });
     }
 
