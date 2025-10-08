@@ -21,7 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import departmentsData from "@/data/departmentsData.json";
+
+// Define proper TypeScript interfaces
+interface Department {
+  id: string;
+  name: string;
+  code?: string;
+  description?: string;
+  institution_id?: string;
+}
 
 interface AddTeacherDialogProps {
   trigger?: React.ReactNode;
@@ -75,13 +83,66 @@ export const AddTeacherDialog = ({
   });
   const [internalIsOpen, setInternalIsOpen] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  // Add state for departments and loading
+  const [departments, setDepartments] = React.useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = React.useState(true);
 
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const setIsOpen = externalOnOpenChange || setInternalIsOpen;
 
   const isEditing = !!editTeacher;
 
-  const departments = departmentsData.filter((dept) => dept.code !== "ALL");
+  // Fetch departments when dialog opens
+  React.useEffect(() => {
+    if (isOpen) {
+      fetchDepartments();
+    }
+  }, [isOpen]);
+
+  const fetchDepartments = async () => {
+    try {
+      setLoadingDepartments(true);
+      // Get active institution from localStorage
+      const activeInstitutionId = localStorage.getItem('activeInstitutionId');
+      
+      // Fetch departments from API
+      const response = await fetch('/api/departments');
+      const departmentsData: Department[] = await response.json();
+      
+      if (response.ok) {
+        // Filter departments by institution if institution is selected
+        let filteredDepartments: Department[] = [];
+        if (activeInstitutionId) {
+          filteredDepartments = departmentsData
+            .filter((dept) => dept.institution_id === activeInstitutionId && dept.id !== "all")
+            .map((dept) => ({
+              id: dept.id,
+              name: dept.name,
+              code: dept.code,
+              description: dept.description,
+              institution_id: dept.institution_id
+            }));
+        } else {
+          // If no institution selected, show all departments except "all"
+          filteredDepartments = departmentsData
+            .filter((dept) => dept.id !== "all")
+            .map((dept) => ({
+              id: dept.id,
+              name: dept.name,
+              code: dept.code,
+              description: dept.description,
+              institution_id: dept.institution_id
+            }));
+        }
+        setDepartments(filteredDepartments);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      setDepartments([]);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
 
   React.useEffect(() => {
     if (editTeacher) {
@@ -117,10 +178,6 @@ export const AddTeacherDialog = ({
 
     if (!formData.department) {
       newErrors.department = "Department is required";
-    }
-
-    if (!formData.subjects.trim()) {
-      newErrors.subjects = "Subjects are required";
     }
 
     if (!formData.expirationDate) {
@@ -268,20 +325,38 @@ export const AddTeacherDialog = ({
                   onValueChange={(value) =>
                     handleInputChange("department", value)
                   }
+                  disabled={loadingDepartments}
                 >
                   <SelectTrigger
                     className={`!w-full ${
                       errors.department ? "border-red-500" : ""
                     }`}
                   >
-                    <SelectValue placeholder="Select a department" />
+                    <SelectValue placeholder={loadingDepartments ? "Loading departments..." : "Select a department"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.code}>
-                        {dept.name} ({dept.code})
+                    {loadingDepartments ? (
+                      <SelectItem value="_loading" disabled>
+                        Loading departments...
                       </SelectItem>
-                    ))}
+                    ) : departments.length === 0 ? (
+                      <SelectItem value="_empty" disabled>
+                        No departments available
+                      </SelectItem>
+                    ) : (
+                      departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          <div className="flex items-center">
+                            <span className="truncate max-w-[200px]">
+                              {dept.name}
+                            </span>
+                            <span className="truncate max-w-[250px] ml-1">
+                              {dept.code ? ` (${dept.code})` : dept.description ? ` (${dept.description})` : ''}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.department && (
@@ -305,7 +380,7 @@ export const AddTeacherDialog = ({
             {/* Third row: subjects, expiration date */}
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-2">
-                <Label htmlFor="subjects">Subjects *</Label>
+                <Label htmlFor="subjects">Subjects (Optional)</Label>
                 <Input
                   id="subjects"
                   value={formData.subjects}

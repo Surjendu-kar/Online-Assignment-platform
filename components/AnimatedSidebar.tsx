@@ -1314,6 +1314,28 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
+      <style jsx>{`
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: #374151;
+          border-radius: 3px;
+          margin: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #9ca3af;
+          border-radius: 3px;
+          margin: 2px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: #6b7280;
+        }
+        .scrollbar-thin {
+          scrollbar-width: thin;
+          scrollbar-color: #9ca3af #374151;
+        }
+      `}</style>
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <SidebarMenu>
@@ -1461,7 +1483,6 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
               <DialogFooter>
                 <Button variant="outline" className="w-full" onClick={() => {
                   setIsInstitutionDialogOpen(false);
-                  // Clear editing institution and open dialog for new institution
                   setEditingInstitution(null);
                   setIsEditInstitutionDialogOpen(true);
                 }}>
@@ -1481,7 +1502,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                   Departments in {activeInstitution?.name}
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-2 py-2 max-h-60 overflow-y-auto">
+              <div className="grid gap-2 py-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
                 {loadingDepartments ? (
                   // Show skeleton loaders while loading
                   Array.from({ length: 3 }).map((_, index) => (
@@ -1530,10 +1551,10 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                       }}
                     >
                       <department.logo className="h-5 w-5 text-muted-foreground" />
-                      <div className="flex-1">
-                        <p className="font-medium">{department.name}</p>
+                      <div className="flex-1 min-w-0"> {/* Added min-w-0 to allow truncation */}
+                        <p className="font-medium truncate max-w-[200px]">{department.name}</p>
                         {department.description && (
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate max-w-[250px] ml-1">
                             {department.description}
                           </p>
                         )}
