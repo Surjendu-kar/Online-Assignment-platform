@@ -548,61 +548,72 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
 
   // Fetch user data and role
   useEffect(() => {
-    // First, try to get role from localStorage
-    const storedRole = localStorage.getItem('userRole');
-    const storedFirstName = localStorage.getItem('userFirstName') || '';
-    const storedLastName = localStorage.getItem('userLastName') || '';
-    const storedEmail = localStorage.getItem('userEmail') || '';
-
-    if (storedRole) {
-      setUserRole(storedRole.toLowerCase());
-      setUserData({
-        first_name: storedFirstName,
-        last_name: storedLastName,
-        email: storedEmail,
-        role: storedRole
-      });
-    } else {
-      // Fallback to API call if localStorage doesn't have the role
-      const fetchUserData = async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            try {
-              // Fetch user profile data directly using the user ID
-              const { data: profileData, error: profileError } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
+    const fetchUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          try {
+            // Fetch user profile data directly using the user ID
+            const { data: profileData, error: profileError } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('id', user.id)
+              .single();
+            
+            if (!profileError && profileData) {
+              setUserRole(profileData.role.toLowerCase());
+              setUserData({
+                ...user,
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+                role: profileData.role,
+                email: profileData.email
+              });
               
-              if (!profileError && profileData) {
-                setUserRole(profileData.role.toLowerCase());
-                setUserData({
-                  ...user,
-                  first_name: profileData.first_name,
-                  last_name: profileData.last_name,
-                  role: profileData.role,
-                  email: profileData.email
-                });
-                
-                // Also store in localStorage for future use
-                localStorage.setItem('userRole', profileData.role);
-                localStorage.setItem('userFirstName', profileData.first_name || '');
-                localStorage.setItem('userLastName', profileData.last_name || '');
-                localStorage.setItem('userEmail', profileData.email || '');
-              }
-            } catch (error) {
-              console.error('Error fetching user profile:', error);
+              // Also store in localStorage for future use
+              localStorage.setItem('userRole', profileData.role);
+              localStorage.setItem('userFirstName', profileData.first_name || '');
+              localStorage.setItem('userLastName', profileData.last_name || '');
+              localStorage.setItem('userEmail', profileData.email || '');
             }
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
           }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
+        } else {
+          // No user logged in, clear user data
+          setUserRole(null);
+          setUserData(null);
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userFirstName');
+          localStorage.removeItem('userLastName');
+          localStorage.removeItem('userEmail');
         }
-      };
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
 
-      fetchUserData();
-    }
+    fetchUserData();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        fetchUserData();
+      } else if (event === 'SIGNED_OUT') {
+        // Clear user data on sign out
+        setUserRole(null);
+        setUserData(null);
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userFirstName');
+        localStorage.removeItem('userLastName');
+        localStorage.removeItem('userEmail');
+      }
+    });
+
+    // Clean up subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []); // Empty dependency array means this runs only once
 
   // Update open section when pathname or userRole changes

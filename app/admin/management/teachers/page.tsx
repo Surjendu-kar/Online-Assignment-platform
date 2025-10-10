@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Table,
@@ -32,7 +32,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { WarningDialog } from "@/components/WarningDialog";
 import { ViewTeacherDialog } from "@/components/ViewTeacherDialog";
 import { AddTeacherDialog } from "@/components/AddTeacherDialog";
-import teachersData from "@/data/teachersData.json";
+import { supabase } from '@/lib/supabase/client';
+import toast from "react-hot-toast";
 import {
   ChevronLeft,
   ChevronRight,
@@ -45,6 +46,39 @@ import {
   Trash2,
   User,
 } from "lucide-react";
+
+import TeacherTableSkeleton from "@/components/skeleton/TeacherTableSkeleton";
+
+interface TeacherInvitation {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  status: string;
+  created_at: string;
+  used_at?: string;
+  department?: string;
+  expires_at: string;
+  token: string;
+}
+
+interface ProcessedTeacher {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  createdExams: number;
+  invitedStudents: number;
+  dateJoined: Date;
+  lastActive: Date;
+  profileImage?: string;
+  phone?: string;
+  department?: string;
+  subjects?: string[];
+  expirationDate?: string;
+  isInvitation?: boolean;
+  token?: string;
+}
 
 interface Teacher {
   id: string;
@@ -59,15 +93,16 @@ interface Teacher {
   phone?: string;
   department?: string;
   subjects?: string[];
+  expirationDate?: string; // Add expiration date field
 }
 
-// Demo data
-const demoTeachers: Teacher[] = teachersData.map((teacher) => ({
-  ...teacher,
-  status: teacher.status as "accepted" | "pending",
-  dateJoined: new Date(teacher.dateJoined),
-  lastActive: new Date(teacher.lastActive),
-}));
+interface Department {
+  id: string;
+  name: string;
+  code?: string;
+  description?: string;
+  institution_id?: string;
+}
 
 type SortField =
   | "name"
@@ -123,7 +158,8 @@ function EmptyState({ onReset }: { onReset: () => void }) {
 }
 
 export default function TeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>(demoTeachers);
+  const [invitations, setInvitations] = useState<TeacherInvitation[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -147,12 +183,93 @@ export default function TeachersPage() {
     profileImageUrl?: string;
     expirationDate: string;
   } | null>(null);
+  // Add state for departments
+  const [departments, setDepartments] = useState<{[id: string]: string}>({});
 
   const itemsPerPage = 5;
 
+  // Fetch real data from API
+  useEffect(() => {
+    const fetchTeachersData = async () => {
+      try {
+        setLoading(true);
+        
+        // Get session from Supabase client
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error || !data.session) {
+          toast.error('You must be logged in to view teachers data');
+          return;
+        }
+        
+        const response = await fetch('/api/teachers', {
+          headers: {
+            'Authorization': `Bearer ${data.session.access_token}`,
+          },
+        });
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Only set invitations data, don't merge with teachers
+          setInvitations(result.invitations || []);
+        } else {
+          toast.error(result.error || 'Failed to fetch teachers data');
+        }
+      } catch (error) {
+        console.error('Error fetching teachers data:', error);
+        toast.error('Failed to fetch teachers data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeachersData();
+  }, []);
+
+  // Fetch departments for mapping IDs to names
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await fetch('/api/departments');
+        const departmentsData: Department[] = await response.json();
+        
+        if (response.ok) {
+          // Create a map of department ID to name
+          const departmentMap: {[id: string]: string} = {};
+          departmentsData.forEach((dept: Department) => {
+            departmentMap[dept.id] = dept.name;
+          });
+          setDepartments(departmentMap);
+        }
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  // Process invitations for display
+  const processedInvitations = useMemo(() => {
+    return invitations.map((invitation) => ({
+      id: invitation.id,
+      name: `${invitation.first_name} ${invitation.last_name}`,
+      email: invitation.email,
+      status: invitation.status,
+      createdExams: 0,
+      invitedStudents: 0,
+      dateJoined: new Date(invitation.created_at),
+      lastActive: new Date(invitation.used_at || invitation.created_at),
+      department: (invitation.department && departments[invitation.department]) || invitation.department || "General",
+      expirationDate: invitation.expires_at,
+      isInvitation: true,
+      token: invitation.token
+    }));
+  }, [invitations, departments]);
+
   // Filter and sort teachers
   const filteredAndSortedTeachers = useMemo(() => {
-    const filtered = teachers.filter((teacher) => {
+    const filtered = processedInvitations.filter((teacher) => {
       const matchesSearch =
         teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         teacher.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -221,7 +338,7 @@ export default function TeachersPage() {
     });
 
     return filtered;
-  }, [teachers, searchTerm, statusFilter, dateFilter, sortField, sortOrder]);
+  }, [processedInvitations, searchTerm, statusFilter, dateFilter, sortField, sortOrder]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedTeachers.length / itemsPerPage);
@@ -233,12 +350,12 @@ export default function TeachersPage() {
 
   // Stats
   const stats = useMemo(() => {
-    const total = teachers.length;
-    const active = teachers.filter((t) => t.status === "accepted").length;
-    const inactive = teachers.filter((t) => t.status === "pending").length;
+    const total = invitations.length;
+    const active = invitations.filter((invitation) => invitation.status === "accepted").length;
+    const inactive = invitations.filter((invitation) => invitation.status === "pending").length;
 
     return { total, active, inactive };
-  }, [teachers]);
+  }, [invitations]);
 
   const resetAllFilters = () => {
     setSearchTerm("");
@@ -259,12 +376,28 @@ export default function TeachersPage() {
     }
   };
 
-  const handleViewTeacher = (teacher: Teacher) => {
-    setSelectedTeacher(teacher);
+  const handleViewTeacher = (teacher: ProcessedTeacher) => {
+    // Convert ProcessedTeacher to Teacher interface
+    const convertedTeacher: Teacher = {
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      status: teacher.status as "accepted" | "pending",
+      createdExams: teacher.createdExams,
+      invitedStudents: teacher.invitedStudents,
+      dateJoined: teacher.dateJoined,
+      lastActive: teacher.lastActive,
+      profileImage: teacher.profileImage,
+      phone: teacher.phone,
+      department: teacher.department,
+      subjects: teacher.subjects,
+      expirationDate: teacher.expirationDate
+    };
+    setSelectedTeacher(convertedTeacher);
     setIsViewModalOpen(true);
   };
 
-  const handleEditTeacher = (teacher: Teacher) => {
+  const handleEditTeacher = (teacher: ProcessedTeacher) => {
     const editData = {
       id: teacher.id,
       firstName: teacher.name.split(" ")[0],
@@ -283,16 +416,76 @@ export default function TeachersPage() {
     setIsViewModalOpen(false);
   };
 
-  const handleSendEmail = (teacher: Teacher) => {
+  const handleSendEmail = (teacher: ProcessedTeacher) => {
     // TODO: Implement send email functionality
     console.log("Send email to:", teacher.email);
     setIsViewModalOpen(false);
   };
 
-  const handleDeleteFromView = (teacher: Teacher) => {
+  const handleDeleteFromView = (teacher: ProcessedTeacher) => {
     setSelectedTeacher(null);
     setIsViewModalOpen(false);
     handleDeleteSingle(teacher);
+  };
+
+  const handleSendTeacherInvitation = async (teacherData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    department: string;
+    phone?: string;
+    subjects: string;
+    profileImageUrl?: string;
+    expirationDate: string;
+  }) => {
+    try {
+      const loadingToast = toast.loading('Sending teacher invitation...');
+      
+      // Get session from Supabase client
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error || !data.session) {
+        toast.dismiss(loadingToast);
+        toast.error('You must be logged in to send invitations');
+        return { success: false, error: 'You must be logged in to send invitations' };
+      }
+
+      const response = await fetch('/api/teachers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${data.session.access_token}`,
+        },
+        body: JSON.stringify({
+          email: teacherData.email,
+          firstName: teacherData.firstName,
+          lastName: teacherData.lastName,
+          department: teacherData.department,
+          expiresAt: teacherData.expirationDate ? new Date(teacherData.expirationDate).toISOString() : undefined,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        toast.dismiss(loadingToast);
+        toast.error(result.error || 'Failed to send invitation');
+        return { success: false, error: result.error || 'Failed to send invitation' };
+      }
+      
+      // Fetch updated data to refresh the table
+      handleAddTeacher(teacherData);
+      
+      // Replace loading toast with success toast immediately
+      toast.dismiss(loadingToast);
+      toast.success(`Teacher invitation sent successfully to ${teacherData.email}`);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast.error('Failed to send invitation');
+      return { success: false, error: 'Failed to send invitation' };
+    }
   };
 
   const handleAddTeacher = (teacherData: {
@@ -305,54 +498,37 @@ export default function TeachersPage() {
     profileImageUrl?: string;
     expirationDate: string;
   }) => {
-    if (editingTeacher) {
-      // Update existing teacher
-      const updatedTeacher: Teacher = {
-        id: editingTeacher.id,
-        name: `${teacherData.firstName} ${teacherData.lastName}`,
-        email: teacherData.email,
-        status:
-          teachers.find((t) => t.id === editingTeacher.id)?.status || "pending",
-        createdExams:
-          teachers.find((t) => t.id === editingTeacher.id)?.createdExams || 0,
-        invitedStudents:
-          teachers.find((t) => t.id === editingTeacher.id)?.invitedStudents ||
-          0,
-        dateJoined:
-          teachers.find((t) => t.id === editingTeacher.id)?.dateJoined ||
-          new Date(),
-        lastActive:
-          teachers.find((t) => t.id === editingTeacher.id)?.lastActive ||
-          new Date(),
-        department: teacherData.department,
-        phone: teacherData.phone,
-        subjects: teacherData.subjects.split(",").map((s) => s.trim()),
-        profileImage: teacherData.profileImageUrl,
-      };
-      setTeachers((prev) =>
-        prev.map((teacher) =>
-          teacher.id === editingTeacher.id ? updatedTeacher : teacher
-        )
-      );
-      setEditingTeacher(null);
-    } else {
-      // Add new teacher
-      const newTeacher: Teacher = {
-        id: Date.now().toString(),
-        name: `${teacherData.firstName} ${teacherData.lastName}`,
-        email: teacherData.email,
-        status: "pending",
-        createdExams: 0,
-        invitedStudents: 0,
-        dateJoined: new Date(),
-        lastActive: new Date(),
-        profileImage: teacherData.profileImageUrl,
-        phone: teacherData.phone,
-        department: teacherData.department,
-        subjects: teacherData.subjects.split(",").map((s) => s.trim()),
-      };
-      setTeachers((prev) => [newTeacher, ...prev]);
-    }
+    // Refresh the data instead of adding locally since we're only showing invitations
+    const fetchTeachersData = async () => {
+      try {
+        // Get session from Supabase client
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error || !data.session) {
+          toast.error('You must be logged in to view teachers data');
+          return;
+        }
+        
+        const response = await fetch('/api/teachers', {
+          headers: {
+            'Authorization': `Bearer ${data.session.access_token}`,
+          },
+        });
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Only set invitations data, don't merge with teachers
+          setInvitations(result.invitations || []);
+        } else {
+          toast.error(result.error || 'Failed to fetch teachers data');
+        }
+      } catch (error) {
+        console.error('Error fetching teachers data:', error);
+        toast.error('Failed to fetch teachers data');
+      }
+    };
+
+    fetchTeachersData();
   };
 
   const toggleRowSelection = (teacherId: string) => {
@@ -369,7 +545,7 @@ export default function TeachersPage() {
     if (selectedRows.size === paginatedTeachers.length) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(paginatedTeachers.map((t) => t.id)));
+      setSelectedRows(new Set(paginatedTeachers.map((t: any) => t.id)));
     }
   };
 
@@ -379,49 +555,177 @@ export default function TeachersPage() {
   };
 
   const confirmDeleteSelected = () => {
-    const selectedIds = Array.from(selectedRows);
-    setTeachers((prev) =>
-      prev.filter((teacher) => !selectedIds.includes(teacher.id))
-    );
-    setSelectedRows(new Set());
-    setTeacherToDelete(null); // Clear single delete state
-    // Reset to first page if current page becomes empty
-    const remainingTeachers = teachers.filter(
-      (teacher) => !selectedIds.includes(teacher.id)
-    );
-    const newTotalPages = Math.ceil(remainingTeachers.length / itemsPerPage);
-    if (currentPage > newTotalPages && newTotalPages > 0) {
-      setCurrentPage(newTotalPages);
-    }
+    // Show loading toast immediately
+    const loadingToast = toast.loading(`Deleting ${selectedRows.size} teacher invitation(s)...`);
+
+    // Call API to delete the selected invitations
+    const deleteSelectedInvitations = async () => {
+      try {
+        const selectedIds = Array.from(selectedRows);
+        
+        // Get session from Supabase client
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error || !data.session) {
+          toast.dismiss(loadingToast);
+          toast.error('You must be logged in to delete invitations');
+          return;
+        }
+
+        // Delete each selected invitation
+        const deletePromises = selectedIds.map(id => 
+          fetch('/api/teachers', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${data.session.access_token}`,
+            },
+            body: JSON.stringify({
+              invitationId: id,
+            }),
+          })
+        );
+
+        // Wait for all deletions to complete
+        const responses = await Promise.all(deletePromises);
+        const results = await Promise.all(responses.map(res => res.json()));
+        
+        // Check if any deletion failed
+        const failedDeletions = responses.map((res, index) => ({ 
+          success: res.ok, 
+          id: selectedIds[index], 
+          error: results[index].error 
+        })).filter(result => !result.success);
+        
+        if (failedDeletions.length > 0) {
+          toast.dismiss(loadingToast);
+          toast.error(`Failed to delete ${failedDeletions.length} invitation(s)`);
+          console.error('Failed deletions:', failedDeletions);
+        } else {
+          toast.dismiss(loadingToast);
+          toast.success('Invitations deleted successfully');
+        }
+
+        // Update local state only after successful deletion
+        setInvitations((prev) =>
+          prev.filter((invitation: any) => !selectedIds.includes(invitation.id))
+        );
+        
+        setSelectedRows(new Set());
+        setTeacherToDelete(null); // Clear single delete state
+        
+        // Reset to first page if current page becomes empty
+        const remainingInvitations = invitations.filter(
+          (invitation: any) => !selectedIds.includes(invitation.id)
+        );
+        const newTotalPages = Math.ceil(remainingInvitations.length / itemsPerPage);
+        if (currentPage > newTotalPages && newTotalPages > 0) {
+          setCurrentPage(newTotalPages);
+        }
+      } catch (error) {
+        console.error('Error deleting invitations:', error);
+        toast.dismiss(loadingToast);
+        toast.error('Failed to delete invitations');
+      }
+    };
+
+    deleteSelectedInvitations();
   };
 
-  const handleDeleteSingle = (teacher: Teacher) => {
+  const handleDeleteSingle = (teacher: ProcessedTeacher) => {
     setSelectedRows(new Set()); // Clear bulk selection state
-    setTeacherToDelete(teacher);
+    
+    // Convert ProcessedTeacher to Teacher interface
+    const convertedTeacher: Teacher = {
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      status: teacher.status as "accepted" | "pending",
+      createdExams: teacher.createdExams,
+      invitedStudents: teacher.invitedStudents,
+      dateJoined: teacher.dateJoined,
+      lastActive: teacher.lastActive,
+      profileImage: teacher.profileImage,
+      phone: teacher.phone,
+      department: teacher.department,
+      subjects: teacher.subjects
+    };
+    
+    setTeacherToDelete(convertedTeacher);
     setIsDeleteModalOpen(true);
   };
 
   const confirmDeleteSingle = () => {
     if (!teacherToDelete) return;
 
-    setTeachers((prev) =>
-      prev.filter((teacher) => teacher.id !== teacherToDelete.id)
-    );
-    // Remove from selected rows if it was selected
-    if (selectedRows.has(teacherToDelete.id)) {
-      const newSelection = new Set(selectedRows);
-      newSelection.delete(teacherToDelete.id);
-      setSelectedRows(newSelection);
-    }
-    setTeacherToDelete(null);
-    // Reset to first page if current page becomes empty
-    const remainingTeachers = teachers.filter(
-      (teacher) => teacher.id !== teacherToDelete.id
-    );
-    const newTotalPages = Math.ceil(remainingTeachers.length / itemsPerPage);
-    if (currentPage > newTotalPages && newTotalPages > 0) {
-      setCurrentPage(newTotalPages);
-    }
+    // Show loading toast immediately
+    const loadingToast = toast.loading('Deleting teacher invitation...');
+
+    // Call API to delete the invitation
+    const deleteInvitation = async () => {
+      try {
+        // Get session from Supabase client
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error || !data.session) {
+          toast.dismiss(loadingToast);
+          toast.error('You must be logged in to delete invitations');
+          return;
+        }
+
+        const response = await fetch('/api/teachers', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.session.access_token}`,
+          },
+          body: JSON.stringify({
+            invitationId: teacherToDelete.id,
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          toast.dismiss(loadingToast);
+          toast.error(result.error || 'Failed to delete invitation');
+          return;
+        }
+
+        // Update local state only after successful deletion
+        setInvitations((prev) =>
+          prev.filter((invitation: any) => invitation.id !== teacherToDelete.id)
+        );
+        
+        // Remove from selected rows if it was selected
+        if (selectedRows.has(teacherToDelete.id)) {
+          const newSelection = new Set(selectedRows);
+          newSelection.delete(teacherToDelete.id);
+          setSelectedRows(newSelection);
+        }
+        
+        // Show success toast
+        toast.dismiss(loadingToast);
+        toast.success('Invitation deleted successfully');
+        
+        // Reset to first page if current page becomes empty
+        const remainingInvitations = invitations.filter(
+          (invitation: any) => invitation.id !== teacherToDelete.id
+        );
+        const newTotalPages = Math.ceil(remainingInvitations.length / itemsPerPage);
+        if (currentPage > newTotalPages && newTotalPages > 0) {
+          setCurrentPage(newTotalPages);
+        }
+      } catch (error) {
+        console.error('Error deleting invitation:', error);
+        toast.dismiss(loadingToast);
+        toast.error('Failed to delete invitation');
+      } finally {
+        setTeacherToDelete(null);
+      }
+    };
+
+    deleteInvitation();
   };
 
   const formatDate = (date: Date) => {
@@ -483,7 +787,7 @@ export default function TeachersPage() {
               </div>
               <Button onClick={() => setIsAddTeacherOpen(true)}>
                 <Plus className="h-4 w-4" />
-                Add New Teacher
+                Invite New Teacher
               </Button>
             </div>
           </CardHeader>
@@ -628,13 +932,16 @@ export default function TeachersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedTeachers.length === 0 ? (
+                    {loading ? (
+                      <TeacherTableSkeleton />
+                    ) : paginatedTeachers.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8}>
                           <EmptyState onReset={resetAllFilters} />
                         </TableCell>
                       </TableRow>
                     ) : (
+                      // Show actual data
                       <AnimatePresence mode="popLayout">
                         {paginatedTeachers.map((teacher, index) => (
                           <motion.tr
@@ -664,13 +971,13 @@ export default function TeachersPage() {
                               <div className="flex items-center space-x-3">
                                 <Avatar className="h-8 w-8">
                                   <AvatarImage
-                                    src={teacher.profileImage}
+                                    src={undefined} // No profile image in teacher_invitations table
                                     alt={teacher.name}
                                   />
                                   <AvatarFallback>
                                     {teacher.name
                                       .split(" ")
-                                      .map((n) => n[0])
+                                      .map((n: string) => n[0].toUpperCase())
                                       .join("")}
                                   </AvatarFallback>
                                 </Avatar>
@@ -766,7 +1073,21 @@ export default function TeachersPage() {
 
       {/* View Teacher Dialog */}
       <ViewTeacherDialog
-        teacher={selectedTeacher}
+        teacher={selectedTeacher ? {
+          id: selectedTeacher.id,
+          name: selectedTeacher.name,
+          email: selectedTeacher.email,
+          status: selectedTeacher.status as "accepted" | "pending",
+          createdExams: selectedTeacher.createdExams,
+          invitedStudents: selectedTeacher.invitedStudents,
+          dateJoined: selectedTeacher.dateJoined,
+          lastActive: selectedTeacher.lastActive,
+          profileImage: selectedTeacher.profileImage,
+          phone: selectedTeacher.phone,
+          department: selectedTeacher.department,
+          subjects: selectedTeacher.subjects,
+          expirationDate: selectedTeacher.expirationDate
+        } : null}
         open={isViewModalOpen}
         onOpenChange={setIsViewModalOpen}
         onEdit={handleEditTeacher}
@@ -796,18 +1117,18 @@ export default function TeachersPage() {
           <p className="text-sm font-medium mb-2">Teachers to be deleted:</p>
           <div className="space-y-1">
             {Array.from(selectedRows).map((teacherId) => {
-              const teacher = teachers.find((t) => t.id === teacherId);
+              const teacher = processedInvitations.find((t) => t.id === teacherId);
               return teacher ? (
                 <div key={teacherId} className="flex items-center gap-2">
                   <Avatar className="h-6 w-6">
                     <AvatarImage
-                      src={teacher.profileImage}
+                      src={undefined}
                       alt={teacher.name}
                     />
                     <AvatarFallback className="text-xs">
                       {teacher.name
                         .split(" ")
-                        .map((n) => n[0])
+                        .map((n: string) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
@@ -830,6 +1151,7 @@ export default function TeachersPage() {
           }
         }}
         onSaveTeacher={handleAddTeacher}
+        onSendInvitation={handleSendTeacherInvitation}
       />
 
       {/* Single Delete Warning Dialog */}
@@ -856,7 +1178,7 @@ export default function TeachersPage() {
                 <AvatarFallback>
                   {teacherToDelete.name
                     .split(" ")
-                    .map((n) => n[0])
+                    .map((n: string) => n[0])
                     .join("")}
                 </AvatarFallback>
               </Avatar>

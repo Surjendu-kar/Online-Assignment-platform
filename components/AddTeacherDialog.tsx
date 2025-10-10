@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import toast from "react-hot-toast";
 
 // Define proper TypeScript interfaces
 interface Department {
@@ -43,6 +44,16 @@ interface AddTeacherDialogProps {
     profileImageUrl?: string;
     expirationDate: string;
   }) => void;
+  onSendInvitation?: (teacher: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    department: string;
+    phone?: string;
+    subjects: string;
+    profileImageUrl?: string;
+    expirationDate: string;
+  }) => Promise<{ success: boolean; error?: string }>;
   editTeacher?: {
     id: string;
     firstName: string;
@@ -61,6 +72,7 @@ interface AddTeacherDialogProps {
 export const AddTeacherDialog = ({
   trigger,
   onSaveTeacher,
+  onSendInvitation,
   editTeacher,
   isOpen: externalIsOpen,
   onOpenChange: externalOnOpenChange,
@@ -86,6 +98,8 @@ export const AddTeacherDialog = ({
   // Add state for departments and loading
   const [departments, setDepartments] = React.useState<Department[]>([]);
   const [loadingDepartments, setLoadingDepartments] = React.useState(true);
+  // Add state for form submission
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const setIsOpen = externalOnOpenChange || setInternalIsOpen;
@@ -196,10 +210,29 @@ export const AddTeacherDialog = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (validateForm()) {
+      // If we have an onSendInvitation function, use it to send an invitation
+      if (typeof onSendInvitation === 'function') {
+        try {
+          setIsSubmitting(true);
+          const result = await onSendInvitation(formData);
+          if (!result.success) {
+            // Show error toast
+            toast.error(result.error || 'Failed to send invitation');
+            // We'll still proceed with saving the teacher locally
+          }
+        } catch (error) {
+          console.error('Error sending invitation:', error);
+          toast.error('Failed to send invitation');
+          // We'll still proceed with saving the teacher locally
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+      
       onSaveTeacher?.(formData);
       if (!isEditing) {
         setFormData({
@@ -252,12 +285,12 @@ export const AddTeacherDialog = ({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit Teacher" : "Add New Teacher"}
+              {isEditing ? "Edit Teacher" : "Invite New Teacher"}
             </DialogTitle>
             <DialogDescription>
               {isEditing
                 ? "Update the teacher details below."
-                : "Add a new teacher to your institution. Fill in the details below."}
+                : "Invite a new teacher to your institution. Fill in the details below."}
             </DialogDescription>
           </DialogHeader>
 
@@ -274,6 +307,7 @@ export const AddTeacherDialog = ({
                   }
                   placeholder="John"
                   className={errors.firstName ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.firstName && (
                   <span className="text-sm text-red-500">
@@ -292,6 +326,7 @@ export const AddTeacherDialog = ({
                   }
                   placeholder="Doe"
                   className={errors.lastName ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.lastName && (
                   <span className="text-sm text-red-500">
@@ -309,6 +344,7 @@ export const AddTeacherDialog = ({
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="john.doe@university.edu"
                   className={errors.email ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.email && (
                   <span className="text-sm text-red-500">{errors.email}</span>
@@ -325,7 +361,7 @@ export const AddTeacherDialog = ({
                   onValueChange={(value) =>
                     handleInputChange("department", value)
                   }
-                  disabled={loadingDepartments}
+                  disabled={loadingDepartments || isSubmitting}
                 >
                   <SelectTrigger
                     className={`!w-full ${
@@ -373,6 +409,7 @@ export const AddTeacherDialog = ({
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   placeholder="+1 234 567 8900"
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -389,6 +426,7 @@ export const AddTeacherDialog = ({
                   }
                   placeholder="e.g. Mathematics, Physics, Chemistry"
                   className={errors.subjects ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.subjects && (
                   <span className="text-sm text-red-500">
@@ -410,6 +448,7 @@ export const AddTeacherDialog = ({
                     handleInputChange("expirationDate", e.target.value)
                   }
                   className={errors.expirationDate ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.expirationDate && (
                   <span className="text-sm text-red-500">
@@ -433,18 +472,19 @@ export const AddTeacherDialog = ({
                   handleInputChange("profileImageUrl", e.target.value)
                 }
                 placeholder="https://example.com/image.jpg"
+                disabled={isSubmitting}
               />
             </div>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" type="button">
+              <Button variant="outline" type="button" disabled={isSubmitting}>
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit">
-              {isEditing ? "Update Teacher" : "Add Teacher"}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Sending Invitation..." : (isEditing ? "Update Teacher" : "Invite Teacher")}
             </Button>
           </DialogFooter>
         </form>

@@ -60,30 +60,47 @@ export default function TeacherInvitationPage() {
       try {
         setLoading(true);
 
-        // Simulate API call to validate token
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Validate token with API
+        const response = await fetch('/api/teacher-invitation/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
 
-        // Mock invitation data - replace with actual API call
-        const mockInvitation: TeacherInvitation = {
-          id: "inv-123",
+        const result = await response.json();
+
+        if (!response.ok) {
+          setError(result.error || "Invalid or expired invitation token");
+          return;
+        }
+
+        if (!result.valid) {
+          setError("Invalid or expired invitation token");
+          return;
+        }
+
+        // Transform invitation data
+        const invitationData: TeacherInvitation = {
+          id: result.invitation.id,
           token: token,
-          email: "teacher@example.com",
-          institutionName: "Stanford University",
-          department: "CS",
-          invitedBy: "Admin User",
-          expiresAt: new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000
-          ).toISOString(),
+          email: result.invitation.email,
+          institutionName: result.invitation.institution || "Your Institution",
+          department: result.invitation.department || "General",
+          invitedBy: "Administrator",
+          expiresAt: result.invitation.expires_at,
           status: "pending",
         };
 
-        if (new Date(mockInvitation.expiresAt) < new Date()) {
-          mockInvitation.status = "expired";
+        if (new Date(invitationData.expiresAt) < new Date()) {
+          invitationData.status = "expired";
         }
 
-        setInvitation(mockInvitation);
-      } catch {
+        setInvitation(invitationData);
+      } catch (err) {
         setError("Invalid or expired invitation token");
+        console.error("Error validating token:", err);
       } finally {
         setLoading(false);
       }
@@ -131,16 +148,33 @@ export default function TeacherInvitationPage() {
     try {
       setSubmitting(true);
 
-      // Simulate API call to accept invitation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Accept invitation with API
+      const response = await fetch('/api/teacher-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          password: formData.password
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.error || "Failed to create account. Please try again.");
+        return;
+      }
 
       toast.success(
         "Welcome! Your teacher account has been created successfully."
       );
 
-      // Redirect to teacher dashboard or login
+      // Redirect to login
       router.push("/login?role=teacher&success=account-created");
-    } catch {
+    } catch (err) {
+      console.error("Error accepting invitation:", err);
       toast.error("Failed to create account. Please try again.");
     } finally {
       setSubmitting(false);
@@ -217,7 +251,7 @@ export default function TeacherInvitationPage() {
               </div>
             </div>
             <CardTitle className="text-2xl">
-              Welcome to {invitation.institutionName}
+              Welcome to {invitation.institutionName || "Your Institution"}
             </CardTitle>
             <CardDescription>
               You have been invited to join as a teacher in the{" "}

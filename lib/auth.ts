@@ -51,15 +51,27 @@ export async function signIn(email: string, password: string) {
   if (data?.user) {
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role, first_name, last_name')
+      .select('role, first_name, last_name, email, deleted')
       .eq('id', data.user.id)
       .single()
 
-    if (!profileError && profileData) {
+    if (profileError) {
+      return { error: profileError }
+    }
+
+    // Check if user is marked as deleted
+    if (profileData.deleted) {
+      // Sign out the user immediately
+      await supabase.auth.signOut();
+      return { error: { message: "Account has been deleted" } }
+    }
+
+    if (profileData) {
       // Store user role and basic info in localStorage
       localStorage.setItem('userRole', profileData.role);
       localStorage.setItem('userFirstName', profileData.first_name || '');
       localStorage.setItem('userLastName', profileData.last_name || '');
+      localStorage.setItem('userEmail', profileData.email || '');
     }
   }
 
@@ -72,6 +84,7 @@ export async function signOut() {
   localStorage.removeItem('userRole');
   localStorage.removeItem('userFirstName');
   localStorage.removeItem('userLastName');
+  localStorage.removeItem('userEmail');
   
   const { error } = await supabase.auth.signOut();
   return { error }

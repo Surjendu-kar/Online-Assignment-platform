@@ -29,6 +29,7 @@ interface Teacher {
   phone?: string;
   department?: string;
   subjects?: string[];
+  expirationDate?: string;
 }
 
 interface ViewTeacherDialogProps {
@@ -155,9 +156,11 @@ export const ViewTeacherDialog = ({
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Last Active
+                  Expiration Date
                 </label>
-                <p className="font-medium">{formatDate(teacher.lastActive)}</p>
+                <p className="font-medium">
+                  {teacher.expirationDate ? formatDate(new Date(teacher.expirationDate)) : "Not set"}
+                </p>
               </div>
             </div>
 
