@@ -4,7 +4,7 @@ import React from "react";
 import { motion } from "motion/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Trophy, FileText } from "lucide-react";
+import { BarChart3, FileText } from "lucide-react";
 
 export default function ResultsPage() {
   return (

@@ -2,7 +2,7 @@ import { supabaseServer as supabase } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 // GET - Fetch all departments
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Fetch all departments from the database
     const { data: departments, error } = await supabase
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     }
 
     // Process departments - show actual data from DB, don't generate defaults
-    const processedDepartments = departments.map((dept: any) => ({
+    const processedDepartments = departments.map((dept) => ({
       id: dept.id,
       name: dept.name,
       // Only include code and description if they exist in the database
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // Create department with provided values (code and description are optional)
-    const departmentData: any = {
+    const departmentData: Record<string, string> = {
       name
     };
     

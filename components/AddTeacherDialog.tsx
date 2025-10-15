@@ -259,7 +259,21 @@ export const AddTeacherDialog = ({
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-    if (open && !isEditing) {
+    if (!open) {
+      // Reset form data when dialog is closed
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        department: "",
+        phone: "",
+        subjects: "",
+        profileImageUrl: "",
+        expirationDate: getDefaultExpirationDate(),
+      });
+      setErrors({});
+    } else if (!isEditing) {
+      // Reset form data when dialog is opened (and not in edit mode)
       setFormData({
         firstName: "",
         lastName: "",

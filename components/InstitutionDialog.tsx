@@ -14,7 +14,6 @@ import {
 } from "@/components/animate-ui/components/radix/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import toast from 'react-hot-toast';
 
 interface InstitutionDialogProps {
   trigger?: React.ReactNode;

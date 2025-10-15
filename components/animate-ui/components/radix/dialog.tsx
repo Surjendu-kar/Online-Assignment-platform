@@ -29,7 +29,7 @@ type DialogProps = DialogPrimitiveProps & {
   closeOnEscape?: boolean;
 };
 
-function Dialog({ disableCloseOnClickOutside = false, closeOnEscape = true, ...props }: DialogProps) {
+function Dialog({ disableCloseOnClickOutside = false, ...props }: DialogProps) {
   return (
     <DialogPrimitive 
       modal={disableCloseOnClickOutside ? true : props.modal}

@@ -2,9 +2,9 @@ import { supabaseServer as supabase } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 // PATCH - Update an institution
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { name, description } = await request.json();
 
     // Validate institution ID
@@ -41,9 +41,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 }
 
 // DELETE - Delete an institution
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Validate institution ID
     if (!id) {

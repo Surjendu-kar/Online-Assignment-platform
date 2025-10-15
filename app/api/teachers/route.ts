@@ -98,13 +98,13 @@ export interface CreateTeacherInvitationData {
 
 export interface CreateTeacherInvitationResult {
   success: boolean;
-  invitation?: any;
+  invitation?: Record<string, unknown>;
   error?: string;
 }
 
 // Create teacher invitation
 export async function createTeacherInvitation(
-  supabase: any,
+  supabase: ReturnType<typeof createRouteClient>,
   {
     email,
     firstName,

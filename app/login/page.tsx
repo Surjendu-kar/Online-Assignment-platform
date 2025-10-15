@@ -4,10 +4,9 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { PasswordToggle } from "@/components/ui/password-toggle";
 import { signIn, getRedirectPath } from "@/lib/auth";
-import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 

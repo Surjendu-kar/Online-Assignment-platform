@@ -2,9 +2,9 @@ import { supabaseServer as supabase } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 // PATCH - Update a department
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const updates = await request.json();
 
     // Validate department ID
@@ -13,7 +13,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     // Prepare update data - only include fields that are provided
-    const updateData: any = {};
+    const updateData: Record<string, string | null> = {};
     
     if (updates.name !== undefined) {
       updateData.name = updates.name;
@@ -67,9 +67,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 }
 
 // DELETE - Delete a department
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Validate department ID
     if (!id) {

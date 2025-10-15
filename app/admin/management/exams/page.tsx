@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import toast from "react-hot-toast";
 import {
@@ -29,8 +29,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import examsData from "@/data/examsData.json";
 import { AddExamDialog } from "@/components/AddExamDialog";
+import { supabase } from "@/lib/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronLeft,
   ChevronRight,
@@ -60,25 +61,21 @@ interface Question {
 
 interface Exam {
   id: string;
-  name: string;
-  startDate?: string;
-  endDate?: string;
-  duration?: number;
+  title: string;
+  start_time?: string;
+  end_time?: string;
+  unique_code?: string;
+  created_by?: string;
   totalQuestions?: number;
-  maxScore?: number;
   status?: "active" | "draft" | "archived";
-  createdDate?: Date;
+  created_at?: string;
   assignedStudents?: number;
   questions?: Question[];
+  department?: string;
+  duration?: number;
 }
 
-const demoExams: Exam[] = examsData.map((exam) => ({
-  ...exam,
-  status: exam.status as "active" | "draft" | "archived",
-  createdDate: new Date(exam.createdDate),
-}));
-
-type SortField = "name" | "duration" | "status" | "assignedStudents";
+type SortField = "title" | "status" | "assignedStudents" | "created_at";
 type SortOrder = "asc" | "desc";
 
 interface StatsCardProps {
@@ -126,21 +123,61 @@ function EmptyState({ onReset }: { onReset: () => void }) {
 }
 
 export default function ExamsPage() {
-  const [exams, setExams] = useState<Exam[]>(demoExams);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<SortField>("name");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isAddExamOpen, setIsAddExamOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
+  const [deletingExams, setDeletingExams] = useState<Set<string>>(new Set());
+  const [isDialogLoading, setIsDialogLoading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const itemsPerPage = 5;
 
+  // Fetch exams from API
+ const fetchExams = async () => {
+  try {
+    setLoading(true);
+    
+    const { data: session, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session.session) {
+      toast.error('You must be logged in to view exams');
+      return;
+    }
+
+    const response = await fetch('/api/exams', {
+      headers: { 'Authorization': `Bearer ${session.session.access_token}` },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('[ExamsPage] Error fetching exams:', error); // Log error
+      throw new Error(error.error || 'Failed to fetch exams');
+    }
+
+    const data = await response.json();
+    console.log('[ExamsPage] Fetched exams:', data); // Log fetched exams
+    setExams(data);
+  } catch (error) {
+    console.error('[ExamsPage] Error fetching exams:', error); // Log error
+    toast.error('Failed to load exams');
+  } finally {
+    setLoading(false);
+  }
+};
+
+  useEffect(() => {
+    fetchExams();
+  }, []);
+
   const filteredAndSortedExams = useMemo(() => {
     const filtered = exams.filter((exam) => {
-      const matchesSearch = exam.name
+      const matchesSearch = exam.title
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
       const matchesStatus =
@@ -150,19 +187,22 @@ export default function ExamsPage() {
     });
 
     filtered.sort((a, b) => {
-      let aValue: string | number;
-      let bValue: string | number;
+      let aValue: string | number | Date;
+      let bValue: string | number | Date;
 
       switch (sortField) {
-        case "name":
+        case "title":
         case "status":
           aValue = a[sortField] || "";
           bValue = b[sortField] || "";
           break;
-        case "duration":
         case "assignedStudents":
           aValue = a[sortField] || 0;
           bValue = b[sortField] || 0;
+          break;
+        case "created_at":
+          aValue = new Date(a[sortField] || 0);
+          bValue = new Date(b[sortField] || 0);
           break;
         default:
           return 0;
@@ -201,8 +241,8 @@ export default function ExamsPage() {
     setSearchTerm("");
     setStatusFilter("all");
     setCurrentPage(1);
-    setSortField("name");
-    setSortOrder("asc");
+    setSortField("created_at");
+    setSortOrder("desc");
     setSelectedRows(new Set());
   };
 
@@ -233,79 +273,231 @@ export default function ExamsPage() {
     }
   };
 
-  const handleAddExam = (examData: {
+  const handleAddExam = async (examData: {
     name: string;
-    startDate: string;
-    endDate: string;
+    startDate: string; // This is a local datetime string from the UI
+    endDate: string;   // This is a local datetime string from the UI
     duration: number;
+      status: "active" | "draft" | "archived";
     questions: Question[];
   }) => {
-    if (editingExam) {
-      // Update existing exam
-      const updatedExam: Exam = {
-        ...editingExam,
-        name: examData.name,
-        startDate: examData.startDate,
-        endDate: examData.endDate,
-        duration: examData.duration,
-        questions: examData.questions,
-        totalQuestions: examData.questions.length,
-        maxScore: examData.questions.reduce(
-          (total, q) => total + (q.points || 0),
-          0
-        ),
-      };
-      setExams((prev) =>
-        prev.map((exam) => (exam.id === editingExam.id ? updatedExam : exam))
-      );
-      setEditingExam(null);
+    let loadingToastId: string | undefined; // Declare with `let` outside try-catch
+    try {
+      loadingToastId = toast.loading(editingExam ? 'Updating exam...' : 'Creating exam...');
+      
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast.dismiss(loadingToastId);
+        toast.error('You must be logged in');
+        return;
+      }
 
-      toast.success(`Exam "${examData.name}" updated successfully!`, {
-        duration: 4000,
-        position: "top-right",
+      // Convert local datetime strings to UTC ISO strings for the backend
+      const utcStartDate = convertLocalToUTCISO(examData.startDate);
+      const utcEndDate = convertLocalToUTCISO(examData.endDate);
+
+      const url = editingExam 
+        ? `/api/exams/${editingExam.id}`
+        : '/api/exams';
+      
+      const method = editingExam ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+        body: JSON.stringify({
+          ...examData,
+          startDate: utcStartDate, 
+          endDate: utcEndDate,    
+          status: examData.status,
+        }),
       });
-    } else {
-      // Add new exam
-      const newExam: Exam = {
-        id: Date.now().toString(),
-        name: examData.name,
-        startDate: examData.startDate,
-        endDate: examData.endDate,
-        duration: examData.duration,
-        questions: examData.questions,
-        totalQuestions: examData.questions.length,
-        maxScore: examData.questions.reduce(
-          (total, q) => total + (q.points || 0),
-          0
-        ),
-        status: "draft",
-        createdDate: new Date(),
-        assignedStudents: 0,
-      };
-      setExams((prev) => [newExam, ...prev]);
 
-      // Navigate to first page to show the new exam
-      setCurrentPage(1);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save exam');
+      }
 
-      // Show success toast
+      toast.dismiss(loadingToastId);
       toast.success(
-        `Exam "${examData.name}" created successfully! It appears on page 1.`,
-        {
-          duration: 4000,
-          position: "top-right",
-        }
+        editingExam 
+          ? `Exam "${examData.name}" updated successfully!`
+          : `Exam "${examData.name}" created successfully!`
       );
+
+      setEditingExam(null);
+      await fetchExams();
+      setCurrentPage(1);
+    } catch (error) {
+      console.error('Error saving exam:', error);
+      if (loadingToastId) toast.dismiss(loadingToastId); // Dismiss if it exists
+      toast.error('Failed to save exam');
     }
   };
 
-  const handleEditExam = (exam: Exam) => {
-    setEditingExam(exam);
-    setIsAddExamOpen(true);
+  // Helper function to format ISO string (UTC) to datetime-local input format (YYYY-MM-DDTHH:MM local)
+  const formatForDatetimeLocal = (isoString?: string): string => {
+    if (!isoString) return "";
+    try {
+      const date = new Date(isoString); // Parses the ISO string (e.g., "2025-10-13T19:11:00+00:00")
+      if (isNaN(date.getTime())) {
+        console.warn(`[formatForDatetimeLocal] Invalid date string received: ${isoString}`);
+        return "";
+      }
+
+      // These getters (getFullYear, getMonth, etc.) automatically return values in the *local* timezone.
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+      const day = date.getDate().toString().padStart(2, '0');
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+
+      const formattedLocalString = `${year}-${month}-${day}T${hours}:${minutes}`;
+      console.log(`[formatForDatetimeLocal] Converted UTC (${isoString}) to local for input: ${formattedLocalString}`);
+      return formattedLocalString;
+    } catch (e) {
+      console.error(`[formatForDatetimeLocal] Error processing date string: ${isoString}`, e);
+      return "";
+    }
+  };
+
+  // Helper function to convert 'YYYY-MM-DDTHH:MM' local time string to ISO 8601 UTC for backend
+  const convertLocalToUTCISO = (localDatetimeString: string): string | null => {
+    if (!localDatetimeString) return null;
+    try {
+      const date = new Date(localDatetimeString); // Parses as local time
+      if (isNaN(date.getTime())) {
+        console.warn(`[convertLocalToUTCISO] Invalid local datetime string: ${localDatetimeString}`);
+        return null;
+      }
+      const utcISOString = date.toISOString(); // Converts to UTC ISO string
+      console.log(`[convertLocalToUTCISO] Converted local (${localDatetimeString}) to UTC ISO: ${utcISOString}`);
+      return utcISOString;
+    } catch (e) {
+      console.error(`[convertLocalToUTCISO] Error processing local datetime string: ${localDatetimeString}`, e);
+      return null;
+    }
+  };
+
+  const handleEditExam = async (exam: Exam) => {
+    try {
+      setIsEditMode(true); // Set edit mode flag
+      setIsAddExamOpen(true); // Open dialog immediately
+      setIsDialogLoading(true); // Show skeleton
+      
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast.error('You must be logged in');
+        setIsAddExamOpen(false);
+        setIsDialogLoading(false);
+        setIsEditMode(false);
+        return;
+      }
+
+      const response = await fetch(`/api/exams/${exam.id}`, {
+        headers: { 'Authorization': `Bearer ${session.session.access_token}` },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch exam details');
+      }
+
+      const examDetails = await response.json();
+      
+      setEditingExam({
+        id: examDetails.id,
+        title: examDetails.title,
+        start_time: formatForDatetimeLocal(examDetails.start_time),
+        end_time: formatForDatetimeLocal(examDetails.end_time),
+        duration: examDetails.duration || 60,
+        questions: examDetails.questions || [], 
+        status: examDetails.status || 'draft',
+      });
+      
+      setIsDialogLoading(false); // Hide skeleton
+    } catch {
+      setIsAddExamOpen(false);
+      setIsDialogLoading(false);
+      setIsEditMode(false);
+      toast.error('Failed to load exam details');
+    }
+  };
+
+  const handleDeleteExams = async () => {
+    const toDelete = selectedRows.size > 0 ? Array.from(selectedRows) : [];
+    if (toDelete.length === 0) return;
+
+    const loadingToastId = toast.loading(`Deleting ${toDelete.length} exam(s)...`);
+    setDeletingExams(new Set(toDelete));
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast.dismiss(loadingToastId);
+        toast.error('You must be logged in');
+        return;
+      }
+
+      const deletePromises = toDelete.map(id =>
+        fetch(`/api/exams/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+          },
+        })
+      );
+
+      await Promise.all(deletePromises);
+      
+      toast.dismiss(loadingToastId);
+      toast.success('Exams deleted successfully');
+      
+      setSelectedRows(new Set());
+      await fetchExams();
+    } catch (error) {
+      console.error('[ExamsPage] Error deleting exams:', error);
+      if (loadingToastId) toast.dismiss(loadingToastId); // Dismiss if it exists
+      toast.error('Failed to delete exams');
+    } finally {
+      setDeletingExams(new Set());
+    }
   };
 
   const handleCloseDialog = () => {
     setIsAddExamOpen(false);
     setEditingExam(null);
+    setIsEditMode(false);
+  };
+
+  const getDuration = (exam: Exam): number => {
+    // Prioritize stored duration directly from the exam object if it's a valid number
+    if (typeof exam.duration === 'number' && exam.duration > 0) {
+        console.log(`[getDuration] Using stored duration: ${exam.duration} min for exam ID ${exam.id}`);
+        return exam.duration;
+    }
+
+    // Fallback to calculation if duration is not explicitly stored or is invalid/zero
+    const startTime = exam.start_time ? new Date(exam.start_time) : null;
+    const endTime = exam.end_time ? new Date(exam.end_time) : null;
+
+    if (!startTime || !endTime) {
+        console.warn(`[getDuration] Missing start_time or end_time for exam ID ${exam.id}. Returning default 60 min.`, { startTime: exam.start_time, endTime: exam.end_time });
+        return 60; // Default duration
+    }
+
+    const durationMs = endTime.getTime() - startTime.getTime();
+    if (durationMs < 0) {
+        console.warn(`[getDuration] end_time is before start_time for exam ID ${exam.id}. Returning default 60 min.`, { startTime: exam.start_time, endTime: exam.end_time });
+        return 60; // Default duration for invalid range
+    }
+
+    const calculatedDuration = Math.round(durationMs / (1000 * 60));
+    console.log(`[getDuration] Calculated duration: ${calculatedDuration} min for exam ID ${exam.id} (from ${exam.start_time} to ${exam.end_time})`);
+    return calculatedDuration;
   };
 
   return (
@@ -372,7 +564,13 @@ export default function ExamsPage() {
                   <span className="text-sm font-medium">
                     {selectedRows.size} selected
                   </span>
-                  <Button size="sm" variant="destructive" className="h-7">
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    className="h-7"
+                    onClick={handleDeleteExams}
+                    disabled={deletingExams.size > 0}
+                  >
                     <Trash2 className="h-3 w-3 mr-1" />
                     Delete
                   </Button>
@@ -396,7 +594,7 @@ export default function ExamsPage() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px]" size="lg">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -421,28 +619,24 @@ export default function ExamsPage() {
                           }
                           onCheckedChange={toggleSelectAll}
                           aria-label="Select all"
+                          disabled={loading}
                         />
                       </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[200px] border-r"
-                        onClick={() => handleSort("name")}
+                        onClick={() => handleSort("title")}
                       >
                         <div className="flex items-center space-x-2">
                           <span>Name</span>
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
-
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[100px] border-r"
-                        onClick={() => handleSort("duration")}
-                      >
+                      <TableHead className="resize-x overflow-hidden min-w-[100px] border-r">
                         <div className="flex items-center space-x-2">
                           <span>Duration</span>
-                          <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
-                      <TableHead className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[180px] border-r">
+                      <TableHead className="resize-x overflow-hidden min-w-[180px] border-r">
                         <div className="flex items-center space-x-2">
                           <span>Schedule</span>
                         </div>
@@ -468,7 +662,16 @@ export default function ExamsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedExams.length === 0 ? (
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          <div className="flex flex-col items-center gap-2">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <Skeleton className="h-4 w-32" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedExams.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6}>
                           <EmptyState onReset={resetAllFilters} />
@@ -497,7 +700,8 @@ export default function ExamsPage() {
                                 onCheckedChange={() =>
                                   toggleRowSelection(exam.id)
                                 }
-                                aria-label={`Select ${exam.name}`}
+                                aria-label={`Select ${exam.title}`}
+                                disabled={deletingExams.has(exam.id)}
                               />
                             </TableCell>
                             <TableCell className="border-r">
@@ -505,49 +709,41 @@ export default function ExamsPage() {
                                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
                                   <BookOpen className="h-4 w-4 text-primary" />
                                 </div>
-                                <span className="font-medium">{exam.name}</span>
+                                <span className="font-medium">{exam.title}</span>
                               </div>
                             </TableCell>
-
                             <TableCell className="border-r">
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3 text-muted-foreground" />
-                                {exam.duration || 60} min
+                                {getDuration(exam)} min
                               </div>
                             </TableCell>
-                            <TableCell className="border-r">
-                              <div className="space-y-1 text-xs">
-                                {exam.startDate && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-muted-foreground">
-                                      Start:
-                                    </span>
-                                    <span>
-                                      {new Date(
-                                        exam.startDate
-                                      ).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                )}
-                                {exam.endDate && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-muted-foreground">
-                                      End:
-                                    </span>
-                                    <span>
-                                      {new Date(
-                                        exam.endDate
-                                      ).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                )}
-                                {!exam.startDate && !exam.endDate && (
-                                  <span className="text-muted-foreground">
-                                    Not scheduled
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
+                           <TableCell className="border-r">
+  <div className="space-y-1 text-xs">
+    {/* Show Start Time if available */}
+    {exam.start_time && (
+      <div className="flex items-center gap-1">
+        <Clock className="h-3 w-3 text-muted-foreground" />
+        <span className="text-muted-foreground">Start:</span>
+        <span>{new Date(exam.start_time).toLocaleString()}</span>
+      </div>
+    )}
+
+    {/* Show End Time if available */}
+    {exam.end_time && (
+      <div className="flex items-center gap-1">
+        <Clock className="h-3 w-3 text-muted-foreground" />
+        <span className="text-muted-foreground">End:</span>
+        <span>{new Date(exam.end_time).toLocaleString()}</span>
+      </div>
+    )}
+
+    {/* Fallback: Not scheduled */}
+    {!exam.start_time && !exam.end_time && (
+      <span className="text-muted-foreground">Not scheduled</span>
+    )}
+  </div>
+</TableCell>
                             <TableCell className="border-r">
                               <Badge
                                 variant={
@@ -633,18 +829,21 @@ export default function ExamsPage() {
         </Card>
       </motion.div>
 
-      <AddExamDialog
+     <AddExamDialog
         isOpen={isAddExamOpen}
         onOpenChange={handleCloseDialog}
         onSaveExam={handleAddExam}
+        loading={isDialogLoading}
+        isEditMode={isEditMode}
         editExam={
           editingExam
             ? {
                 id: editingExam.id,
-                name: editingExam.name,
-                startDate: editingExam.startDate || "",
-                endDate: editingExam.endDate || "",
-                duration: editingExam.duration || 60,
+                name: editingExam.title,
+                startDate: editingExam.start_time || "", 
+                endDate: editingExam.end_time || "",     
+                duration: editingExam.duration || 60, // Use directly from state (after DB fetch)
+                status: editingExam.status || "draft",
                 questions: editingExam.questions || [],
               }
             : null

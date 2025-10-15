@@ -91,7 +91,7 @@ export async function signOut() {
 }
 
 // Get current user
-export async function getCurrentUser(): Promise<{ user: User | null; error: any }> {
+export async function getCurrentUser(): Promise<{ user: User | null; error: Error | null }> {
   const { data: { user }, error } = await supabase.auth.getUser()
   return { user, error }
 }
@@ -108,7 +108,7 @@ export async function getUserProfile(userId: string) {
 }
 
 // Get redirect path based on user role
-export function getRedirectPath(user: any | null): string {
+export function getRedirectPath(user: { role?: string } | null): string {
   if (!user?.role) return "/login";
 
   switch (user.role.toLowerCase()) {

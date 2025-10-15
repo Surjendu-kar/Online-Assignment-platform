@@ -2,7 +2,7 @@ import { supabaseServer as supabase } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 // GET - Fetch all institutions
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Fetch all institutions from the database
     const { data: institutions, error } = await supabase
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     }
 
     // Process institutions to ensure they have required fields
-    const processedInstitutions = institutions.map((inst: any) => ({
+    const processedInstitutions = institutions.map((inst) => ({
       id: inst.id,
       name: inst.name,
       description: inst.description || inst.name

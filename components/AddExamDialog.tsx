@@ -27,6 +27,7 @@ import {
   RadioGroupIndicator,
 } from "@/components/animate-ui/primitives/radix/radio-group";
 import { QuestionAccordion } from "@/components/QuestionAccordion";
+import { ExamDialogSkeleton } from "@/components/ExamDialogSkeleton";
 import { Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Question {
@@ -34,12 +35,9 @@ interface Question {
   type: "mcq" | "saq" | "coding";
   question: string;
   points: number;
-  // MCQ specific
   options?: string[];
   correctAnswer?: number;
-  // SAQ specific
   gradingGuidelines?: string;
-  // Coding specific
   programmingLanguage?: string;
   testCases?: { input: string; output: string }[];
   codeTemplate?: string;
@@ -53,6 +51,7 @@ interface AddExamDialogProps {
     startDate: string;
     endDate: string;
     duration: number;
+    status: "draft" | "active" | "archived";
     questions: Question[];
   }) => void;
   editExam?: {
@@ -61,10 +60,13 @@ interface AddExamDialogProps {
     startDate: string;
     endDate: string;
     duration: number;
+    status: "draft" | "active" | "archived";
     questions: Question[];
   } | null;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  loading?: boolean;
+  isEditMode?: boolean;
 }
 
 export const AddExamDialog = ({
@@ -73,6 +75,8 @@ export const AddExamDialog = ({
   editExam,
   isOpen: externalIsOpen,
   onOpenChange: externalOnOpenChange,
+  loading = false,
+  isEditMode = false,
 }: AddExamDialogProps) => {
   const [currentStep, setCurrentStep] = React.useState(1);
   const [internalIsOpen, setInternalIsOpen] = React.useState(false);
@@ -84,6 +88,7 @@ export const AddExamDialog = ({
     startDate: editExam?.startDate || "",
     endDate: editExam?.endDate || "",
     duration: editExam?.duration || 60,
+    status: editExam?.status || "draft",
   });
 
   // Step 2 form data
@@ -99,7 +104,9 @@ export const AddExamDialog = ({
   const [editingQuestionId, setEditingQuestionId] = React.useState<
     string | null
   >(null);
-  const [showQuestionForm, setShowQuestionForm] = React.useState(true);
+  const [showQuestionForm, setShowQuestionForm] = React.useState(
+    editExam?.questions?.length === 0 || !editExam
+  );
   const [openAccordionId, setOpenAccordionId] = React.useState<string | null>(
     null
   );
@@ -134,8 +141,26 @@ export const AddExamDialog = ({
         startDate: editExam.startDate,
         endDate: editExam.endDate,
         duration: editExam.duration,
+        status: editExam.status,
       });
       setQuestions(editExam.questions);
+      // Only show question form if there are no questions
+      setShowQuestionForm(editExam.questions.length === 0);
+    } else {
+      // Reset to default values when creating new exam
+      setStep1Data({
+        name: "",
+        startDate: "",
+        endDate: "",
+        duration: 60,
+        status: "draft",
+      });
+      setQuestions([]);
+      setShowQuestionForm(true);
+      setCurrentStep(1);
+      setErrors({});
+      setCurrentQuestion({});
+      setEditingQuestionId(null);
     }
   }, [editExam]);
 
@@ -321,6 +346,7 @@ export const AddExamDialog = ({
       startDate: "",
       endDate: "",
       duration: 60,
+      status: "draft",
     });
     setQuestions([]);
     setCurrentStep(1);
@@ -336,6 +362,7 @@ export const AddExamDialog = ({
         startDate: "",
         endDate: "",
         duration: 60,
+        status: "draft",
       });
       setQuestions([]);
       setCurrentStep(1);
@@ -383,7 +410,7 @@ export const AddExamDialog = ({
         >
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit Exam" : "Create New Exam"} - Step {currentStep}{" "}
+              {(isEditing || isEditMode) ? "Edit Exam" : "Create New Exam"} - Step {currentStep}{" "}
               of 2
             </DialogTitle>
             <DialogDescription>
@@ -393,6 +420,10 @@ export const AddExamDialog = ({
             </DialogDescription>
           </DialogHeader>
 
+          {loading ? (
+            <ExamDialogSkeleton />
+          ) : (
+            <>
           {currentStep === 1 && (
             <div className="grid gap-4 py-4">
               {/* First row: Exam Name and Duration */}
@@ -410,29 +441,48 @@ export const AddExamDialog = ({
                     <span className="text-sm text-red-500">{errors.name}</span>
                   )}
                 </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="duration">Duration (minutes) *</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    value={step1Data.duration}
-                    onChange={(e) =>
-                      handleStep1Change(
-                        "duration",
-                        parseInt(e.target.value) || 0
-                      )
-                    }
-                    placeholder="60"
-                    min="1"
-                    className={errors.duration ? "border-red-500" : ""}
-                  />
-                  {errors.duration && (
-                    <span className="text-sm text-red-500">
-                      {errors.duration}
-                    </span>
-                  )}
-                </div>
+<div className="grid grid-cols-2 gap-2">
+  {/* Duration */}
+  <div className="grid gap-2">
+    <Label htmlFor="duration">Duration (minutes) *</Label>
+    <Input
+      id="duration"
+      type="number"
+      min={1}
+      value={step1Data.duration}
+      onChange={(e) =>
+        setStep1Data((prev) => ({
+          ...prev,
+          duration: Number(e.target.value),
+        }))
+      }
+      placeholder="60"
+      required
+    />
+  </div>
+  {/* Status */}
+  <div className="grid gap-2">
+    <Label htmlFor="status">Status *</Label>
+    <Select
+      value={step1Data.status}
+      onValueChange={(value) =>
+        setStep1Data((prev) => ({
+          ...prev,
+          status: value as "active" | "draft" | "archived",
+        }))
+      }
+    >
+      <SelectTrigger id="status" className="w-full h-[40px]" size="lg">
+        <SelectValue placeholder="Select status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="draft">Draft</SelectItem>
+        <SelectItem value="active">Active</SelectItem>
+        <SelectItem value="archived">Archived</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+</div>
               </div>
 
               {/* Second row: Start Date and End Date */}
@@ -863,6 +913,8 @@ export const AddExamDialog = ({
               </div>
             )}
           </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>

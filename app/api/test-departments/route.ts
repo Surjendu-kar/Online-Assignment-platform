@@ -1,7 +1,7 @@
 import { supabaseServer as supabase } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Test if departments table exists and fetch schema
     const { data, error } = await supabase

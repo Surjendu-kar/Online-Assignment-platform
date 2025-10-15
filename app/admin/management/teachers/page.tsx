@@ -398,16 +398,42 @@ export default function TeachersPage() {
   };
 
   const handleEditTeacher = (teacher: ProcessedTeacher) => {
+    // Find the department ID that matches the department name
+    let departmentId = "";
+    if (teacher.department) {
+      // Look for a department where the name matches the teacher's department
+      const departmentEntry = Object.entries(departments).find(
+        ([, name]) => name === teacher.department
+      );
+      if (departmentEntry) {
+        departmentId = departmentEntry[0]; // Use the ID
+      } else {
+        // If not found, check if teacher.department is already an ID
+        // This handles the case where the department is stored as an ID in the teacher object
+        if (departments[teacher.department]) {
+          departmentId = teacher.department;
+        } else {
+          // As a fallback, try to find a partial match (in case of whitespace differences)
+          const departmentEntryFallback = Object.entries(departments).find(
+            ([, name]) => name.trim() === teacher.department?.trim()
+          );
+          if (departmentEntryFallback) {
+            departmentId = departmentEntryFallback[0]; // Use the ID
+          }
+        }
+      }
+    }
+
     const editData = {
       id: teacher.id,
       firstName: teacher.name.split(" ")[0],
       lastName: teacher.name.split(" ").slice(1).join(" "),
       email: teacher.email,
-      department: teacher.department || "",
+      department: departmentId || teacher.department || "",
       phone: teacher.phone,
       subjects: teacher.subjects?.join(", ") || "",
       profileImageUrl: teacher.profileImage,
-      expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      expirationDate: teacher.expirationDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
     };
@@ -474,7 +500,7 @@ export default function TeachersPage() {
       }
       
       // Fetch updated data to refresh the table
-      handleAddTeacher(teacherData);
+      handleAddTeacher();
       
       // Replace loading toast with success toast immediately
       toast.dismiss(loadingToast);
@@ -488,16 +514,7 @@ export default function TeachersPage() {
     }
   };
 
-  const handleAddTeacher = (teacherData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    department: string;
-    phone?: string;
-    subjects: string;
-    profileImageUrl?: string;
-    expirationDate: string;
-  }) => {
+  const handleAddTeacher = () => {
     // Refresh the data instead of adding locally since we're only showing invitations
     const fetchTeachersData = async () => {
       try {
@@ -545,7 +562,7 @@ export default function TeachersPage() {
     if (selectedRows.size === paginatedTeachers.length) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(paginatedTeachers.map((t: any) => t.id)));
+      setSelectedRows(new Set(paginatedTeachers.map((t) => t.id)));
     }
   };
 
@@ -608,7 +625,7 @@ export default function TeachersPage() {
 
         // Update local state only after successful deletion
         setInvitations((prev) =>
-          prev.filter((invitation: any) => !selectedIds.includes(invitation.id))
+          prev.filter((invitation) => !selectedIds.includes(invitation.id))
         );
         
         setSelectedRows(new Set());
@@ -616,7 +633,7 @@ export default function TeachersPage() {
         
         // Reset to first page if current page becomes empty
         const remainingInvitations = invitations.filter(
-          (invitation: any) => !selectedIds.includes(invitation.id)
+          (invitation) => !selectedIds.includes(invitation.id)
         );
         const newTotalPages = Math.ceil(remainingInvitations.length / itemsPerPage);
         if (currentPage > newTotalPages && newTotalPages > 0) {
@@ -694,7 +711,7 @@ export default function TeachersPage() {
 
         // Update local state only after successful deletion
         setInvitations((prev) =>
-          prev.filter((invitation: any) => invitation.id !== teacherToDelete.id)
+          prev.filter((invitation) => invitation.id !== teacherToDelete.id)
         );
         
         // Remove from selected rows if it was selected
@@ -710,7 +727,7 @@ export default function TeachersPage() {
         
         // Reset to first page if current page becomes empty
         const remainingInvitations = invitations.filter(
-          (invitation: any) => invitation.id !== teacherToDelete.id
+          (invitation) => invitation.id !== teacherToDelete.id
         );
         const newTotalPages = Math.ceil(remainingInvitations.length / itemsPerPage);
         if (currentPage > newTotalPages && newTotalPages > 0) {
@@ -831,7 +848,7 @@ export default function TeachersPage() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px]" size="lg">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -841,7 +858,7 @@ export default function TeachersPage() {
                 </SelectContent>
               </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px]" size="lg">
                   <SelectValue placeholder="Filter by date" />
                 </SelectTrigger>
                 <SelectContent>

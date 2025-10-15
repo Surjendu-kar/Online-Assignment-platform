@@ -47,15 +47,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/animate-ui/components/radix/dropdown-menu";
 import {
-  AudioWaveform,
   BadgeCheck,
-  Bell,
   BookOpen,
-  Bot,
   Building,
   ChevronRight,
   ChevronsUpDown,
-  CreditCard,
   Folder,
   Forward,
   Frame,
@@ -65,7 +61,6 @@ import {
   MoreHorizontal,
   Plus,
   Settings2,
-  Sparkles,
   SquareTerminal,
   Trash2,
   Edit,
@@ -92,9 +87,7 @@ import {
   DialogTitle, 
   DialogDescription, 
   DialogFooter,
-  DialogTrigger
 } from "@/components/animate-ui/components/radix/dialog";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 interface Department {
@@ -368,13 +361,12 @@ function generateBreadcrumbs(pathname: string): Breadcrumb[] {
 }
 
 // Extract sidebar content to prevent unnecessary re-renders
-const SidebarContentMemo = React.memo(({
+const SidebarContentMemo = React.memo(function SidebarContent({
   navItems,
   recentItems,
   pathname,
   openSection,
   setOpenSection,
-  isPathInSection
 }: {
   navItems: NavItem[];
   recentItems: RecentItem[];
@@ -382,7 +374,7 @@ const SidebarContentMemo = React.memo(({
   openSection: string;
   setOpenSection: (section: string) => void;
   isPathInSection: (sectionPath: string) => boolean;
-}) => {
+}) {
   const isMobile = useIsMobile();
   
   return (
@@ -514,7 +506,6 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const [institutionToDelete, setInstitutionToDelete] = useState<Institution | null>(null);
   const [editingDepartment, setEditingDepartment] =
     React.useState<Department | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
@@ -596,7 +587,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     fetchUserData();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
         fetchUserData();
       } else if (event === 'SIGNED_OUT') {
@@ -753,6 +744,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
     };
 
     fetchDepartments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeInstitution]);
 
   // Memoize department functions to prevent unnecessary re-renders
@@ -967,11 +959,6 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const handleEditDepartment = useCallback((department: Department): void => {
     setEditingDepartment(department);
     setIsDepartmentDialogOpen(true);
-  }, []);
-
-  const handleDeleteDepartment = useCallback(async (department: Department): Promise<void> => {
-    setDepartmentToDelete(department);
-    setShowDeleteDialog(true);
   }, []);
 
   const confirmDeleteDepartment = useCallback(async (): Promise<void> => {

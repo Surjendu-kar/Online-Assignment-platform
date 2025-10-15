@@ -1,7 +1,7 @@
 import { supabaseServer as supabase } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Get the user from the session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();

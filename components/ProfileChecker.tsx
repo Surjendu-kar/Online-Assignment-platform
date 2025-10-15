@@ -11,8 +11,8 @@ interface ProfileCheckerProps {
 }
 
 export const ProfileChecker = ({ children }: ProfileCheckerProps) => {
-  const [showSetup, setShowSetup] = React.useState(false);
-  const [userId, setUserId] = React.useState<string>("");
+  const [showSetup, setShowSetup] = useState(false);
+  const [userId, setUserId] = useState<string>("");
   const pathname = usePathname();
   const router = useRouter();
 
@@ -69,6 +69,7 @@ export const ProfileChecker = ({ children }: ProfileCheckerProps) => {
     };
 
     checkProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   const handleSetupComplete = () => {
@@ -76,7 +77,7 @@ export const ProfileChecker = ({ children }: ProfileCheckerProps) => {
     // Mark as checked after setup completion
     sessionStorage.setItem('profileCheckDone', 'true');
     // Refresh the page or redirect to dashboard
-    router.refresh();
+    router.push('/dashboard');
   };
 
   // Always render children immediately without any loading state
