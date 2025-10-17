@@ -15,21 +15,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle, AlertCircle, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
-import departmentsData from "@/data/departmentsData.json";
-import examsData from "@/data/examsData.json";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PasswordToggle } from "@/components/ui/password-toggle";
 
 interface StudentInvitation {
   id: string;
-  token: string;
-  email: string;
-  institutionName: string;
-  department: string;
-  assignedExam: string;
-  invitedBy: string;
-  expiresAt: string;
+  invitation_token: string;
+  student_email: string;
+  first_name: string;
+  last_name: string;
   status: "pending" | "accepted" | "expired";
+  expires_at: string;
+  exams: {
+    id: string;
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    duration: number;
+  };
 }
 
 interface StudentFormData {
@@ -54,38 +58,30 @@ export default function StudentInvitationPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const departments = departmentsData.filter((dept) => dept.code !== "ALL");
-
   useEffect(() => {
     const validateToken = async () => {
       try {
         setLoading(true);
 
-        // Simulate API call to validate token
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const response = await fetch('/api/students/validate-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
 
-        // Mock invitation data - replace with actual API call
-        const mockInvitation: StudentInvitation = {
-          id: "inv-456",
-          token: token,
-          email: "student@example.com",
-          institutionName: "Stanford University",
-          department: "CS",
-          assignedExam: "exam-1",
-          invitedBy: "John Smith",
-          expiresAt: new Date(
-            Date.now() + 2 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          status: "pending",
-        };
+        const data = await response.json();
 
-        if (new Date(mockInvitation.expiresAt) < new Date()) {
-          mockInvitation.status = "expired";
+        if (!response.ok) {
+          setError(data.error || "Invalid or expired invitation token");
+          return;
         }
 
-        setInvitation(mockInvitation);
-      } catch {
-        setError("Invalid or expired invitation token");
+        setInvitation(data.invitation);
+      } catch (err) {
+        console.error('Error validating token:', err);
+        setError("Failed to validate invitation token");
       } finally {
         setLoading(false);
       }
@@ -133,31 +129,36 @@ export default function StudentInvitationPage() {
     try {
       setSubmitting(true);
 
-      // Simulate API call to accept invitation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch('/api/students/accept-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          password: formData.password,
+        }),
+      });
 
-      toast.success(
-        "Welcome! Your student account has been created successfully."
-      );
+      const data = await response.json();
 
-      // Redirect to student dashboard or login
-      router.push("/login?role=student&success=account-created");
-    } catch {
+      if (!response.ok) {
+        toast.error(data.error || "Failed to create account");
+        return;
+      }
+
+      toast.success("Account created successfully! Please login to continue.");
+
+      // Redirect to login page - student will login manually
+      router.push('/login');
+    } catch (err) {
+      console.error('Error accepting invitation:', err);
       toast.error("Failed to create account. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getExamName = (examId: string) => {
-    const exam = examsData.find((e) => e.id === examId);
-    return exam ? exam.name : "Unknown Exam";
-  };
-
-  const getDepartmentName = (deptCode: string) => {
-    const dept = departments.find((d) => d.code === deptCode);
-    return dept ? dept.name : deptCode;
-  };
 
   if (loading) {
     return (
@@ -229,27 +230,33 @@ export default function StudentInvitationPage() {
               </div>
             </div>
             <CardTitle className="text-2xl">
-              Welcome to {invitation.institutionName}
+              Student Invitation
             </CardTitle>
             <CardDescription>
-              You have been invited to join as a student in the{" "}
-              {getDepartmentName(invitation.department)} department
+              Create your account to access your assigned exam
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
             <Alert>
               <CheckCircle className="h-4 w-4" />
-              <AlertDescription className="space-y-1">
+              <AlertDescription className="space-y-2">
                 <div>
-                  Invitation for: <strong>{invitation.email}</strong>
+                  <strong>Name:</strong> {invitation.first_name} {invitation.last_name}
                 </div>
                 <div>
-                  Invited by: <strong>{invitation.invitedBy}</strong>
+                  <strong>Email:</strong> {invitation.student_email}
                 </div>
                 <div>
-                  Assigned Exam:
-                  <strong>{getExamName(invitation.assignedExam)}</strong>
+                  <strong>Assigned Exam:</strong> {invitation.exams.title}
+                </div>
+                {invitation.exams.description && (
+                  <div className="text-sm text-muted-foreground mt-2">
+                    {invitation.exams.description}
+                  </div>
+                )}
+                <div className="text-sm text-muted-foreground">
+                  <strong>Duration:</strong> {invitation.exams.duration} minutes
                 </div>
               </AlertDescription>
             </Alert>

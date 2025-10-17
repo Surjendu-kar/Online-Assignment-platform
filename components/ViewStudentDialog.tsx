@@ -15,7 +15,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Mail, Trash } from "lucide-react";
-import examsData from "@/data/examsData.json";
 
 interface Student {
   id: string;
@@ -68,11 +67,6 @@ export const ViewStudentDialog = ({
       month: "short",
       day: "numeric",
     });
-  };
-
-  const getExamName = (examId: string) => {
-    const exam = examsData.find((exam) => exam.id === examId);
-    return exam ? exam.name : "No exam assigned";
   };
 
   const dialogOpen = open !== undefined ? open : isOpen;
@@ -149,9 +143,7 @@ export const ViewStudentDialog = ({
                   Assigned Exam
                 </label>
                 <p className="font-medium">
-                  {student.assignedExam
-                    ? getExamName(student.assignedExam)
-                    : "No exam assigned"}
+                  {student.assignedExam || "No exam assigned"}
                 </p>
               </div>
               <div className="space-y-1">

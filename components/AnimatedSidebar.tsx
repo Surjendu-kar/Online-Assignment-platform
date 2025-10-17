@@ -1417,6 +1417,10 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                         e.stopPropagation();
                         setActiveInstitution(institution);
                         localStorage.setItem('activeInstitutionId', institution.id);
+                        // Dispatch custom event to notify other components
+                        window.dispatchEvent(new CustomEvent('institutionChanged', { 
+                          detail: { institutionId: institution.id } 
+                        }));
                         setIsInstitutionDialogOpen(false);
                         setTimeout(() => setIsDepartmentsListDialogOpen(true), 100);
                       }}

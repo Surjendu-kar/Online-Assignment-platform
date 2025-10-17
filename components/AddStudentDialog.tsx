@@ -21,11 +21,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import departmentsData from "@/data/departmentsData.json";
-import examsData from "@/data/examsData.json";
+interface Exam {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+}
 
 interface AddStudentDialogProps {
   trigger?: React.ReactNode;
+  exams?: Exam[];
+  departments?: Department[];
   onSaveStudent?: (student: {
     firstName: string;
     lastName: string;
@@ -34,6 +46,15 @@ interface AddStudentDialogProps {
     selectedExam: string;
     expirationDate: string;
   }) => void;
+  onSendInvitation?: (student: {
+    id?: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    departmentId: string;
+    examId: string;
+    expirationDate: string;
+  }) => Promise<{ success: boolean; error?: string }>;
   editStudent?: {
     id: string;
     firstName: string;
@@ -49,7 +70,10 @@ interface AddStudentDialogProps {
 
 export const AddStudentDialog = ({
   trigger,
+  exams = [],
+  departments = [],
   onSaveStudent,
+  onSendInvitation,
   editStudent,
   isOpen: externalIsOpen,
   onOpenChange: externalOnOpenChange,
@@ -68,6 +92,7 @@ export const AddStudentDialog = ({
     selectedExam: editStudent?.selectedExam || "",
     expirationDate: editStudent?.expirationDate || getDefaultExpirationDate(),
   });
+  const [submitting, setSubmitting] = React.useState(false);
   const [internalIsOpen, setInternalIsOpen] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -75,8 +100,6 @@ export const AddStudentDialog = ({
   const setIsOpen = externalOnOpenChange || setInternalIsOpen;
 
   const isEditing = !!editStudent;
-
-  const departments = departmentsData.filter((dept) => dept.code !== "ALL");
 
   React.useEffect(() => {
     if (editStudent) {
@@ -132,22 +155,56 @@ export const AddStudentDialog = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (validateForm()) {
-      onSaveStudent?.(formData);
-      if (!isEditing) {
-        setFormData({
-          firstName: "",
-          lastName: "",
-          email: "",
-          department: "",
-          selectedExam: "",
-          expirationDate: getDefaultExpirationDate(),
+    if (!validateForm()) return;
+
+    setSubmitting(true);
+
+    try {
+      if (onSendInvitation) {
+        // Use the new invitation API
+        const result = await onSendInvitation({
+          id: editStudent?.id,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          departmentId: formData.department,
+          examId: formData.selectedExam,
+          expirationDate: formData.expirationDate,
         });
+
+        if (result.success) {
+          if (!isEditing) {
+            setFormData({
+              firstName: "",
+              lastName: "",
+              email: "",
+              department: "",
+              selectedExam: "",
+              expirationDate: getDefaultExpirationDate(),
+            });
+          }
+          setIsOpen(false);
+        }
+      } else {
+        // Fallback to old method
+        onSaveStudent?.(formData);
+        if (!isEditing) {
+          setFormData({
+            firstName: "",
+            lastName: "",
+            email: "",
+            department: "",
+            selectedExam: "",
+            expirationDate: getDefaultExpirationDate(),
+          });
+        }
+        setIsOpen(false);
       }
-      setIsOpen(false);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -263,14 +320,20 @@ export const AddStudentDialog = ({
                       errors.department ? "border-red-500" : ""
                     }`}
                   >
-                    <SelectValue placeholder="Select a department" />
+                    <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.code}>
-                        {dept.name} ({dept.code})
-                      </SelectItem>
-                    ))}
+                    {departments.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No departments available
+                      </div>
+                    ) : (
+                      departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.department && (
@@ -299,11 +362,17 @@ export const AddStudentDialog = ({
                     <SelectValue placeholder="Choose an exam" />
                   </SelectTrigger>
                   <SelectContent>
-                    {examsData.map((exam) => (
-                      <SelectItem key={exam.id} value={exam.id}>
-                        {exam.name}
-                      </SelectItem>
-                    ))}
+                    {exams.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No exams available
+                      </div>
+                    ) : (
+                      exams.map((exam) => (
+                        <SelectItem key={exam.id} value={exam.id}>
+                          {exam.title}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.selectedExam && (
@@ -344,8 +413,8 @@ export const AddStudentDialog = ({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit">
-              {isEditing ? "Update Student" : "Add Student"}
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Sending..." : isEditing ? "Update Student" : "Send Invitation"}
             </Button>
           </DialogFooter>
         </form>
