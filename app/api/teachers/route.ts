@@ -103,8 +103,8 @@ export interface CreateTeacherInvitationResult {
 }
 
 // Create teacher invitation
-export async function createTeacherInvitation(
-  supabase: ReturnType<typeof createRouteClient>,
+async function createTeacherInvitation(
+  supabase: Awaited<ReturnType<typeof createRouteClient>>,
   {
     email,
     firstName,
@@ -215,7 +215,7 @@ export async function POST(req: Request) {
     }
 
     // Get current logged-in user using route client for authentication
-    const routeClient = createRouteClient(req);
+    const routeClient = await createRouteClient();
     const { data: { user }, error: userError } = await routeClient.auth.getUser();
 
     if (!user || userError) {
@@ -270,12 +270,9 @@ export async function POST(req: Request) {
 }
 
 // GET method to fetch teacher invitations for admin
-export async function GET(req: Request) {
-  // Use the imported supabase client directly
-
+export async function GET() {
   try {
-    // Get current logged-in user using route client for authentication
-    const routeClient = createRouteClient(req);
+    const routeClient = await createRouteClient();
     const { data: { user }, error: userError } = await routeClient.auth.getUser();
 
     if (!user || userError) {
@@ -354,7 +351,7 @@ export async function DELETE(req: Request) {
     }
 
     // Get current logged-in user using route client for authentication
-    const routeClient = createRouteClient(req);
+    const routeClient = await createRouteClient();
     const { data: { user }, error: userError } = await routeClient.auth.getUser();
 
     if (!user || userError) {

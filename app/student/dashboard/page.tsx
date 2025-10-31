@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
+import { supabase } from "@/lib/supabase/client";
+import { formatDuration } from "@/lib/format-duration";
 import {
   Card,
   CardContent,
@@ -13,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import {
   BookOpen,
   Clock,
@@ -30,13 +31,14 @@ import {
 interface Assignment {
   id: string;
   title: string;
-  subject: string;
-  dueDate: string;
-  status: "pending" | "in-progress" | "completed" | "overdue";
-  timeLimit: number;
+  department: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: "pending" | "in-progress" | "completed" | "expired" | "upcoming";
+  duration: number;
   totalQuestions: number;
-  completedQuestions?: number;
-  score?: number;
+  score?: number | null;
+  sessionId?: string | null;
 }
 
 interface RecentActivity {
@@ -47,47 +49,6 @@ interface RecentActivity {
   score?: number;
   status: "completed" | "graded" | "submitted";
 }
-
-const mockAssignments: Assignment[] = [
-  {
-    id: "exam-001",
-    title: "Mathematics Final Exam",
-    subject: "Mathematics",
-    dueDate: "2024-01-15",
-    status: "pending",
-    timeLimit: 120,
-    totalQuestions: 50,
-  },
-  {
-    id: "exam-002",
-    title: "Physics Quiz Chapter 5",
-    subject: "Physics",
-    dueDate: "2024-01-10",
-    status: "in-progress",
-    timeLimit: 45,
-    totalQuestions: 20,
-    completedQuestions: 12,
-  },
-  {
-    id: "3",
-    title: "Chemistry Lab Report",
-    subject: "Chemistry",
-    dueDate: "2024-01-05",
-    status: "completed",
-    timeLimit: 90,
-    totalQuestions: 30,
-    score: 85,
-  },
-  {
-    id: "4",
-    title: "English Literature Essay",
-    subject: "English",
-    dueDate: "2024-01-01",
-    status: "overdue",
-    timeLimit: 180,
-    totalQuestions: 5,
-  },
-];
 
 const mockRecentActivity: RecentActivity[] = [
   {
@@ -150,7 +111,7 @@ function StatsCard({
 
 function AssignmentCard({ assignment }: { assignment: Assignment }) {
   const router = useRouter();
-  
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -159,16 +120,18 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
       case "pending":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      case "overdue":
+      case "upcoming":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+      case "expired":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
     }
   };
 
-  const progress = assignment.completedQuestions
-    ? (assignment.completedQuestions / assignment.totalQuestions) * 100
-    : 0;
+  const getStatusLabel = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
+  };
 
   return (
     <motion.div
@@ -181,11 +144,10 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <CardTitle className="text-lg">{assignment.title}</CardTitle>
-              <CardDescription>{assignment.subject}</CardDescription>
+              <CardDescription>{assignment.department}</CardDescription>
             </div>
             <Badge className={getStatusColor(assignment.status)}>
-              {assignment.status.charAt(0).toUpperCase() +
-                assignment.status.slice(1)}
+              {getStatusLabel(assignment.status)}
             </Badge>
           </div>
         </CardHeader>
@@ -193,7 +155,7 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4" />
-              <span>{assignment.timeLimit} minutes</span>
+              <span>{formatDuration(assignment.duration)}</span>
             </div>
             <div className="flex items-center space-x-2">
               <FileText className="h-4 w-4" />
@@ -201,19 +163,7 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
             </div>
           </div>
 
-          {assignment.status === "in-progress" && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progress</span>
-                <span>
-                  {assignment.completedQuestions}/{assignment.totalQuestions}
-                </span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
-          )}
-
-          {assignment.score && (
+          {assignment.score !== null && assignment.score !== undefined && (
             <div className="flex items-center space-x-2">
               <Trophy className="h-4 w-4 text-yellow-500" />
               <span className="font-semibold">{assignment.score}%</span>
@@ -224,27 +174,46 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <span>
-                Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                {assignment.endTime
+                  ? `Due: ${new Date(assignment.endTime).toLocaleDateString()}`
+                  : "No deadline"}
               </span>
             </div>
 
-            {assignment.status === "pending" && (
+            {(assignment.status === "pending" || assignment.status === "upcoming") && (
               <Button
                 size="sm"
                 onClick={() => router.push(`/student/exam/${assignment.id}`)}
+                disabled={assignment.status === "upcoming"}
               >
                 <Play className="h-4 w-4 mr-2" />
-                View Exam
+                {assignment.status === "upcoming" ? "Not Started" : "Start Exam"}
               </Button>
             )}
 
             {assignment.status === "in-progress" && (
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
                 onClick={() => router.push(`/student/exam/${assignment.id}`)}
               >
                 Continue
+              </Button>
+            )}
+
+            {assignment.status === "expired" && (
+              <Button size="sm" variant="outline" disabled>
+                Expired
+              </Button>
+            )}
+
+            {assignment.status === "completed" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push(`/student/results`)}
+              >
+                View Result
               </Button>
             )}
           </div>
@@ -286,25 +255,78 @@ function ActivityItem({ activity }: { activity: RecentActivity }) {
 
 export default function StudentDashboard() {
   const router = useRouter();
-  
-  // Mock student data
-  const studentData = {
-    name: "John Doe",
-    email: "john.doe@university.edu",
-    studentId: "STU123456",
-    department: "Computer Science",
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [studentData, setStudentData] = useState({
+    name: "",
+    email: "",
+    studentId: "",
+    department: "",
     semester: "Spring 2024",
     avatar: "",
+  });
+
+  useEffect(() => {
+    fetchStudentData();
+    fetchAssignedExams();
+  }, []);
+
+  const fetchStudentData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("first_name, last_name, email, department")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          setStudentData({
+            name: `${profile.first_name} ${profile.last_name}`,
+            email: profile.email || "",
+            studentId: user.id.substring(0, 8).toUpperCase(),
+            department: profile.department || "Not assigned",
+            semester: "Spring 2024",
+            avatar: "",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching student data:", error);
+    }
+  };
+
+  const fetchAssignedExams = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/student/assigned-exams");
+      const data = await response.json();
+
+      if (response.ok) {
+        setAssignments(data);
+      } else {
+        console.error("Error fetching exams:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching assigned exams:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const stats = {
-    totalAssignments: mockAssignments.length,
-    completedAssignments: mockAssignments.filter(
-      (a) => a.status === "completed"
-    ).length,
-    averageScore: 89,
-    pendingAssignments: mockAssignments.filter((a) => a.status === "pending")
-      .length,
+    totalAssignments: assignments.length,
+    completedAssignments: assignments.filter((a) => a.status === "completed").length,
+    averageScore: assignments.filter((a) => a.score !== null && a.score !== undefined).length > 0
+      ? Math.round(
+          assignments
+            .filter((a) => a.score !== null)
+            .reduce((sum, a) => sum + (a.score || 0), 0) /
+            assignments.filter((a) => a.score !== null).length
+        )
+      : 0,
+    pendingAssignments: assignments.filter((a) => a.status === "pending" || a.status === "upcoming").length,
   };
 
   return (
@@ -401,18 +423,29 @@ export default function StudentDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {mockAssignments.map((assignment, index) => (
-                  <motion.div
-                    key={assignment.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                  >
-                    <AssignmentCard assignment={assignment} />
-                  </motion.div>
-                ))}
-              </div>
+              {loading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : assignments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No exams assigned yet</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {assignments.map((assignment, index) => (
+                    <motion.div
+                      key={assignment.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                    >
+                      <AssignmentCard assignment={assignment} />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

@@ -328,8 +328,22 @@ const RECENT_ITEMS: Record<string, RecentItem[]> = {
   ],
 };
 
+// Helper function to check if a nav item is active
+function isNavItemActive(pathname: string, itemUrl: string): boolean {
+  if (pathname.startsWith(itemUrl)) {
+    return true;
+  }
+  
+  // Special case: /student/exam/[id] should make /student/exams active
+  if (itemUrl === "/student/exams" && pathname.startsWith("/student/exam/")) {
+    return true;
+  }
+  
+  return false;
+}
+
 // Helper function to generate breadcrumbs from pathname
-function generateBreadcrumbs(pathname: string): Breadcrumb[] {
+function generateBreadcrumbs(pathname: string, customBreadcrumbs: Record<string, string> = {}): Breadcrumb[] {
   const segments = pathname.split("/").filter(Boolean);
   const breadcrumbs: Breadcrumb[] = [];
 
@@ -344,6 +358,25 @@ function generateBreadcrumbs(pathname: string): Breadcrumb[] {
     currentPath += `/${segments[i]}`;
     const isLast = i === segments.length - 1;
 
+    // Check if custom breadcrumb exists for this segment
+    const customTitle = customBreadcrumbs[segments[i]];
+    
+    // If custom title exists, use it
+    if (customTitle) {
+      breadcrumbs.push({
+        title: customTitle,
+        url: currentPath,
+        isLast,
+      });
+      continue;
+    }
+
+    // Skip UUID-like segments (exam IDs) - don't show them until custom title loads
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidPattern.test(segments[i])) {
+      continue;
+    }
+    
     // Convert segment to title case
     const title = segments[i]
       .split("-")
@@ -412,7 +445,7 @@ const SidebarContentMemo = React.memo(function SidebarContent({
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton
                             asChild
-                            isActive={pathname === subItem.url}
+                            isActive={isNavItemActive(pathname, subItem.url)}
                           >
                             <Link href={subItem.url}>
                               <span>{subItem.title}</span>
@@ -429,7 +462,7 @@ const SidebarContentMemo = React.memo(function SidebarContent({
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname === item.url}
+                  isActive={isNavItemActive(pathname, item.url)}
                   tooltip={item.title}
                 >
                   <Link href={item.url}>
@@ -447,7 +480,7 @@ const SidebarContentMemo = React.memo(function SidebarContent({
         <SidebarMenu>
           {recentItems.map((item: RecentItem) => (
             <SidebarMenuItem key={item.name}>
-              <SidebarMenuButton asChild isActive={pathname === item.url}>
+              <SidebarMenuButton asChild isActive={isNavItemActive(pathname, item.url)}>
                 <Link href={item.url}>
                   <item.icon />
                   <span>{item.name}</span>
@@ -518,7 +551,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
   const [showDeleteInstitutionDialog, setShowDeleteInstitutionDialog] = useState(false);
 
   const breadcrumbs = useMemo(() => {
-    return generateBreadcrumbs(pathname);
+    return generateBreadcrumbs(pathname, {});
   }, [pathname]);
 
   // Check if current path belongs to a navigation section
@@ -1341,7 +1374,13 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
               <SidebarMenuButton
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                onClick={() => setIsInstitutionDialogOpen(true)}
+                onClick={() => {
+                  // Only allow admins to change institution/department
+                  if (userRole === 'admin') {
+                    setIsInstitutionDialogOpen(true);
+                  }
+                }}
+                disabled={userRole !== 'admin'}
               >
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <activeDepartment.logo className="size-4" />
@@ -1353,17 +1392,17 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                   <span className="truncate text-xs">
                     {departments.length === 0
                       ? "No departments available"
-                      : activeDepartment.id === "all" 
-                      ? "View all Departments" 
+                      : activeDepartment.id === "all"
+                      ? "View all Departments"
                       : activeDepartment.name}
                   </span>
                 </div>
-                <ChevronsUpDown className="ml-auto" />
+                {userRole === 'admin' && <ChevronsUpDown className="ml-auto" />}
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
           
-          {/* Custom Institution Selection Dialog */}
+          {/* Custom sel*/}
           <Dialog open={isInstitutionDialogOpen} onOpenChange={setIsInstitutionDialogOpen}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
@@ -1549,6 +1588,12 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                       className="flex items-center gap-2 p-2 rounded-md hover:bg-muted cursor-pointer group relative pr-10"
                       onClick={() => {
                         setActiveDepartment(department);
+                        // Store selected department ID in localStorage
+                        localStorage.setItem('activeDepartmentId', department.id);
+                        // Dispatch custom event to notify other components
+                        window.dispatchEvent(new CustomEvent('departmentChanged', {
+                          detail: { departmentId: department.id }
+                        }));
                         setIsDepartmentsListDialogOpen(false);
                       }}
                     >

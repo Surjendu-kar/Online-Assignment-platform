@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -34,8 +34,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { WarningDialog } from "@/components/WarningDialog";
 import { ViewStudentDialog } from "@/components/ViewStudentDialog";
 import { AddStudentDialog } from "@/components/AddStudentDialog";
-import studentsData from "@/data/studentsData.json";
-import examsData from "@/data/examsData.json";
 import {
   ChevronLeft,
   ChevronRight,
@@ -68,13 +66,6 @@ interface Student {
   departmentId?: string;
   examId?: string;
 }
-
-const demoStudents: Student[] = studentsData.map((student) => ({
-  ...student,
-  status: student.status as "active" | "pending" | "suspended",
-  dateJoined: new Date(student.dateJoined),
-  lastActive: new Date(student.lastActive),
-}));
 
 type SortField =
   | "name"
@@ -166,12 +157,13 @@ interface StudentInvitation {
 }
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>(demoStudents);
   const [invitations, setInvitations] = useState<StudentInvitation[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeInstitutionId, setActiveInstitutionId] = useState<string | null>(null);
+  const [activeInstitutionId, setActiveInstitutionId] = useState<string | null>(
+    null
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -198,7 +190,7 @@ export default function StudentsPage() {
 
   // Get active institution on mount and listen for changes
   useEffect(() => {
-    const institutionId = localStorage.getItem('activeInstitutionId');
+    const institutionId = localStorage.getItem("activeInstitutionId");
     setActiveInstitutionId(institutionId);
 
     // Listen for institution changes from sidebar
@@ -209,8 +201,15 @@ export default function StudentsPage() {
       }
     };
 
-    window.addEventListener('institutionChanged', handleInstitutionChange as EventListener);
-    return () => window.removeEventListener('institutionChanged', handleInstitutionChange as EventListener);
+    window.addEventListener(
+      "institutionChanged",
+      handleInstitutionChange as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "institutionChanged",
+        handleInstitutionChange as EventListener
+      );
   }, []);
 
   // Fetch exams and invitations when institution changes
@@ -223,33 +222,33 @@ export default function StudentsPage() {
 
       try {
         setLoading(true);
-        
+
         // Get session
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) {
-          toast.error('You must be logged in');
+          toast.error("You must be logged in");
           return;
         }
 
         // Fetch exams
-        const examsResponse = await fetch('/api/exams', {
+        const examsResponse = await fetch("/api/exams", {
           headers: {
-            'Authorization': `Bearer ${sessionData.session.access_token}`
-          }
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
         });
-        
+
         if (examsResponse.ok) {
           const examsData = await examsResponse.json();
           setExams(examsData);
         }
 
         // Fetch departments filtered by active institution
-        const departmentsResponse = await fetch('/api/departments', {
+        const departmentsResponse = await fetch("/api/departments", {
           headers: {
-            'Authorization': `Bearer ${sessionData.session.access_token}`
-          }
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
         });
-        
+
         if (departmentsResponse.ok) {
           const departmentsData = await departmentsResponse.json();
           // Filter departments by active institution
@@ -260,19 +259,19 @@ export default function StudentsPage() {
         }
 
         // Fetch student invitations
-        const invitationsResponse = await fetch('/api/students', {
+        const invitationsResponse = await fetch("/api/students", {
           headers: {
-            'Authorization': `Bearer ${sessionData.session.access_token}`
-          }
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
         });
-        
+
         if (invitationsResponse.ok) {
           const invitationsData = await invitationsResponse.json();
           setInvitations(invitationsData);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load data');
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -280,11 +279,6 @@ export default function StudentsPage() {
 
     fetchData();
   }, [activeInstitutionId]);
-
-  const getExamName = (examId: string) => {
-    const exam = examsData.find((exam) => exam.id === examId);
-    return exam ? exam.name : "No exam assigned";
-  };
 
   // Transform invitations to Student format for display
   const processedStudents = useMemo(() => {
@@ -307,6 +301,7 @@ export default function StudentsPage() {
         averageScore: 0,
         dateJoined: new Date(invitation.created_at),
         lastActive: new Date(invitation.created_at),
+        profileImage: undefined,
         studentId: invitation.id.slice(0, 8).toUpperCase(),
         department: invitation.departments?.name || "Not assigned",
         assignedExam: invitation.exams?.title || "No exam assigned",
@@ -384,7 +379,14 @@ export default function StudentsPage() {
     });
 
     return filtered;
-  }, [processedStudents, searchTerm, statusFilter, dateFilter, sortField, sortOrder]);
+  }, [
+    processedStudents,
+    searchTerm,
+    statusFilter,
+    dateFilter,
+    sortField,
+    sortOrder,
+  ]);
 
   const totalPages = Math.ceil(filteredAndSortedStudents.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -395,9 +397,15 @@ export default function StudentsPage() {
 
   const stats = useMemo(() => {
     const total = processedStudents.length;
-    const active = processedStudents.filter((s) => s.status === "active").length;
-    const pending = processedStudents.filter((s) => s.status === "pending").length;
-    const suspended = processedStudents.filter((s) => s.status === "suspended").length;
+    const active = processedStudents.filter(
+      (s) => s.status === "active"
+    ).length;
+    const pending = processedStudents.filter(
+      (s) => s.status === "pending"
+    ).length;
+    const suspended = processedStudents.filter(
+      (s) => s.status === "suspended"
+    ).length;
 
     return { total, active, pending, suspended };
   }, [processedStudents]);
@@ -464,21 +472,23 @@ export default function StudentsPage() {
     expirationDate: string;
   }): Promise<{ success: boolean; error?: string }> => {
     const isEditing = !!studentData.id;
-    const loadingToast = toast.loading(isEditing ? 'Updating student...' : 'Sending invitation...');
+    const loadingToast = toast.loading(
+      isEditing ? "Updating student..." : "Sending invitation..."
+    );
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         toast.dismiss(loadingToast);
-        toast.error('You must be logged in');
-        return { success: false, error: 'Not authenticated' };
+        toast.error("You must be logged in");
+        return { success: false, error: "Not authenticated" };
       }
 
-      const response = await fetch('/api/students', {
-        method: isEditing ? 'PUT' : 'POST',
+      const response = await fetch("/api/students", {
+        method: isEditing ? "PUT" : "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
         },
         body: JSON.stringify(studentData),
       });
@@ -487,34 +497,42 @@ export default function StudentsPage() {
 
       if (!response.ok) {
         toast.dismiss(loadingToast);
-        toast.error(result.error || (isEditing ? 'Failed to update student' : 'Failed to send invitation'));
-        return { success: false, error: result.error || 'Operation failed' };
+        toast.error(
+          result.error ||
+            (isEditing
+              ? "Failed to update student"
+              : "Failed to send invitation")
+        );
+        return { success: false, error: result.error || "Operation failed" };
       }
 
       // Refresh invitations list
-      const invitationsResponse = await fetch('/api/students', {
+      const invitationsResponse = await fetch("/api/students", {
         headers: {
-          'Authorization': `Bearer ${sessionData.session.access_token}`
-        }
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
       });
-      
+
       if (invitationsResponse.ok) {
         const invitationsData = await invitationsResponse.json();
         setInvitations(invitationsData);
       }
 
       toast.dismiss(loadingToast);
-      toast.success(isEditing 
-        ? 'Student updated successfully' 
-        : `Student invitation sent successfully to ${studentData.email}`
+      toast.success(
+        isEditing
+          ? "Student updated successfully"
+          : `Student invitation sent successfully to ${studentData.email}`
       );
 
       return { success: true };
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       toast.dismiss(loadingToast);
-      toast.error(isEditing ? 'Failed to update student' : 'Failed to send invitation');
-      return { success: false, error: 'Operation failed' };
+      toast.error(
+        isEditing ? "Failed to update student" : "Failed to send invitation"
+      );
+      return { success: false, error: "Operation failed" };
     }
   };
 
@@ -543,37 +561,37 @@ export default function StudentsPage() {
 
   const confirmDeleteSelected = async () => {
     const selectedIds = Array.from(selectedRows);
-    const loadingToast = toast.loading('Deleting student invitations...');
+    const loadingToast = toast.loading("Deleting student invitations...");
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         toast.dismiss(loadingToast);
-        toast.error('You must be logged in');
+        toast.error("You must be logged in");
         return;
       }
 
       // Delete selected invitations
-      const response = await fetch('/api/students', {
-        method: 'DELETE',
+      const response = await fetch("/api/students", {
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
         },
-        body: JSON.stringify({ ids: selectedIds })
+        body: JSON.stringify({ ids: selectedIds }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete invitations');
+        throw new Error("Failed to delete invitations");
       }
 
       // Refresh invitations list
-      const invitationsResponse = await fetch('/api/students', {
+      const invitationsResponse = await fetch("/api/students", {
         headers: {
-          'Authorization': `Bearer ${sessionData.session.access_token}`
-        }
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
       });
-      
+
       if (invitationsResponse.ok) {
         const invitationsData = await invitationsResponse.json();
         setInvitations(invitationsData);
@@ -582,13 +600,15 @@ export default function StudentsPage() {
       setSelectedRows(new Set());
       setStudentToDelete(null);
       setIsDeleteModalOpen(false);
-      
+
       toast.dismiss(loadingToast);
-      toast.success(`${selectedIds.length} student invitation(s) deleted successfully`);
+      toast.success(
+        `${selectedIds.length} student invitation(s) deleted successfully`
+      );
     } catch (error) {
-      console.error('Error deleting invitations:', error);
+      console.error("Error deleting invitations:", error);
       toast.dismiss(loadingToast);
-      toast.error('Failed to delete invitations');
+      toast.error("Failed to delete invitations");
     }
   };
 
@@ -601,37 +621,37 @@ export default function StudentsPage() {
   const confirmDeleteSingle = async () => {
     if (!studentToDelete) return;
 
-    const loadingToast = toast.loading('Deleting student invitation...');
+    const loadingToast = toast.loading("Deleting student invitation...");
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         toast.dismiss(loadingToast);
-        toast.error('You must be logged in');
+        toast.error("You must be logged in");
         return;
       }
 
       // Delete the invitation
-      const response = await fetch('/api/students', {
-        method: 'DELETE',
+      const response = await fetch("/api/students", {
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
         },
-        body: JSON.stringify({ ids: [studentToDelete.id] })
+        body: JSON.stringify({ ids: [studentToDelete.id] }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete invitation');
+        throw new Error("Failed to delete invitation");
       }
 
       // Refresh invitations list
-      const invitationsResponse = await fetch('/api/students', {
+      const invitationsResponse = await fetch("/api/students", {
         headers: {
-          'Authorization': `Bearer ${sessionData.session.access_token}`
-        }
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
       });
-      
+
       if (invitationsResponse.ok) {
         const invitationsData = await invitationsResponse.json();
         setInvitations(invitationsData);
@@ -639,13 +659,13 @@ export default function StudentsPage() {
 
       setStudentToDelete(null);
       setIsDeleteModalOpen(false);
-      
+
       toast.dismiss(loadingToast);
-      toast.success('Student invitation deleted successfully');
+      toast.success("Student invitation deleted successfully");
     } catch (error) {
-      console.error('Error deleting invitation:', error);
+      console.error("Error deleting invitation:", error);
       toast.dismiss(loadingToast);
-      toast.error('Failed to delete invitation');
+      toast.error("Failed to delete invitation");
     }
   };
 
@@ -1004,7 +1024,9 @@ export default function StudentsPage() {
       <WarningDialog
         open={isDeleteModalOpen && selectedRows.size > 0}
         onOpenChange={setIsDeleteModalOpen}
-        title={selectedRows.size > 1 ? "Confirm Bulk Deletion" : "Confirm Deletion"}
+        title={
+          selectedRows.size > 1 ? "Confirm Bulk Deletion" : "Confirm Deletion"
+        }
         description={`Are you sure you want to delete ${
           selectedRows.size
         } selected student${

@@ -19,10 +19,15 @@ const convertLocalToUTCISO = (localDatetimeString: string): string | null => {
   }
 };
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteClient(req);
-    
+    const supabase = await createRouteClient();
+
+    // Get query parameters for admin filtering
+    const { searchParams } = new URL(request.url);
+    const institutionId = searchParams.get('institutionId');
+    const departmentId = searchParams.get('departmentId');
+
     // Get user session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -32,7 +37,7 @@ export async function GET(req: NextRequest) {
     // Get user profile to check role
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role, department')
+      .select('role, department_id, institution_id')
       .eq('id', user.id)
       .single();
 
@@ -41,14 +46,39 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch exams based on role
-    let query = supabase.from('exams').select('*'); // Ensure duration is fetched here
-    
+    let query = supabase.from('exams').select('*');
+
     if (profile.role === 'teacher') {
-      // Teachers see only their created exams
-      query = query.eq('created_by', user.id);
+      // Teachers see only exams from their department
+      query = query
+        .eq('department_id', profile.department_id)
+        .eq('institution_id', profile.institution_id);
     } else if (profile.role === 'admin') {
-      // Admins see all exams
-      // No additional filter needed
+      // Admins can filter by institution/department from query params
+      if (institutionId) {
+        query = query.eq('institution_id', institutionId);
+
+        // If department is specified and not "all", filter by department
+        if (departmentId && departmentId !== 'all') {
+          query = query.eq('department_id', departmentId);
+        }
+      }
+      // If no filters provided, admins see all exams
+    } else if (profile.role === 'student') {
+      // Students see only exams they're invited to
+      const { data: invitations } = await supabase
+        .from('student_invitations')
+        .select('exam_id')
+        .eq('student_id', user.id)
+        .eq('status', 'accepted');
+
+      if (invitations && invitations.length > 0) {
+        const examIds = invitations.map(inv => inv.exam_id);
+        query = query.in('id', examIds);
+      } else {
+        // No invitations, return empty
+        return NextResponse.json([]);
+      }
     } else {
       return NextResponse.json({ error: 'Invalid role' }, { status: 403 });
     }
@@ -101,7 +131,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createRouteClient(req);
+    const supabase = await createRouteClient();
     const body = await req.json();
     
     // Get user session
@@ -113,7 +143,7 @@ export async function POST(req: NextRequest) {
     // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role, department')
+      .select('role, department_id, institution_id')
       .eq('id', user.id)
       .single();
 
@@ -126,9 +156,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-const { name, startDate, endDate, duration, questions, status } = body;
+const { name, startDate, endDate, duration, questions, status, departmentId, institutionId } = body;
 const utcStartDate = convertLocalToUTCISO(startDate);
 const utcEndDate = convertLocalToUTCISO(endDate);
+
+    console.log('[API /exams POST] Request body:', { name, startDate, endDate, duration, status, departmentId, institutionId });
+    console.log('[API /exams POST] User profile:', profile);
+
+    // Determine department_id and institution_id
+    // Admins can specify, teachers use their assigned department/institution
+    const finalDepartmentId = profile.role === 'admin' && departmentId
+      ? departmentId
+      : profile.department_id;
+
+    const finalInstitutionId = profile.role === 'admin' && institutionId
+      ? institutionId
+      : profile.institution_id;
+
+    console.log('[API /exams POST] Final IDs:', { finalDepartmentId, finalInstitutionId });
+
+    // Validate that we have both IDs
+    if (!finalDepartmentId || !finalInstitutionId) {
+      console.error('[API /exams POST] Missing IDs - Validation failed');
+      return NextResponse.json({
+        error: 'Department and institution are required'
+      }, { status: 400 });
+    }
+
     // Generate unique exam code
     const uniqueCode = `EXAM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
 
@@ -138,9 +192,10 @@ const utcEndDate = convertLocalToUTCISO(endDate);
       .insert({
         title: name,
         description: '',
-        department: profile.department,
+        department_id: finalDepartmentId,
+        institution_id: finalInstitutionId,
         start_time: utcStartDate,
-    end_time: utcEndDate,
+        end_time: utcEndDate,
         unique_code: uniqueCode,
         created_by: user.id,
         access_type: 'invitation',

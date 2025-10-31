@@ -5,36 +5,38 @@ import { ChevronRight } from "lucide-react";
 
 export function ExamDialogSkeleton() {
   return (
-    <div className="grid gap-4 py-4">
-      {/* First row: Exam Name, Duration, and Status */}
+    <div className="grid gap-4 py-2">
+      {/* First row: Exam Name (full width) */}
+      <div className="grid gap-2">
+        <Label htmlFor="exam-name">Exam Name *</Label>
+        <Skeleton className="h-11 w-full" />
+      </div>
+
+      {/* Second row: Duration and Department */}
       <div className="grid grid-cols-2 gap-2">
         <div className="grid gap-2">
-          <Label htmlFor="exam-name">Exam Name *</Label>
-          <Skeleton className="h-10 w-full" />
+          <Label htmlFor="duration">Duration (minutes) *</Label>
+          <Skeleton className="h-11 w-full" />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {/* Duration */}
-          <div className="grid gap-2">
-            <Label htmlFor="duration">Duration (minutes) *</Label>
-            <Skeleton className="h-10 w-full" />
-          </div>
-          {/* Status */}
-          <div className="grid gap-2">
-            <Label htmlFor="status">Status *</Label>
-            <Skeleton className="h-10 w-full" />
-          </div>
+        <div className="grid gap-2">
+          <Label htmlFor="department">Department *</Label>
+          <Skeleton className="h-11 w-full" />
         </div>
       </div>
 
-      {/* Second row: Start Date and End Date */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Third row: Start Date, End Date, and Status */}
+      <div className="grid grid-cols-3 gap-3">
         <div className="grid gap-2">
           <Label htmlFor="start-date">Start Date *</Label>
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-11  w-full" />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="end-date">End Date *</Label>
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-11  w-full" />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="status">Status *</Label>
+          <Skeleton className="h-11  w-full" />
         </div>
       </div>
 

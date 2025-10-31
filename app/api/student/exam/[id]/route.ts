@@ -1,0 +1,172 @@
+import { createRouteClient } from '@/lib/supabaseRouteClient';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createRouteClient();
+    const { id: examId } = await params;
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify user is a student
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile || profile.role !== 'student') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Check if student has access to this exam via invitation
+    const { data: invitation, error: invitationError } = await supabase
+      .from('student_invitations')
+      .select('id, status, duration, exam_id')
+      .eq('student_id', user.id)
+      .eq('exam_id', examId)
+      .single();
+
+    if (invitationError || !invitation) {
+      return NextResponse.json({ error: 'You are not invited to this exam' }, { status: 403 });
+    }
+
+    if (invitation.status !== 'accepted') {
+      return NextResponse.json({ error: 'Invitation not accepted' }, { status: 403 });
+    }
+
+    // Get exam details
+    const { data: exam, error: examError } = await supabase
+      .from('exams')
+      .select('*')
+      .eq('id', examId)
+      .single();
+
+    if (examError || !exam) {
+      return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
+    }
+
+    // Check if exam is within time window
+    const now = new Date();
+    const startTime = exam.start_time ? new Date(exam.start_time) : null;
+    const endTime = exam.end_time ? new Date(exam.end_time) : null;
+
+    if (startTime && now < startTime) {
+      return NextResponse.json({ 
+        error: 'Exam has not started yet',
+        startTime: exam.start_time 
+      }, { status: 403 });
+    }
+
+    if (endTime && now > endTime) {
+      return NextResponse.json({ 
+        error: 'Exam has expired',
+        endTime: exam.end_time 
+      }, { status: 403 });
+    }
+
+    // Get existing exam session (don't create)
+    const { data: session } = await supabase
+      .from('exam_sessions')
+      .select('*')
+      .eq('exam_id', examId)
+      .eq('user_id', user.id)
+      .single();
+
+    // Fetch template questions (user_id IS NULL)
+    const { data: mcqQuestions } = await supabase
+      .from('mcq')
+      .select('*')
+      .eq('exam_id', examId)
+      .is('user_id', null)
+      .order('question_order', { ascending: true });
+
+    const { data: saqQuestions } = await supabase
+      .from('saq')
+      .select('*')
+      .eq('exam_id', examId)
+      .is('user_id', null)
+      .order('question_order', { ascending: true });
+
+    const { data: codingQuestions } = await supabase
+      .from('coding')
+      .select('*')
+      .eq('exam_id', examId)
+      .is('user_id', null)
+      .order('question_order', { ascending: true });
+
+    // Combine all questions
+    const questions = [
+      ...(mcqQuestions || []).map(q => ({ ...q, type: 'mcq' })),
+      ...(saqQuestions || []).map(q => ({ ...q, type: 'saq' })),
+      ...(codingQuestions || []).map(q => ({ ...q, type: 'coding' }))
+    ].sort((a, b) => (a.question_order || 0) - (b.question_order || 0));
+
+    const examDuration = invitation.duration || exam.duration || 60;
+
+    if (!session) {
+      return NextResponse.json({
+        exam: {
+          id: exam.id,
+          title: exam.title,
+          description: exam.description,
+          duration: examDuration,
+          startTime: exam.start_time,
+          endTime: exam.end_time,
+          requireWebcam: exam.require_webcam,
+          maxViolations: exam.max_violations,
+          showResultsImmediately: exam.show_results_immediately
+        },
+        session: null,
+        questions,
+        savedAnswers: {}
+      });
+    }
+
+    // Check if student has already saved answers in student_responses
+    const { data: existingResponse } = await supabase
+      .from('student_responses')
+      .select('answers')
+      .eq('exam_session_id', session.id)
+      .eq('student_id', user.id)
+      .single();
+
+    // Calculate remaining time
+    const sessionStartTime = new Date(session.start_time);
+    const examEndTime = new Date(sessionStartTime.getTime() + examDuration * 60000);
+    const remainingTime = Math.max(0, Math.floor((examEndTime.getTime() - now.getTime()) / 1000));
+
+    return NextResponse.json({
+      exam: {
+        id: exam.id,
+        title: exam.title,
+        description: exam.description,
+        duration: examDuration,
+        startTime: exam.start_time,
+        endTime: exam.end_time,
+        requireWebcam: exam.require_webcam,
+        maxViolations: exam.max_violations,
+        showResultsImmediately: exam.show_results_immediately
+      },
+      session: {
+        id: session.id,
+        status: session.status,
+        startTime: session.start_time,
+        remainingTime,
+        violationsCount: session.violations_count
+      },
+      questions,
+      savedAnswers: existingResponse?.answers || {}
+    });
+  } catch (error) {
+    console.error('Error in GET /api/student/exam/[examId]:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

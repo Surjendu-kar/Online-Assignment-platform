@@ -7,9 +7,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createRouteClient(req);
+    const supabase = await createRouteClient();
     const { id } = await params;
-    
+
     // Get user session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {

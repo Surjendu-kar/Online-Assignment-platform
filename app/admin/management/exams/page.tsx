@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import toast from "react-hot-toast";
 import {
@@ -32,6 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AddExamDialog } from "@/components/AddExamDialog";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WarningDialog } from "@/components/WarningDialog";
 import {
   ChevronLeft,
   ChevronRight,
@@ -72,6 +73,8 @@ interface Exam {
   assignedStudents?: number;
   questions?: Question[];
   department?: string;
+  department_id?: string;
+  institution_id?: string;
   duration?: number;
 }
 
@@ -136,44 +139,102 @@ export default function ExamsPage() {
   const [deletingExams, setDeletingExams] = useState<Set<string>>(new Set());
   const [isDialogLoading, setIsDialogLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [departments, setDepartments] = useState<Map<string, string>>(
+    new Map()
+  );
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [examsToDelete, setExamsToDelete] = useState<string[]>([]);
 
   const itemsPerPage = 5;
 
   // Fetch exams from API
- const fetchExams = async () => {
-  try {
-    setLoading(true);
-    
-    const { data: session, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session.session) {
-      toast.error('You must be logged in to view exams');
-      return;
+  const fetchExams = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const { data: session, error: sessionError } =
+        await supabase.auth.getSession();
+      if (sessionError || !session.session) {
+        toast.error("You must be logged in to view exams");
+        return;
+      }
+
+      // Get institution and department from localStorage for filtering
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      const departmentId = localStorage.getItem("activeDepartmentId");
+
+      // Build query params
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.append("institutionId", institutionId);
+      }
+      if (departmentId && departmentId !== "all") {
+        params.append("departmentId", departmentId);
+      }
+
+      const queryString = params.toString();
+      const url = `/api/exams${queryString ? `?${queryString}` : ""}`;
+
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${session.session.access_token}` },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to fetch exams");
+      }
+
+      const data = await response.json();
+      setExams(data);
+
+      // Fetch department names if "All Departments" view
+      if (departmentId === "all" && institutionId) {
+        await fetchDepartmentNames(institutionId);
+      }
+    } catch (error) {
+      console.log(error);
+
+      toast.error("Failed to load exams");
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    const response = await fetch('/api/exams', {
-      headers: { 'Authorization': `Bearer ${session.session.access_token}` },
-    });
+  // Fetch department names for mapping
+  const fetchDepartmentNames = async (institutionId: string) => {
+    try {
+      const response = await fetch("/api/departments");
+      const data = await response.json();
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('[ExamsPage] Error fetching exams:', error); // Log error
-      throw new Error(error.error || 'Failed to fetch exams');
+      if (response.ok) {
+        const deptMap = new Map<string, string>();
+        data
+          .filter((dept: { institution_id: string }) => dept.institution_id === institutionId)
+          .forEach((dept: { id: string; name: string }) => {
+            deptMap.set(dept.id, dept.name);
+          });
+        setDepartments(deptMap);
+      }
+    } catch (error) {
+      console.error("Error fetching department names:", error);
     }
-
-    const data = await response.json();
-    console.log('[ExamsPage] Fetched exams:', data); // Log fetched exams
-    setExams(data);
-  } catch (error) {
-    console.error('[ExamsPage] Error fetching exams:', error); // Log error
-    toast.error('Failed to load exams');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
-    fetchExams();
-  }, []);
+    const handleDepartmentChange = () => {
+      fetchExams();
+    };
+
+    fetchExams(); // Initial load
+
+    // Listen ONLY for department changes (not institution changes)
+    // Institution change is followed by department selection, so we wait for that
+    window.addEventListener("departmentChanged", handleDepartmentChange);
+
+    return () => {
+      window.removeEventListener("departmentChanged", handleDepartmentChange);
+    };
+  }, [fetchExams]);
 
   const filteredAndSortedExams = useMemo(() => {
     const filtered = exams.filter((exam) => {
@@ -276,19 +337,23 @@ export default function ExamsPage() {
   const handleAddExam = async (examData: {
     name: string;
     startDate: string; // This is a local datetime string from the UI
-    endDate: string;   // This is a local datetime string from the UI
+    endDate: string; // This is a local datetime string from the UI
     duration: number;
-      status: "active" | "draft" | "archived";
+    status: "active" | "draft" | "archived";
     questions: Question[];
+    departmentId?: string;
+    institutionId?: string;
   }) => {
     let loadingToastId: string | undefined; // Declare with `let` outside try-catch
     try {
-      loadingToastId = toast.loading(editingExam ? 'Updating exam...' : 'Creating exam...');
-      
+      loadingToastId = toast.loading(
+        editingExam ? "Updating exam..." : "Creating exam..."
+      );
+
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
         toast.dismiss(loadingToastId);
-        toast.error('You must be logged in');
+        toast.error("You must be logged in");
         return;
       }
 
@@ -296,34 +361,34 @@ export default function ExamsPage() {
       const utcStartDate = convertLocalToUTCISO(examData.startDate);
       const utcEndDate = convertLocalToUTCISO(examData.endDate);
 
-      const url = editingExam 
-        ? `/api/exams/${editingExam.id}`
-        : '/api/exams';
-      
-      const method = editingExam ? 'PUT' : 'POST';
+      const url = editingExam ? `/api/exams/${editingExam.id}` : "/api/exams";
+
+      const method = editingExam ? "PUT" : "POST";
+
+      const requestBody = {
+        ...examData,
+        startDate: utcStartDate,
+        endDate: utcEndDate,
+        status: examData.status,
+      };
 
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.session.access_token}`,
         },
-        body: JSON.stringify({
-          ...examData,
-          startDate: utcStartDate, 
-          endDate: utcEndDate,    
-          status: examData.status,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to save exam');
+        throw new Error(error.error || "Failed to save exam");
       }
 
       toast.dismiss(loadingToastId);
       toast.success(
-        editingExam 
+        editingExam
           ? `Exam "${examData.name}" updated successfully!`
           : `Exam "${examData.name}" created successfully!`
       );
@@ -332,9 +397,9 @@ export default function ExamsPage() {
       await fetchExams();
       setCurrentPage(1);
     } catch (error) {
-      console.error('Error saving exam:', error);
+      console.error("Error saving exam:", error);
       if (loadingToastId) toast.dismiss(loadingToastId); // Dismiss if it exists
-      toast.error('Failed to save exam');
+      toast.error("Failed to save exam");
     }
   };
 
@@ -344,22 +409,27 @@ export default function ExamsPage() {
     try {
       const date = new Date(isoString); // Parses the ISO string (e.g., "2025-10-13T19:11:00+00:00")
       if (isNaN(date.getTime())) {
-        console.warn(`[formatForDatetimeLocal] Invalid date string received: ${isoString}`);
+        console.warn(
+          `[formatForDatetimeLocal] Invalid date string received: ${isoString}`
+        );
         return "";
       }
 
       // These getters (getFullYear, getMonth, etc.) automatically return values in the *local* timezone.
       const year = date.getFullYear();
-      const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
-      const day = date.getDate().toString().padStart(2, '0');
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Months are 0-indexed
+      const day = date.getDate().toString().padStart(2, "0");
+      const hours = date.getHours().toString().padStart(2, "0");
+      const minutes = date.getMinutes().toString().padStart(2, "0");
 
       const formattedLocalString = `${year}-${month}-${day}T${hours}:${minutes}`;
-      console.log(`[formatForDatetimeLocal] Converted UTC (${isoString}) to local for input: ${formattedLocalString}`);
+
       return formattedLocalString;
     } catch (e) {
-      console.error(`[formatForDatetimeLocal] Error processing date string: ${isoString}`, e);
+      console.error(
+        `[formatForDatetimeLocal] Error processing date string: ${isoString}`,
+        e
+      );
       return "";
     }
   };
@@ -370,14 +440,19 @@ export default function ExamsPage() {
     try {
       const date = new Date(localDatetimeString); // Parses as local time
       if (isNaN(date.getTime())) {
-        console.warn(`[convertLocalToUTCISO] Invalid local datetime string: ${localDatetimeString}`);
+        console.warn(
+          `[convertLocalToUTCISO] Invalid local datetime string: ${localDatetimeString}`
+        );
         return null;
       }
       const utcISOString = date.toISOString(); // Converts to UTC ISO string
-      console.log(`[convertLocalToUTCISO] Converted local (${localDatetimeString}) to UTC ISO: ${utcISOString}`);
+
       return utcISOString;
     } catch (e) {
-      console.error(`[convertLocalToUTCISO] Error processing local datetime string: ${localDatetimeString}`, e);
+      console.error(
+        `[convertLocalToUTCISO] Error processing local datetime string: ${localDatetimeString}`,
+        e
+      );
       return null;
     }
   };
@@ -387,10 +462,10 @@ export default function ExamsPage() {
       setIsEditMode(true); // Set edit mode flag
       setIsAddExamOpen(true); // Open dialog immediately
       setIsDialogLoading(true); // Show skeleton
-      
+
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
-        toast.error('You must be logged in');
+        toast.error("You must be logged in");
         setIsAddExamOpen(false);
         setIsDialogLoading(false);
         setIsEditMode(false);
@@ -398,73 +473,86 @@ export default function ExamsPage() {
       }
 
       const response = await fetch(`/api/exams/${exam.id}`, {
-        headers: { 'Authorization': `Bearer ${session.session.access_token}` },
+        headers: { Authorization: `Bearer ${session.session.access_token}` },
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch exam details');
+        throw new Error(error.error || "Failed to fetch exam details");
       }
 
       const examDetails = await response.json();
-      
+
       setEditingExam({
         id: examDetails.id,
         title: examDetails.title,
         start_time: formatForDatetimeLocal(examDetails.start_time),
         end_time: formatForDatetimeLocal(examDetails.end_time),
         duration: examDetails.duration || 60,
-        questions: examDetails.questions || [], 
-        status: examDetails.status || 'draft',
+        questions: examDetails.questions || [],
+        status: examDetails.status || "draft",
+        department_id: examDetails.department_id,
+        institution_id: examDetails.institution_id,
       });
-      
+
       setIsDialogLoading(false); // Hide skeleton
     } catch {
       setIsAddExamOpen(false);
       setIsDialogLoading(false);
       setIsEditMode(false);
-      toast.error('Failed to load exam details');
+      toast.error("Failed to load exam details");
     }
   };
 
-  const handleDeleteExams = async () => {
-    const toDelete = selectedRows.size > 0 ? Array.from(selectedRows) : [];
-    if (toDelete.length === 0) return;
+  const confirmDeleteExams = async () => {
+    if (examsToDelete.length === 0) return;
 
-    const loadingToastId = toast.loading(`Deleting ${toDelete.length} exam(s)...`);
-    setDeletingExams(new Set(toDelete));
+    const loadingToastId = toast.loading(
+      `Deleting ${examsToDelete.length} exam(s)...`
+    );
+    setDeletingExams(new Set(examsToDelete));
 
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
         toast.dismiss(loadingToastId);
-        toast.error('You must be logged in');
+        toast.error("You must be logged in");
         return;
       }
 
-      const deletePromises = toDelete.map(id =>
+      const deletePromises = examsToDelete.map((id) =>
         fetch(`/api/exams/${id}`, {
-          method: 'DELETE',
+          method: "DELETE",
           headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
+            Authorization: `Bearer ${session.session.access_token}`,
           },
         })
       );
 
       await Promise.all(deletePromises);
-      
+
       toast.dismiss(loadingToastId);
-      toast.success('Exams deleted successfully');
-      
+      toast.success("Exams deleted successfully");
+
       setSelectedRows(new Set());
+      setExamsToDelete([]);
       await fetchExams();
     } catch (error) {
-      console.error('[ExamsPage] Error deleting exams:', error);
+      console.error("[ExamsPage] Error deleting exams:", error);
       if (loadingToastId) toast.dismiss(loadingToastId); // Dismiss if it exists
-      toast.error('Failed to delete exams');
+      toast.error("Failed to delete exams");
     } finally {
       setDeletingExams(new Set());
+      setShowDeleteDialog(false);
     }
+  };
+
+  const handleDeleteExams = () => {
+    const toDelete = selectedRows.size > 0 ? Array.from(selectedRows) : [];
+    if (toDelete.length === 0) return;
+
+    setExamsToDelete(toDelete);
+    setShowDeleteDialog(true);
   };
 
   const handleCloseDialog = () => {
@@ -475,9 +563,8 @@ export default function ExamsPage() {
 
   const getDuration = (exam: Exam): number => {
     // Prioritize stored duration directly from the exam object if it's a valid number
-    if (typeof exam.duration === 'number' && exam.duration > 0) {
-        console.log(`[getDuration] Using stored duration: ${exam.duration} min for exam ID ${exam.id}`);
-        return exam.duration;
+    if (typeof exam.duration === "number" && exam.duration > 0) {
+      return exam.duration;
     }
 
     // Fallback to calculation if duration is not explicitly stored or is invalid/zero
@@ -485,18 +572,24 @@ export default function ExamsPage() {
     const endTime = exam.end_time ? new Date(exam.end_time) : null;
 
     if (!startTime || !endTime) {
-        console.warn(`[getDuration] Missing start_time or end_time for exam ID ${exam.id}. Returning default 60 min.`, { startTime: exam.start_time, endTime: exam.end_time });
-        return 60; // Default duration
+      console.warn(
+        `[getDuration] Missing start_time or end_time for exam ID ${exam.id}. Returning default 60 min.`,
+        { startTime: exam.start_time, endTime: exam.end_time }
+      );
+      return 60; // Default duration
     }
 
     const durationMs = endTime.getTime() - startTime.getTime();
     if (durationMs < 0) {
-        console.warn(`[getDuration] end_time is before start_time for exam ID ${exam.id}. Returning default 60 min.`, { startTime: exam.start_time, endTime: exam.end_time });
-        return 60; // Default duration for invalid range
+      console.warn(
+        `[getDuration] end_time is before start_time for exam ID ${exam.id}. Returning default 60 min.`,
+        { startTime: exam.start_time, endTime: exam.end_time }
+      );
+      return 60; // Default duration for invalid range
     }
 
     const calculatedDuration = Math.round(durationMs / (1000 * 60));
-    console.log(`[getDuration] Calculated duration: ${calculatedDuration} min for exam ID ${exam.id} (from ${exam.start_time} to ${exam.end_time})`);
+
     return calculatedDuration;
   };
 
@@ -564,9 +657,9 @@ export default function ExamsPage() {
                   <span className="text-sm font-medium">
                     {selectedRows.size} selected
                   </span>
-                  <Button 
-                    size="sm" 
-                    variant="destructive" 
+                  <Button
+                    size="sm"
+                    variant="destructive"
                     className="h-7"
                     onClick={handleDeleteExams}
                     disabled={deletingExams.size > 0}
@@ -631,6 +724,11 @@ export default function ExamsPage() {
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+                      <TableHead className="resize-x overflow-hidden min-w-[120px] border-r">
+                        <div className="flex items-center space-x-2">
+                          <span>Department</span>
+                        </div>
+                      </TableHead>
                       <TableHead className="resize-x overflow-hidden min-w-[100px] border-r">
                         <div className="flex items-center space-x-2">
                           <span>Duration</span>
@@ -650,6 +748,7 @@ export default function ExamsPage() {
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 resize-x overflow-hidden min-w-[140px]"
                         onClick={() => handleSort("assignedStudents")}
@@ -709,8 +808,16 @@ export default function ExamsPage() {
                                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
                                   <BookOpen className="h-4 w-4 text-primary" />
                                 </div>
-                                <span className="font-medium">{exam.title}</span>
+                                <span className="font-medium">
+                                  {exam.title}
+                                </span>
                               </div>
+                            </TableCell>
+                            <TableCell className="border-r">
+                              <span className="text-sm">
+                                {departments.get(exam.department_id || "") ||
+                                  "Unknown"}
+                              </span>
                             </TableCell>
                             <TableCell className="border-r">
                               <div className="flex items-center gap-1">
@@ -718,32 +825,44 @@ export default function ExamsPage() {
                                 {getDuration(exam)} min
                               </div>
                             </TableCell>
-                           <TableCell className="border-r">
-  <div className="space-y-1 text-xs">
-    {/* Show Start Time if available */}
-    {exam.start_time && (
-      <div className="flex items-center gap-1">
-        <Clock className="h-3 w-3 text-muted-foreground" />
-        <span className="text-muted-foreground">Start:</span>
-        <span>{new Date(exam.start_time).toLocaleString()}</span>
-      </div>
-    )}
+                            <TableCell className="border-r">
+                              <div className="space-y-1 text-xs">
+                                {/* Show Start Time if available */}
+                                {exam.start_time && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-muted-foreground">
+                                      Start:
+                                    </span>
+                                    <span>
+                                      {new Date(
+                                        exam.start_time
+                                      ).toLocaleString()}
+                                    </span>
+                                  </div>
+                                )}
 
-    {/* Show End Time if available */}
-    {exam.end_time && (
-      <div className="flex items-center gap-1">
-        <Clock className="h-3 w-3 text-muted-foreground" />
-        <span className="text-muted-foreground">End:</span>
-        <span>{new Date(exam.end_time).toLocaleString()}</span>
-      </div>
-    )}
+                                {/* Show End Time if available */}
+                                {exam.end_time && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-muted-foreground">
+                                      End:
+                                    </span>
+                                    <span>
+                                      {new Date(exam.end_time).toLocaleString()}
+                                    </span>
+                                  </div>
+                                )}
 
-    {/* Fallback: Not scheduled */}
-    {!exam.start_time && !exam.end_time && (
-      <span className="text-muted-foreground">Not scheduled</span>
-    )}
-  </div>
-</TableCell>
+                                {/* Fallback: Not scheduled */}
+                                {!exam.start_time && !exam.end_time && (
+                                  <span className="text-muted-foreground">
+                                    Not scheduled
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell className="border-r">
                               <Badge
                                 variant={
@@ -765,6 +884,7 @@ export default function ExamsPage() {
                                   (exam.status?.slice(1) || "")}
                               </Badge>
                             </TableCell>
+
                             <TableCell>
                               <div className="flex items-center gap-1">
                                 <Users className="h-3 w-3 text-muted-foreground" />
@@ -829,7 +949,7 @@ export default function ExamsPage() {
         </Card>
       </motion.div>
 
-     <AddExamDialog
+      <AddExamDialog
         isOpen={isAddExamOpen}
         onOpenChange={handleCloseDialog}
         onSaveExam={handleAddExam}
@@ -840,14 +960,32 @@ export default function ExamsPage() {
             ? {
                 id: editingExam.id,
                 name: editingExam.title,
-                startDate: editingExam.start_time || "", 
-                endDate: editingExam.end_time || "",     
-                duration: editingExam.duration || 60, // Use directly from state (after DB fetch)
+                startDate: editingExam.start_time || "",
+                endDate: editingExam.end_time || "",
+                duration: editingExam.duration || 60,
                 status: editingExam.status || "draft",
                 questions: editingExam.questions || [],
+                departmentId: editingExam.department_id,
+                institutionId: editingExam.institution_id,
               }
             : null
         }
+      />
+
+      {/* Warning Dialog for Exam Deletion */}
+      <WarningDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Exam(s)"
+        description={`Are you sure you want to delete ${examsToDelete.length} exam(s)? This action cannot be undone and will also delete all associated student responses and sessions.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={confirmDeleteExams}
+        onCancel={() => {
+          setShowDeleteDialog(false);
+          setExamsToDelete([]);
+        }}
       />
     </motion.div>
   );

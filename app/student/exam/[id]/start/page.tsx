@@ -49,18 +49,37 @@ import {
   Moon,
   Code2,
 } from "lucide-react";
-import { GrFlag } from "react-icons/gr";
-import { GrFlagFill } from "react-icons/gr";
-import {
-  mockExamSessions,
-  type ExamSession,
-} from "@/lib/mock-data/exam-sessions";
 import { CODE_TEMPLATES, LANGUAGE_CONFIG } from "@/data/codeTemplates";
+import { toast } from "react-hot-toast";
 
-interface Answer {
-  questionId: string;
-  answer: string;
-  flagged: boolean;
+interface Question {
+  id: string;
+  type: "mcq" | "saq" | "coding";
+  question_text: string;
+  options?: string[];
+  correct_option?: number;
+  marks: number;
+  question_order: number;
+  starter_code?: string;
+  language?: string;
+}
+
+interface ExamData {
+  exam: {
+    id: string;
+    title: string;
+    description: string;
+    duration: number;
+    requireWebcam: boolean;
+  };
+  session: {
+    id: string;
+    status: string;
+    startTime: string;
+    remainingTime: number;
+  };
+  questions: Question[];
+  savedAnswers: Record<string, string | number>;
 }
 
 export default function ExamStartPage() {
@@ -68,62 +87,149 @@ export default function ExamStartPage() {
   const router = useRouter();
   const examId = params.id as string;
 
-  const [examSession, setExamSession] = useState<ExamSession | null>(null);
+  const [examData, setExamData] = useState<ExamData | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<{ [key: string]: Answer }>({});
+  const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [codeOutput, setCodeOutput] = useState<{ [key: string]: { language: string; output: string; error: boolean } }>({});
   const [selectedLanguage, setSelectedLanguage] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<{ [key: string]: "code" | "output" }>({});
   
-  // Enhanced editor features
   const [fontSize, setFontSize] = useState(14);
   const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'vs-light'>('vs-dark');
   const [isFullscreen, setIsFullscreen] = useState<{ [key: string]: boolean }>({});
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  const editorRef = useRef<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const editorRef = useRef<any>(null);
   const { theme } = useTheme();
 
-  // Load exam session
-  useEffect(() => {
-    const session = mockExamSessions[examId];
-    if (session) {
-      setExamSession(session);
-      setTimeRemaining(session.timeLimit * 60);
+  const fetchExamData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/student/exam/${examId}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        if (!data.session || data.session.status !== 'in_progress') {
+          toast.error("Exam session not found or not started");
+          router.push(`/student/exam/${examId}`);
+          return;
+        }
+
+        setExamData(data);
+        setTimeRemaining(data.session.remainingTime);
+        setAnswers(data.savedAnswers || {});
+      } else {
+        toast.error(data.error || "Failed to load exam");
+        router.push(`/student/exam/${examId}`);
+      }
+    } catch (error) {
+      console.error("Error fetching exam:", error);
+      toast.error("Failed to load exam");
+      router.push(`/student/exam/${examId}`);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [examId]);
-  
-  // Auto-save effect - Removed localStorage to prevent exam integrity issues
-  
-  // Initialize templates for coding questions
-  useEffect(() => {
-    if (examSession) {
-      setAnswers(prevAnswers => {
-        const newAnswers = { ...prevAnswers };
-        examSession.questions.forEach(question => {
-          if (question.type === 'coding' && !newAnswers[question.id]) {
-            const defaultLanguage = 'javascript';
-            newAnswers[question.id] = {
-              questionId: question.id,
-              answer: CODE_TEMPLATES[defaultLanguage],
-              flagged: false
-            };
-            setSelectedLanguage(prev => ({
-              ...prev,
-              [question.id]: defaultLanguage
-            }));
-          }
-        });
-        return newAnswers;
+  }, [examId, router]);
+
+  const saveAnswers = useCallback(async () => {
+    if (!examData) return;
+    try {
+      await fetch(`/api/student/exam/${examId}/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: examData.session.id,
+          answers,
+        }),
       });
+    } catch (error) {
+      console.error("Error saving answers:", error);
     }
-  }, [examSession]);
-  
+  }, [examData, examId, answers]);
+
+  const submitExam = useCallback(async () => {
+    if (!examData) return;
+    try {
+      setIsSubmitting(true);
+      await saveAnswers();
+
+      const response = await fetch(`/api/student/exam/${examId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: examData.session.id,
+          answers,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.message || "Exam submitted successfully!");
+        setIsSubmitted(true);
+        setRedirecting(true);
+        setTimeout(() => {
+          router.push("/student/exams");
+        }, 2000);
+      } else {
+        toast.error(data.error || "Failed to submit exam");
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error("Error submitting exam:", error);
+      toast.error("Failed to submit exam");
+      setIsSubmitting(false);
+    }
+  }, [examData, examId, answers, saveAnswers, router]);
+
+  const handleAutoSubmit = useCallback(async () => {
+    toast.error("Time's up! Submitting exam automatically...");
+    await submitExam();
+  }, [submitExam]);
+
+  const runCodeWithShortcut = useCallback((questionId: string) => {
+    const code = (answers[questionId] as string) || '';
+    const language = selectedLanguage[questionId] || 'javascript';
+    if (code.trim()) {
+      runCode(questionId, code, language);
+    }
+  }, [answers, selectedLanguage]);
+
+  useEffect(() => {
+    fetchExamData();
+  }, [fetchExamData]);
+
+  useEffect(() => {
+    if (timeRemaining > 0 && !isSubmitted) {
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            handleAutoSubmit();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [timeRemaining, isSubmitted, handleAutoSubmit]);
+
+  useEffect(() => {
+    if (examData) {
+      const autoSaveInterval = setInterval(() => {
+        saveAnswers();
+      }, 30000);
+      return () => clearInterval(autoSaveInterval);
+    }
+  }, [examData, saveAnswers]);
+
   // Sync editor theme with system theme
   useEffect(() => {
     if (theme === 'dark') {
@@ -132,23 +238,6 @@ export default function ExamStartPage() {
       setEditorTheme('vs-light');
     }
   }, [theme]);
-
-  // Timer effect
-  useEffect(() => {
-    if (timeRemaining > 0 && !isSubmitted) {
-      const timer = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            setIsSubmitted(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [timeRemaining, isSubmitted]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -159,15 +248,10 @@ export default function ExamStartPage() {
       .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleAnswerChange = (questionId: string, answer: string) => {
+  const handleAnswerChange = (questionId: string, answer: string | number) => {
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        questionId,
-        answer,
-        flagged: prev[questionId]?.flagged || false,
-      },
+      [questionId]: answer,
     }));
   };
   
@@ -204,51 +288,21 @@ export default function ExamStartPage() {
   const toggleEditorTheme = () => {
     setEditorTheme(prev => prev === 'vs-dark' ? 'vs-light' : 'vs-dark');
   };
-  
-  const runCodeWithShortcut = useCallback((questionId: string) => {
-    const code = answers[questionId]?.answer || '';
-    const language = selectedLanguage[questionId] || 'javascript';
-    if (code.trim()) {
-      runCode(questionId, code, language);
-    }
-  }, [answers, selectedLanguage]);
-
-  const toggleFlag = (questionId: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        questionId,
-        answer: prev[questionId]?.answer || "",
-        flagged: !prev[questionId]?.flagged,
-      },
-    }));
-  };
 
   const getAnsweredQuestions = () => {
-    return Object.values(answers).filter(
-      (answer) => answer.answer.trim() !== ""
-    ).length;
-  };
-
-  const getFlaggedQuestions = () => {
-    return Object.values(answers).filter((answer) => answer.flagged).length;
+    return Object.keys(answers).filter((key) => {
+      const answer = answers[key];
+      return answer !== null && answer !== undefined && answer !== "";
+    }).length;
   };
 
   const handleSubmitExam = () => {
     setShowWarning(true);
   };
 
-  const confirmSubmit = () => {
-    setIsSubmitted(true);
+  const confirmSubmit = async () => {
     setShowWarning(false);
-    setRedirecting(true);
-    console.log("Exam submitted with answers:", answers);
-
-    // Auto redirect to dashboard after 3 seconds
-    setTimeout(() => {
-      router.push("/student/dashboard");
-    }, 3000);
+    await submitExam();
   };
 
   const runCode = async (questionId: string, code: string, language: string) => {
@@ -346,7 +400,7 @@ ${result.output.trim()}
     );
   }
 
-  if (!examSession) {
+  if (!examData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-96">
@@ -397,7 +451,7 @@ ${result.output.trim()}
               {redirecting ? (
                 <div className="flex items-center justify-center space-x-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Redirecting to dashboard in a moment...</span>
+                  <span>Redirecting to exams page...</span>
                 </div>
               ) : (
                 "Your answers have been recorded and will be reviewed"
@@ -409,23 +463,23 @@ ${result.output.trim()}
               <div className="text-center p-4 bg-muted rounded-lg">
                 <p className="font-semibold">Questions Answered</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {getAnsweredQuestions()}/{examSession.totalQuestions}
+                  {getAnsweredQuestions()}/{examData.questions.length}
                 </p>
               </div>
               <div className="text-center p-4 bg-muted rounded-lg">
                 <p className="font-semibold">Time Used</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {formatTime(examSession.timeLimit * 60 - timeRemaining)}
+                  {formatTime(examData.exam.duration * 60 - timeRemaining)}
                 </p>
               </div>
             </div>
             {!redirecting && (
               <Button
                 className="w-full"
-                onClick={() => router.push("/student/dashboard")}
+                onClick={() => router.push("/student/exams")}
               >
                 <Home className="h-4 w-4 mr-2" />
-                Return to Dashboard
+                Return to Exams
               </Button>
             )}
           </CardContent>
@@ -434,7 +488,7 @@ ${result.output.trim()}
     );
   }
 
-  const currentQ = examSession.questions[currentQuestion];
+  const currentQ = examData.questions[currentQuestion];
 
   return (
     <motion.div
@@ -459,19 +513,19 @@ ${result.output.trim()}
                     <CardTitle>Question {currentQuestion + 1}</CardTitle>
                     <div className="flex items-center space-x-2">
                       <Badge variant="secondary">
-                        {currentQ.points} points
+                        {currentQ.marks} marks
                       </Badge>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  <p className="text-md">{currentQ.question}</p>
+                  <p className="text-md">{currentQ.question_text}</p>
 
                   {currentQ.type === "mcq" && currentQ.options && (
                     <RadioGroup
-                      value={answers[currentQ.id]?.answer || ""}
+                      value={answers[currentQ.id]?.toString() || ""}
                       onValueChange={(value) =>
-                        handleAnswerChange(currentQ.id, value)
+                        handleAnswerChange(currentQ.id, parseInt(value))
                       }
                     >
                       {currentQ.options.map((option, index) => (
@@ -480,7 +534,7 @@ ${result.output.trim()}
                           className="flex items-center space-x-2"
                         >
                           <RadioGroupItem
-                            value={option}
+                            value={index.toString()}
                             id={`${currentQ.id}-${index}`}
                           />
                           <Label
@@ -497,7 +551,7 @@ ${result.output.trim()}
                   {currentQ.type === "saq" && (
                     <Textarea
                       placeholder="Type your answer here..."
-                      value={answers[currentQ.id]?.answer || ""}
+                      value={answers[currentQ.id] || ""}
                       onChange={(e) =>
                         handleAnswerChange(currentQ.id, e.target.value)
                       }
@@ -625,7 +679,7 @@ ${result.output.trim()}
                                 onClick={() => {
                                   if ((activeTab[currentQ.id] || "code") !== "output") {
                                     setActiveTab((prev) => ({ ...prev, [currentQ.id]: "output" }));
-                                    runCode(currentQ.id, answers[currentQ.id]?.answer || "", selectedLanguage[currentQ.id] || "javascript");
+                                    runCode(currentQ.id, (answers[currentQ.id] as string) || "", selectedLanguage[currentQ.id] || "javascript");
                                   }
                                 }}
                                 disabled={(activeTab[currentQ.id] || "code") === "output"}
@@ -667,7 +721,7 @@ ${result.output.trim()}
                           <Editor
                             height={isFullscreen[currentQ.id] ? "calc(100vh - 100px)" : "400px"}
                             language={selectedLanguage[currentQ.id] || "javascript"}
-                            value={answers[currentQ.id]?.answer || ""}
+                            value={(answers[currentQ.id] as string) || ""}
                             onChange={(value) =>
                               handleAnswerChange(currentQ.id, value || "")
                             }
@@ -807,42 +861,17 @@ ${result.output.trim()}
                       Previous
                     </Button>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleFlag(currentQ.id)}
-                      className={
-                        answers[currentQ.id]?.flagged
-                          ? "bg-red-100 border-red-300 cursor-pointer"
-                          : "cursor-pointer"
-                      }
-                    >
-                      {answers[currentQ.id]?.flagged ? (
-                        <GrFlagFill className="h-4 w-4" />
-                      ) : (
-                        <GrFlag className="h-4 w-4" />
-                      )}
-                      Mark
-                    </Button>
 
                     <Button
                       onClick={() =>
                         setCurrentQuestion(
                           Math.min(
-                            examSession.totalQuestions - 1,
+                            examData.questions.length - 1,
                             currentQuestion + 1
                           )
                         )
                       }
-                      disabled={
-                        currentQuestion === examSession.totalQuestions - 1 ||
-                        (currentQ.type === "mcq" &&
-                          !answers[currentQ.id]?.answer?.trim()) ||
-                        (currentQ.type === "saq" &&
-                          !answers[currentQ.id]?.answer?.trim()) ||
-                        (currentQ.type === "coding" &&
-                          !answers[currentQ.id]?.answer?.trim())
-                      }
+                      disabled={currentQuestion === examData.questions.length - 1}
                       className="cursor-pointer"
                     >
                       Next
@@ -864,31 +893,23 @@ ${result.output.trim()}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-5 gap-2">
-                {examSession.questions.map((_, index) => {
-                  const questionId = examSession.questions[index].id;
+                {examData.questions.map((_, index) => {
+                  const questionId = examData.questions[index].id;
                   const isAnswered =
-                    answers[questionId]?.answer &&
-                    answers[questionId].answer.trim() !== "";
-                  const isFlagged = answers[questionId]?.flagged;
+                    answers[questionId] !== undefined &&
+                    answers[questionId] !== null &&
+                    answers[questionId] !== "";
                   const isCurrent = index === currentQuestion;
-
-                  const canNavigate =
-                    isAnswered || isCurrent || index <= currentQuestion;
 
                   let buttonClass = "";
                   if (isCurrent) {
                     buttonClass =
                       "!bg-blue-500 hover:!bg-blue-600 !text-white !border-blue-500";
-                  } else if (isFlagged) {
-                    buttonClass =
-                      "!bg-red-500 hover:!bg-red-600 !text-white !border-red-500";
                   } else if (isAnswered) {
                     buttonClass =
                       "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500";
                   } else {
-                    buttonClass = canNavigate
-                      ? "!bg-gray-400 hover:!bg-gray-500 !text-white !border-gray-400"
-                      : "!bg-gray-300 !text-gray-500 !border-gray-300 !cursor-not-allowed opacity-50";
+                    buttonClass = "!bg-muted hover:!bg-muted/80";
                   }
 
                   return (
@@ -897,8 +918,7 @@ ${result.output.trim()}
                       variant="outline"
                       size="sm"
                       className={buttonClass}
-                      onClick={() => canNavigate && setCurrentQuestion(index)}
-                      disabled={!canNavigate}
+                      onClick={() => setCurrentQuestion(index)}
                     >
                       {index + 1}
                     </Button>
@@ -918,12 +938,8 @@ ${result.output.trim()}
                 <div className="flex justify-between text-sm">
                   <span>Answered:</span>
                   <span className="font-medium">
-                    {getAnsweredQuestions()}/{examSession.totalQuestions}
+                    {getAnsweredQuestions()}/{examData.questions.length}
                   </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Flagged:</span>
-                  <span className="font-medium">{getFlaggedQuestions()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Time Remaining:</span>
@@ -937,8 +953,16 @@ ${result.output.trim()}
                 variant="destructive"
                 className="w-full hover:bg-red-600 hover:scale-105 transition-all duration-200"
                 onClick={handleSubmitExam}
+                disabled={isSubmitting}
               >
-                Submit Exam
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Exam"
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -959,20 +983,28 @@ ${result.output.trim()}
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to submit your exam? You have answered{" "}
-              {getAnsweredQuestions()} out of {examSession.totalQuestions}{" "}
+              {getAnsweredQuestions()} out of {examData.questions.length}{" "}
               questions.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowWarning(false)}>
+            <Button variant="outline" onClick={() => setShowWarning(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={confirmSubmit}
               className="hover:bg-red-600 hover:scale-105 transition-all duration-200"
+              disabled={isSubmitting}
             >
-              Submit
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

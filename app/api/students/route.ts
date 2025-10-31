@@ -113,8 +113,8 @@ export interface CreateStudentInvitationResult {
 }
 
 // Create student invitation
-export async function createStudentInvitation(
-  supabase: ReturnType<typeof createRouteClient>,
+async function createStudentInvitation(
+  supabase: Awaited<ReturnType<typeof createRouteClient>>,
   {
     email,
     firstName,
@@ -177,9 +177,9 @@ export async function createStudentInvitation(
 }
 
 // GET - Fetch all student invitations
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const supabase = createRouteClient(request);
+    const supabase = await createRouteClient();
     
     // Get user session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -233,7 +233,7 @@ export async function GET(request: Request) {
 // POST - Create a new student invitation
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteClient(request);
+    const supabase = await createRouteClient();
     
     // Get user session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -304,7 +304,7 @@ export async function POST(request: Request) {
 // DELETE - Delete student invitation(s)
 export async function DELETE(request: Request) {
   try {
-    const supabase = createRouteClient(request);
+    const supabase = await createRouteClient();
     
     // Get user session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -387,8 +387,7 @@ export async function DELETE(request: Request) {
 // PUT - Update student invitation
 export async function PUT(request: Request) {
   try {
-    // Use route client for auth check
-    const routeClient = createRouteClient(request);
+    const routeClient = await createRouteClient();
     
     // Get user session for authorization
     const { data: { user }, error: authError } = await routeClient.auth.getUser();
