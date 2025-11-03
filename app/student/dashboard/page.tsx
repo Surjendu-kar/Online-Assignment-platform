@@ -275,18 +275,32 @@ export default function StudentDashboard() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
+        const { data } = await supabase
           .from("user_profiles")
-          .select("first_name, last_name, email, department")
+          .select(`
+            first_name,
+            last_name,
+            email,
+            departments (
+              name
+            )
+          `)
           .eq("id", user.id)
           .single();
 
-        if (profile) {
+        if (data) {
+          const profile = data as unknown as {
+            first_name: string;
+            last_name: string;
+            email: string;
+            departments: { name: string } | null;
+          };
+
           setStudentData({
             name: `${profile.first_name} ${profile.last_name}`,
             email: profile.email || "",
             studentId: user.id.substring(0, 8).toUpperCase(),
-            department: profile.department || "Not assigned",
+            department: profile.departments?.name || "Not assigned",
             semester: "Spring 2024",
             avatar: "",
           });

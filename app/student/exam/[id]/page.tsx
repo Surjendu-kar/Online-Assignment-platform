@@ -136,6 +136,20 @@ export default function ExamPage() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Format duration with full hours and minutes display
+  const formatFullDuration = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+
+    if (hours > 0 && mins > 0) {
+      return `${hours}h ${mins}m`;
+    } else if (hours > 0) {
+      return `${hours}h 0m`;
+    } else {
+      return `${mins}m`;
+    }
+  };
+
   const getQuestionTypeIcon = (type: string) => {
     switch (type) {
       case "mcq":
@@ -254,7 +268,7 @@ export default function ExamPage() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Duration:</span>
-                  <span className="font-medium">{formatDuration(examData.exam.duration)}</span>
+                  <span className="font-medium">{formatFullDuration(examData.exam.duration)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Questions:</span>
@@ -264,7 +278,7 @@ export default function ExamPage() {
                   <span className="text-muted-foreground">Total Points:</span>
                   <span className="font-medium">{totalMarks}</span>
                 </div>
-                
+
               </CardContent>
             </Card>
 

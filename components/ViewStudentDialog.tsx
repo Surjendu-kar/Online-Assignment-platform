@@ -30,6 +30,8 @@ interface Student {
   studentId?: string;
   department?: string;
   assignedExam?: string;
+  departmentId?: string;
+  examId?: string;
 }
 
 interface ViewStudentDialogProps {

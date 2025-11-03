@@ -56,18 +56,19 @@ interface Student {
   completedExams: number;
   averageScore: number;
   dateJoined: Date;
-  lastActive: Date;
+  invitedBy?: string;
   profileImage?: string;
   studentId?: string;
   department?: string;
   assignedExam?: string;
+  departmentId?: string;
+  examId?: string;
 }
 
 const demoStudents: Student[] = studentsData.map((student) => ({
   ...student,
   status: student.status as "active" | "pending" | "suspended",
   dateJoined: new Date(student.dateJoined),
-  lastActive: new Date(student.lastActive),
 }));
 
 type SortField =
@@ -321,7 +322,6 @@ export default function TeacherStudentsPage() {
         completedExams: 0,
         averageScore: 0,
         dateJoined: new Date(),
-        lastActive: new Date(),
         studentId: `STU${Date.now().toString().slice(-6)}`,
         department: studentData.department,
         assignedExam: studentData.selectedExam,

@@ -27,6 +27,7 @@ export default function ExamsPage() {
   const router = useRouter();
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [navigatingExamId, setNavigatingExamId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "completed" | "expired">("all");
 
   useEffect(() => {
@@ -71,8 +72,9 @@ export default function ExamsPage() {
   const getStatusLabel = (status: string) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
   };
-  
+
   const startExam = (examId: string) => {
+    setNavigatingExamId(examId);
     router.push(`/student/exam/${examId}`);
   };
 
@@ -197,19 +199,47 @@ export default function ExamsPage() {
                         <Button
                           onClick={() => startExam(exam.id)}
                           className="cursor-pointer"
+                          disabled={navigatingExamId === exam.id}
                         >
-                          <Play className="h-4 w-4" />
-                          View Details
+                          {navigatingExamId === exam.id ? (
+                            <>
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4" />
+                              View Details
+                            </>
+                          )}
                         </Button>
                       )}
                       {exam.status === "in-progress" && (
-                        <Button onClick={() => router.push(`/student/exam/${exam.id}/start`)}>
-                          <Play className="h-4 w-4" />
-                          Continue
+                        <Button
+                          onClick={() => {
+                            setNavigatingExamId(exam.id);
+                            router.push(`/student/exam/${exam.id}/start`);
+                          }}
+                          disabled={navigatingExamId === exam.id}
+                        >
+                          {navigatingExamId === exam.id ? (
+                            <>
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4" />
+                              Continue
+                            </>
+                          )}
                         </Button>
                       )}
                       {exam.status === "completed" && (
-                        <Button onClick={() => router.push("/student/results")} variant="outline">
+                        <Button
+                          onClick={() => router.push("/student/results")}
+                          variant="outline"
+                        >
                           View Result
                         </Button>
                       )}
