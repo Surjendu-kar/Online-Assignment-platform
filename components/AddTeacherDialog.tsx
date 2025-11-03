@@ -100,18 +100,26 @@ export const AddTeacherDialog = ({
   const [loadingDepartments, setLoadingDepartments] = React.useState(true);
   // Add state for form submission
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  // Add state for active department
+  const [activeDepartmentId, setActiveDepartmentId] = React.useState<string | null>(null);
 
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const setIsOpen = externalOnOpenChange || setInternalIsOpen;
 
   const isEditing = !!editTeacher;
 
-  // Fetch departments when dialog opens
+  // Fetch active department and departments when dialog opens
   React.useEffect(() => {
     if (isOpen) {
-      fetchDepartments();
+      const deptId = localStorage.getItem("activeDepartmentId");
+      setActiveDepartmentId(deptId);
+
+      // Only fetch departments if "All Departments" is selected or in edit mode
+      if (deptId === "all" || isEditing) {
+        fetchDepartments();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isEditing]);
 
   const fetchDepartments = async () => {
     try {
@@ -190,7 +198,8 @@ export const AddTeacherDialog = ({
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (!formData.department) {
+    // Only require department selection if "All Departments" is selected or in edit mode
+    if ((activeDepartmentId === "all" || isEditing) && !formData.department) {
       newErrors.department = "Department is required";
     }
 
@@ -214,11 +223,21 @@ export const AddTeacherDialog = ({
     e.preventDefault();
 
     if (validateForm()) {
+      // Use activeDepartmentId if a specific department is selected (not "all")
+      const departmentToUse = activeDepartmentId && activeDepartmentId !== "all" && !isEditing
+        ? activeDepartmentId
+        : formData.department;
+
+      const submissionData = {
+        ...formData,
+        department: departmentToUse
+      };
+
       // If we have an onSendInvitation function, use it to send an invitation
       if (typeof onSendInvitation === 'function') {
         try {
           setIsSubmitting(true);
-          const result = await onSendInvitation(formData);
+          const result = await onSendInvitation(submissionData);
           if (!result.success) {
             // Show error toast
             toast.error(result.error || 'Failed to send invitation');
@@ -232,8 +251,8 @@ export const AddTeacherDialog = ({
           setIsSubmitting(false);
         }
       }
-      
-      onSaveTeacher?.(formData);
+
+      onSaveTeacher?.(submissionData);
       if (!isEditing) {
         setFormData({
           firstName: "",
@@ -366,57 +385,67 @@ export const AddTeacherDialog = ({
               </div>
             </div>
 
-            {/* Second row: department, phone */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="grid gap-2">
-                <Label htmlFor="department">Department *</Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) =>
-                    handleInputChange("department", value)
-                  }
-                  disabled={loadingDepartments || isSubmitting}
-                >
-                  <SelectTrigger
-                    className={`!w-full ${
-                      errors.department ? "border-red-500" : ""
-                    }`}
+            {/* Second row: department (conditional), phone, profile image (conditional) */}
+            <div className={`grid gap-2 ${
+              activeDepartmentId === "all" || isEditing
+                ? 'grid-cols-2'
+                : 'grid-cols-8'
+            }`}>
+              {(activeDepartmentId === "all" || isEditing) && (
+                <div className="grid gap-2">
+                  <Label htmlFor="department">Department *</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) =>
+                      handleInputChange("department", value)
+                    }
+                    disabled={loadingDepartments || isSubmitting}
                   >
-                    <SelectValue placeholder={loadingDepartments ? "Loading departments..." : "Select a department"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadingDepartments ? (
-                      <SelectItem value="_loading" disabled>
-                        Loading departments...
-                      </SelectItem>
-                    ) : departments.length === 0 ? (
-                      <SelectItem value="_empty" disabled>
-                        No departments available
-                      </SelectItem>
-                    ) : (
-                      departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          <div className="flex items-center">
-                            <span className="truncate max-w-[200px]">
-                              {dept.name}
-                            </span>
-                            <span className="truncate max-w-[250px] ml-1">
-                              {dept.code ? ` (${dept.code})` : dept.description ? ` (${dept.description})` : ''}
-                            </span>
-                          </div>
+                    <SelectTrigger
+                      className={`!w-full ${
+                        errors.department ? "border-red-500" : ""
+                      }`}
+                    >
+                      <SelectValue placeholder={loadingDepartments ? "Loading departments..." : "Select a department"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadingDepartments ? (
+                        <SelectItem value="_loading" disabled>
+                          Loading departments...
                         </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.department && (
-                  <span className="text-sm text-red-500">
-                    {errors.department}
-                  </span>
-                )}
-              </div>
+                      ) : departments.length === 0 ? (
+                        <SelectItem value="_empty" disabled>
+                          No departments available
+                        </SelectItem>
+                      ) : (
+                        departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>
+                            <div className="flex items-center">
+                              <span className="truncate max-w-[200px]">
+                                {dept.name}
+                              </span>
+                              <span className="truncate max-w-[250px] ml-1">
+                                {dept.code ? ` (${dept.code})` : dept.description ? ` (${dept.description})` : ''}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.department && (
+                    <span className="text-sm text-red-500">
+                      {errors.department}
+                    </span>
+                  )}
+                </div>
+              )}
 
-              <div className="grid gap-2">
+              <div className={`grid gap-2 ${
+                activeDepartmentId && activeDepartmentId !== "all" && !isEditing
+                  ? 'col-span-2'
+                  : ''
+              }`}>
                 <Label htmlFor="phone">Phone (Optional)</Label>
                 <Input
                   id="phone"
@@ -426,6 +455,24 @@ export const AddTeacherDialog = ({
                   disabled={isSubmitting}
                 />
               </div>
+
+              {/* Show profile image field in same row when specific department is selected */}
+              {activeDepartmentId && activeDepartmentId !== "all" && !isEditing && (
+                <div className="grid gap-2 col-span-6">
+                  <Label htmlFor="profile-image">
+                    Profile Image URL (Optional)
+                  </Label>
+                  <Input
+                    id="profile-image"
+                    value={formData.profileImageUrl}
+                    onChange={(e) =>
+                      handleInputChange("profileImageUrl", e.target.value)
+                    }
+                    placeholder="https://example.com/image.jpg"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Third row: subjects, expiration date */}
@@ -475,20 +522,23 @@ export const AddTeacherDialog = ({
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="profile-image">
-                Profile Image URL (Optional)
-              </Label>
-              <Input
-                id="profile-image"
-                value={formData.profileImageUrl}
-                onChange={(e) =>
-                  handleInputChange("profileImageUrl", e.target.value)
-                }
-                placeholder="https://example.com/image.jpg"
-                disabled={isSubmitting}
-              />
-            </div>
+            {/* Show profile image field in separate row when "All Departments" is selected or in edit mode */}
+            {(activeDepartmentId === "all" || isEditing) && (
+              <div className="grid gap-2">
+                <Label htmlFor="profile-image">
+                  Profile Image URL (Optional)
+                </Label>
+                <Input
+                  id="profile-image"
+                  value={formData.profileImageUrl}
+                  onChange={(e) =>
+                    handleInputChange("profileImageUrl", e.target.value)
+                  }
+                  placeholder="https://example.com/image.jpg"
+                  disabled={isSubmitting}
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter>

@@ -60,6 +60,12 @@ interface TeacherInvitation {
   department?: string;
   expires_at: string;
   token: string;
+  admin_id: string;
+  createdExams?: number;
+  invitedStudents?: number;
+  admin?: {
+    email: string;
+  };
 }
 
 interface ProcessedTeacher {
@@ -70,7 +76,7 @@ interface ProcessedTeacher {
   createdExams: number;
   invitedStudents: number;
   dateJoined: Date;
-  lastActive: Date;
+  createdBy?: string;
   profileImage?: string;
   phone?: string;
   department?: string;
@@ -88,12 +94,12 @@ interface Teacher {
   createdExams: number;
   invitedStudents: number;
   dateJoined: Date;
-  lastActive: Date;
+  createdBy?: string;
   profileImage?: string;
   phone?: string;
   department?: string;
   subjects?: string[];
-  expirationDate?: string; // Add expiration date field
+  expirationDate?: string;
 }
 
 interface Department {
@@ -193,24 +199,39 @@ export default function TeachersPage() {
     const fetchTeachersData = async () => {
       try {
         setLoading(true);
-        
+
         // Get session from Supabase client
         const { data, error } = await supabase.auth.getSession();
-        
+
         if (error || !data.session) {
           toast.error('You must be logged in to view teachers data');
           return;
         }
-        
-        const response = await fetch('/api/teachers', {
+
+        // Get institution and department from localStorage for filtering
+        const institutionId = localStorage.getItem("activeInstitutionId");
+        const departmentId = localStorage.getItem("activeDepartmentId");
+
+        // Build query params
+        const params = new URLSearchParams();
+        if (institutionId) {
+          params.append("institutionId", institutionId);
+        }
+        if (departmentId && departmentId !== "all") {
+          params.append("departmentId", departmentId);
+        }
+
+        const queryString = params.toString();
+        const url = `/api/teachers${queryString ? `?${queryString}` : ""}`;
+
+        const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${data.session.access_token}`,
           },
         });
         const result = await response.json();
-        
+
         if (response.ok) {
-          // Only set invitations data, don't merge with teachers
           setInvitations(result.invitations || []);
         } else {
           toast.error(result.error || 'Failed to fetch teachers data');
@@ -223,7 +244,15 @@ export default function TeachersPage() {
       }
     };
 
-    fetchTeachersData();
+    fetchTeachersData(); // Initial load
+
+    // Listen ONLY for department changes
+    // Institution changes always trigger department changes, so we don't need both
+    window.addEventListener("departmentChanged", fetchTeachersData);
+
+    return () => {
+      window.removeEventListener("departmentChanged", fetchTeachersData);
+    };
   }, []);
 
   // Fetch departments for mapping IDs to names
@@ -256,10 +285,10 @@ export default function TeachersPage() {
       name: `${invitation.first_name} ${invitation.last_name}`,
       email: invitation.email,
       status: invitation.status,
-      createdExams: 0,
-      invitedStudents: 0,
+      createdExams: invitation.createdExams || 0,
+      invitedStudents: invitation.invitedStudents || 0,
       dateJoined: new Date(invitation.created_at),
-      lastActive: new Date(invitation.used_at || invitation.created_at),
+      createdBy: invitation.admin?.email || "Unknown",
       department: (invitation.department && departments[invitation.department]) || invitation.department || "General",
       expirationDate: invitation.expires_at,
       isInvitation: true,
@@ -386,7 +415,7 @@ export default function TeachersPage() {
       createdExams: teacher.createdExams,
       invitedStudents: teacher.invitedStudents,
       dateJoined: teacher.dateJoined,
-      lastActive: teacher.lastActive,
+      createdBy: teacher.createdBy,
       profileImage: teacher.profileImage,
       phone: teacher.phone,
       department: teacher.department,
@@ -455,6 +484,7 @@ export default function TeachersPage() {
   };
 
   const handleSendTeacherInvitation = async (teacherData: {
+    id?: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -464,12 +494,14 @@ export default function TeachersPage() {
     profileImageUrl?: string;
     expirationDate: string;
   }) => {
+    const isEditing = !!editingTeacher?.id;
+
     try {
-      const loadingToast = toast.loading('Sending teacher invitation...');
-      
+      const loadingToast = toast.loading(isEditing ? 'Updating teacher...' : 'Sending teacher invitation...');
+
       // Get session from Supabase client
       const { data, error } = await supabase.auth.getSession();
-      
+
       if (error || !data.session) {
         toast.dismiss(loadingToast);
         toast.error('You must be logged in to send invitations');
@@ -477,12 +509,19 @@ export default function TeachersPage() {
       }
 
       const response = await fetch('/api/teachers', {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${data.session.access_token}`,
         },
-        body: JSON.stringify({
+        body: JSON.stringify(isEditing ? {
+          id: editingTeacher.id,
+          email: teacherData.email,
+          firstName: teacherData.firstName,
+          lastName: teacherData.lastName,
+          department: teacherData.department,
+          expiresAt: teacherData.expirationDate ? new Date(teacherData.expirationDate).toISOString() : undefined,
+        } : {
           email: teacherData.email,
           firstName: teacherData.firstName,
           lastName: teacherData.lastName,
@@ -492,60 +531,72 @@ export default function TeachersPage() {
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
         toast.dismiss(loadingToast);
-        toast.error(result.error || 'Failed to send invitation');
-        return { success: false, error: result.error || 'Failed to send invitation' };
+        toast.error(result.error || (isEditing ? 'Failed to update teacher' : 'Failed to send invitation'));
+        return { success: false, error: result.error || (isEditing ? 'Failed to update teacher' : 'Failed to send invitation') };
       }
-      
+
       // Fetch updated data to refresh the table
       handleAddTeacher();
-      
+
       // Replace loading toast with success toast immediately
       toast.dismiss(loadingToast);
-      toast.success(`Teacher invitation sent successfully to ${teacherData.email}`);
-      
+      toast.success(isEditing ? 'Teacher updated successfully' : `Teacher invitation sent successfully to ${teacherData.email}`);
+
       return { success: true };
     } catch (error) {
-      console.error('Error sending invitation:', error);
-      toast.error('Failed to send invitation');
-      return { success: false, error: 'Failed to send invitation' };
+      console.error('Error:', error);
+      toast.error(isEditing ? 'Failed to update teacher' : 'Failed to send invitation');
+      return { success: false, error: isEditing ? 'Failed to update teacher' : 'Failed to send invitation' };
     }
   };
 
-  const handleAddTeacher = () => {
+  const handleAddTeacher = async () => {
     // Refresh the data instead of adding locally since we're only showing invitations
-    const fetchTeachersData = async () => {
-      try {
-        // Get session from Supabase client
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error || !data.session) {
-          toast.error('You must be logged in to view teachers data');
-          return;
-        }
-        
-        const response = await fetch('/api/teachers', {
-          headers: {
-            'Authorization': `Bearer ${data.session.access_token}`,
-          },
-        });
-        const result = await response.json();
-        
-        if (response.ok) {
-          // Only set invitations data, don't merge with teachers
-          setInvitations(result.invitations || []);
-        } else {
-          toast.error(result.error || 'Failed to fetch teachers data');
-        }
-      } catch (error) {
-        console.error('Error fetching teachers data:', error);
-        toast.error('Failed to fetch teachers data');
-      }
-    };
+    try {
+      // Get session from Supabase client
+      const { data, error } = await supabase.auth.getSession();
 
-    fetchTeachersData();
+      if (error || !data.session) {
+        toast.error('You must be logged in to view teachers data');
+        return;
+      }
+
+      // Get institution and department from localStorage for filtering
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      const departmentId = localStorage.getItem("activeDepartmentId");
+
+      // Build query params
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.append("institutionId", institutionId);
+      }
+      if (departmentId && departmentId !== "all") {
+        params.append("departmentId", departmentId);
+      }
+
+      const queryString = params.toString();
+      const url = `/api/teachers${queryString ? `?${queryString}` : ""}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${data.session.access_token}`,
+        },
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        // Only set invitations data, don't merge with teachers
+        setInvitations(result.invitations || []);
+      } else {
+        toast.error(result.error || 'Failed to fetch teachers data');
+      }
+    } catch (error) {
+      console.error('Error fetching teachers data:', error);
+      toast.error('Failed to fetch teachers data');
+    }
   };
 
   const toggleRowSelection = (teacherId: string) => {
@@ -651,7 +702,7 @@ export default function TeachersPage() {
 
   const handleDeleteSingle = (teacher: ProcessedTeacher) => {
     setSelectedRows(new Set()); // Clear bulk selection state
-    
+
     // Convert ProcessedTeacher to Teacher interface
     const convertedTeacher: Teacher = {
       id: teacher.id,
@@ -661,13 +712,12 @@ export default function TeachersPage() {
       createdExams: teacher.createdExams,
       invitedStudents: teacher.invitedStudents,
       dateJoined: teacher.dateJoined,
-      lastActive: teacher.lastActive,
       profileImage: teacher.profileImage,
       phone: teacher.phone,
       department: teacher.department,
       subjects: teacher.subjects
     };
-    
+
     setTeacherToDelete(convertedTeacher);
     setIsDeleteModalOpen(true);
   };
@@ -1098,7 +1148,7 @@ export default function TeachersPage() {
           createdExams: selectedTeacher.createdExams,
           invitedStudents: selectedTeacher.invitedStudents,
           dateJoined: selectedTeacher.dateJoined,
-          lastActive: selectedTeacher.lastActive,
+          createdBy: selectedTeacher.createdBy,
           profileImage: selectedTeacher.profileImage,
           phone: selectedTeacher.phone,
           department: selectedTeacher.department,

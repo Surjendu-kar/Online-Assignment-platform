@@ -24,7 +24,7 @@ interface Teacher {
   createdExams: number;
   invitedStudents: number;
   dateJoined: Date;
-  lastActive: Date;
+  createdBy?: string;
   profileImage?: string;
   phone?: string;
   department?: string;
@@ -156,10 +156,10 @@ export const ViewTeacherDialog = ({
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Expiration Date
+                  Created By
                 </label>
                 <p className="font-medium">
-                  {teacher.expirationDate ? formatDate(new Date(teacher.expirationDate)) : "Not set"}
+                  {teacher.createdBy || "Unknown"}
                 </p>
               </div>
             </div>

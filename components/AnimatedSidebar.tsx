@@ -583,7 +583,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
               .select('*')
               .eq('id', user.id)
               .single();
-            
+
             if (!profileError && profileData) {
               setUserRole(profileData.role.toLowerCase());
               setUserData({
@@ -593,12 +593,46 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                 role: profileData.role,
                 email: profileData.email
               });
-              
+
               // Also store in localStorage for future use
               localStorage.setItem('userRole', profileData.role);
               localStorage.setItem('userFirstName', profileData.first_name || '');
               localStorage.setItem('userLastName', profileData.last_name || '');
               localStorage.setItem('userEmail', profileData.email || '');
+
+              // For non-admin users (teachers/students), set their assigned institution and department
+              if (profileData.role.toLowerCase() !== 'admin') {
+                if (profileData.institution_id) {
+                  // Fetch and set the user's assigned institution
+                  const { data: userInstitution } = await supabase
+                    .from('institutions')
+                    .select('*')
+                    .eq('id', profileData.institution_id)
+                    .single();
+
+                  if (userInstitution) {
+                    setActiveInstitution(userInstitution);
+                    localStorage.setItem('activeInstitutionId', userInstitution.id);
+                  }
+                }
+
+                if (profileData.department_id) {
+                  // Fetch and set the user's assigned department
+                  const { data: userDepartment } = await supabase
+                    .from('departments')
+                    .select('*')
+                    .eq('id', profileData.department_id)
+                    .single();
+
+                  if (userDepartment) {
+                    setActiveDepartment({
+                      ...userDepartment,
+                      logo: GalleryVerticalEnd
+                    });
+                    localStorage.setItem('activeDepartmentId', userDepartment.id);
+                  }
+                }
+              }
             }
           } catch (error) {
             console.error('Error fetching user profile:', error);
@@ -753,17 +787,32 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
           }
           
           setDepartments(processedDepartments);
-          
-          // Keep the currently active department if it still exists, otherwise switch to first or "all"
-          const currentActiveStillExists = processedDepartments.some(
-            (dept: Department) => dept.id === activeDepartment.id
+
+          // Check if there's a stored department ID in localStorage
+          const storedDepartmentId = localStorage.getItem('activeDepartmentId');
+          const storedDepartment = processedDepartments.find(
+            (dept: Department) => dept.id === storedDepartmentId
           );
-          
-          if (!currentActiveStillExists) {
-            // If there are departments, select the first one or "all"
-            // If no departments, keep current selection
-            if (processedDepartments.length > 0) {
-              setActiveDepartment(processedDepartments[0]);
+
+          if (storedDepartment) {
+            // Use the stored department if it exists in the current list
+            setActiveDepartment(storedDepartment);
+            // Don't dispatch event on initial load - pages will fetch on mount
+          } else {
+            // Keep the currently active department if it still exists, otherwise switch to first or "all"
+            const currentActiveStillExists = processedDepartments.some(
+              (dept: Department) => dept.id === activeDepartment.id
+            );
+
+            if (!currentActiveStillExists) {
+              // If there are departments, select the first one or "all"
+              // If no departments, keep current selection
+              if (processedDepartments.length > 0) {
+                setActiveDepartment(processedDepartments[0]);
+                // Update localStorage to match the UI state
+                localStorage.setItem('activeDepartmentId', processedDepartments[0].id);
+                // Don't dispatch event on initial load - pages will fetch on mount
+              }
             }
           }
         } else {

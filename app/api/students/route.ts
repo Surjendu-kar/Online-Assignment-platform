@@ -114,7 +114,7 @@ export interface CreateStudentInvitationResult {
 
 // Create student invitation
 async function createStudentInvitation(
-  supabase: Awaited<ReturnType<typeof createRouteClient>>,
+  supabaseClient: typeof supabase,
   {
     email,
     firstName,
@@ -128,19 +128,19 @@ async function createStudentInvitation(
   try {
     // Generate unique invitation token
     const token = generateInvitationToken();
-    
+
     // Set expiration date (7 days from now if not provided)
     const expirationDate = expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     // Get exam details for the email
-    const { data: exam } = await supabase
+    const { data: exam } = await supabaseClient
       .from('exams')
       .select('title')
       .eq('id', examId)
       .single();
 
     // Create invitation record
-    const { data: invitation, error } = await supabase
+    const { data: invitation, error } = await supabaseClient
       .from('student_invitations')
       .insert({
         student_email: email,
@@ -177,18 +177,18 @@ async function createStudentInvitation(
 }
 
 // GET - Fetch all student invitations
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const supabase = await createRouteClient();
-    
+    const routeClient = await createRouteClient();
+
     // Get user session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await routeClient.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user profile to check role
-    const { data: profile } = await supabase
+    const { data: profile } = await routeClient
       .from('user_profiles')
       .select('role')
       .eq('id', user.id)
@@ -198,8 +198,25 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Fetch student invitations with exam and department details
-    const { data: invitations, error } = await supabase
+    // Get query parameters
+    const { searchParams } = new URL(req.url);
+    const institutionId = searchParams.get("institutionId");
+    const departmentId = searchParams.get("departmentId");
+
+    // If institution filter is set but department is not, get all departments for that institution
+    let departmentIds: string[] = [];
+    if (institutionId && !departmentId) {
+      const { data: depts } = await routeClient
+        .from('departments')
+        .select('id')
+        .eq('institution_id', institutionId);
+
+      departmentIds = depts?.map(d => d.id) || [];
+    }
+
+    // Use service role client to bypass RLS for the join query
+    // This prevents infinite recursion in RLS policies
+    let query = supabase
       .from('student_invitations')
       .select(`
         *,
@@ -208,22 +225,61 @@ export async function GET() {
           title,
           start_time,
           end_time,
-          duration
+          duration,
+          institution_id,
+          department_id
         ),
         departments (
           id,
           name,
-          code
+          code,
+          institution_id
         )
-      `)
-      .order('created_at', { ascending: false });
+      `);
+
+    // Apply department filter
+    if (departmentId) {
+      query = query.eq('department_id', departmentId);
+    } else if (departmentIds.length > 0) {
+      // Apply institution filter through department IDs
+      query = query.in('department_id', departmentIds);
+    }
+
+    const { data: invitations, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching student invitations:', error);
       return NextResponse.json({ error: 'Failed to fetch invitations' }, { status: 500 });
     }
 
-    return NextResponse.json(invitations);
+    // Fetch teacher information from user_profiles for each unique teacher_id
+    const teacherIds = [...new Set(invitations?.map(inv => inv.teacher_id).filter(Boolean))];
+    const teachersMap: Record<string, { email: string }> = {};
+
+    if (teacherIds.length > 0) {
+      const { data: teachers, error: teachersError } = await supabase
+        .from('user_profiles')
+        .select('id, email')
+        .in('id', teacherIds);
+
+      if (teachersError) {
+        console.error('Error fetching teacher profiles:', teachersError);
+      }
+
+      teachers?.forEach(teacher => {
+        teachersMap[teacher.id] = {
+          email: teacher.email
+        };
+      });
+    }
+
+    // Enrich invitations with teacher data
+    const enrichedInvitations = invitations?.map(invitation => ({
+      ...invitation,
+      teacher: teachersMap[invitation.teacher_id] || null
+    }));
+
+    return NextResponse.json(enrichedInvitations);
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -233,16 +289,16 @@ export async function GET() {
 // POST - Create a new student invitation
 export async function POST(request: Request) {
   try {
-    const supabase = await createRouteClient();
-    
-    // Get user session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const routeClient = await createRouteClient();
+
+    // Get user session for authentication
+    const { data: { user }, error: authError } = await routeClient.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user profile to check role
-    const { data: profile } = await supabase
+    const { data: profile } = await routeClient
       .from('user_profiles')
       .select('role')
       .eq('id', user.id)
@@ -257,12 +313,12 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!email || !firstName || !lastName || !departmentId || !examId) {
-      return NextResponse.json({ 
-        error: 'Missing required fields: email, firstName, lastName, departmentId, examId' 
+      return NextResponse.json({
+        error: 'Missing required fields: email, firstName, lastName, departmentId, examId'
       }, { status: 400 });
     }
 
-    // Check if student already invited for this exam
+    // Check if student already invited for this exam (using service role to avoid RLS issues)
     const { data: existing } = await supabase
       .from('student_invitations')
       .select('id')
@@ -271,12 +327,12 @@ export async function POST(request: Request) {
       .single();
 
     if (existing) {
-      return NextResponse.json({ 
-        error: 'Student already invited for this exam' 
+      return NextResponse.json({
+        error: 'Student already invited for this exam'
       }, { status: 400 });
     }
 
-    // Create invitation
+    // Create invitation using service role client to bypass RLS and prevent infinite recursion
     const result = await createStudentInvitation(supabase, {
       email,
       firstName,
@@ -291,9 +347,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      invitation: result.invitation 
+    return NextResponse.json({
+      success: true,
+      invitation: result.invitation
     });
   } catch (error) {
     console.error('Unexpected error:', error);
@@ -304,16 +360,16 @@ export async function POST(request: Request) {
 // DELETE - Delete student invitation(s)
 export async function DELETE(request: Request) {
   try {
-    const supabase = await createRouteClient();
-    
-    // Get user session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const routeClient = await createRouteClient();
+
+    // Get user session for authentication
+    const { data: { user }, error: authError } = await routeClient.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin or teacher
-    const { data: profile } = await supabase
+    const { data: profile } = await routeClient
       .from('user_profiles')
       .select('role')
       .eq('id', user.id)
@@ -330,7 +386,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'No invitation IDs provided' }, { status: 400 });
     }
 
-    // Get invitations to check if any are accepted
+    // Get invitations to check if any are accepted (using service role to avoid RLS issues)
     const { data: invitations, error: fetchError } = await supabase
       .from('student_invitations')
       .select('id, student_email, status, student_id')
@@ -345,11 +401,11 @@ export async function DELETE(request: Request) {
     for (const invitation of invitations || []) {
       if (invitation.status === 'accepted' && invitation.student_id) {
         console.log('Marking student profile as deleted:', invitation.student_id);
-        
+
         try {
           const { error: updateError } = await supabase
             .from('user_profiles')
-            .update({ 
+            .update({
               deleted: true,
               updated_at: new Date().toISOString()
             })
@@ -366,7 +422,7 @@ export async function DELETE(request: Request) {
       }
     }
 
-    // Delete invitations permanently
+    // Delete invitations permanently (using service role to avoid RLS issues)
     const { error } = await supabase
       .from('student_invitations')
       .delete()

@@ -270,7 +270,7 @@ export async function POST(req: Request) {
 }
 
 // GET method to fetch teacher invitations for admin
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const routeClient = await createRouteClient();
     const { data: { user }, error: userError } = await routeClient.auth.getUser();
@@ -293,18 +293,56 @@ export async function GET() {
       );
     }
 
-    // Get teacher invitations
-    const { data: invitations, error: invitationsError } = await routeClient
+    // Get query parameters
+    const { searchParams } = new URL(req.url);
+    const institutionId = searchParams.get("institutionId");
+    const departmentId = searchParams.get("departmentId");
+
+    // Build query with filters
+    let query = routeClient
       .from("teacher_invitations")
       .select("*")
-      .eq("admin_id", user.id)
-      .order("created_at", { ascending: false });
+      .eq("admin_id", user.id);
+
+    // Apply institution filter
+    if (institutionId) {
+      query = query.eq("institution", institutionId);
+    }
+
+    // Apply department filter
+    if (departmentId) {
+      query = query.eq("department", departmentId);
+    }
+
+    // Get teacher invitations
+    const { data: invitations, error: invitationsError } = await query.order("created_at", { ascending: false });
 
     if (invitationsError) {
       return NextResponse.json(
         { error: "Failed to fetch invitations" },
         { status: 500 }
       );
+    }
+
+    // Fetch admin information from user_profiles for each unique admin_id
+    const adminIds = [...new Set(invitations?.map(inv => inv.admin_id).filter(Boolean))];
+    const adminsMap: Record<string, { email: string }> = {};
+
+    if (adminIds.length > 0) {
+      const { data: admins, error: adminsError } = await supabase
+        .from('user_profiles')
+        .select('id, email')
+        .in('id', adminIds);
+
+      if (adminsError) {
+        console.error('Error fetching admin profiles:', adminsError);
+      }
+
+      admins?.forEach(admin => {
+        adminsMap[admin.id] = {
+          email: admin.email
+        };
+      });
     }
 
     // Get existing teachers created by this admin
@@ -322,8 +360,62 @@ export async function GET() {
       );
     }
 
+    // Enrich invitations with stats for accepted teachers and admin data
+    const enrichedInvitations = await Promise.all(
+      (invitations || []).map(async (invitation) => {
+        // Add admin data to invitation
+        const baseInvitation = {
+          ...invitation,
+          admin: adminsMap[invitation.admin_id] || null
+        };
+
+        // Only fetch stats for accepted invitations
+        if (invitation.status !== "accepted") {
+          return {
+            ...baseInvitation,
+            createdExams: 0,
+            invitedStudents: 0,
+          };
+        }
+
+        // Find the teacher's user profile by email
+        const { data: teacherProfile } = await routeClient
+          .from("user_profiles")
+          .select("id")
+          .eq("email", invitation.email)
+          .eq("role", "teacher")
+          .single();
+
+        if (!teacherProfile) {
+          return {
+            ...baseInvitation,
+            createdExams: 0,
+            invitedStudents: 0,
+          };
+        }
+
+        // Count exams created by this teacher
+        const { count: examsCount } = await routeClient
+          .from("exams")
+          .select("*", { count: "exact", head: true })
+          .eq("created_by", teacherProfile.id);
+
+        // Count students invited by this teacher
+        const { count: studentsCount } = await routeClient
+          .from("student_invitations")
+          .select("*", { count: "exact", head: true })
+          .eq("teacher_id", teacherProfile.id);
+
+        return {
+          ...baseInvitation,
+          createdExams: examsCount || 0,
+          invitedStudents: studentsCount || 0,
+        };
+      })
+    );
+
     return NextResponse.json({
-      invitations: invitations || [],
+      invitations: enrichedInvitations,
       teachers: teachers || [],
     });
   } catch (error) {
@@ -336,6 +428,129 @@ export async function GET() {
 }
 
 // DELETE method to delete teacher invitations
+// PUT method to update teacher invitations
+export async function PUT(req: Request) {
+  try {
+    const { id, firstName, lastName, email, department, institution, expiresAt } = await req.json();
+
+    // Validate input
+    if (!id) {
+      return NextResponse.json(
+        { error: "Invitation ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Get current logged-in user using route client for authentication
+    const routeClient = await createRouteClient();
+    const { data: { user }, error: userError } = await routeClient.auth.getUser();
+
+    if (!user || userError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: profile } = await routeClient
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.role !== "admin") {
+      return NextResponse.json(
+        { error: "Forbidden - Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    // Get the existing invitation
+    const { data: existingInvitation, error: fetchError } = await supabase
+      .from("teacher_invitations")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !existingInvitation) {
+      return NextResponse.json(
+        { error: "Invitation not found" },
+        { status: 404 }
+      );
+    }
+
+    // Prepare update data
+    const updateData: Partial<{
+      first_name: string;
+      last_name: string;
+      email: string;
+      department: string;
+      institution: string;
+      expires_at: string;
+    }> = {};
+
+    if (firstName) updateData.first_name = firstName;
+    if (lastName) updateData.last_name = lastName;
+    if (email) updateData.email = email;
+    if (department) updateData.department = department;
+    if (institution) updateData.institution = institution;
+    if (expiresAt) updateData.expires_at = new Date(expiresAt).toISOString();
+
+    // Update the invitation
+    const { error: updateError } = await supabase
+      .from("teacher_invitations")
+      .update(updateData)
+      .eq("id", id)
+      .eq("admin_id", user.id); // Ensure admin can only update their own invitations
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message || "Failed to update invitation" },
+        { status: 500 }
+      );
+    }
+
+    // If the invitation has been accepted, also update the user profile
+    if (existingInvitation.status === "accepted") {
+      const profileUpdateData: Partial<{
+        first_name: string;
+        last_name: string;
+        email: string;
+        department_id: string;
+        institution_id: string;
+        updated_at: string;
+      }> = {};
+
+      if (firstName) profileUpdateData.first_name = firstName;
+      if (lastName) profileUpdateData.last_name = lastName;
+      if (email) profileUpdateData.email = email;
+      if (department) profileUpdateData.department_id = department;
+      if (institution) profileUpdateData.institution_id = institution;
+      profileUpdateData.updated_at = new Date().toISOString();
+
+      // Update user profile
+      const { error: profileError } = await supabase
+        .from("user_profiles")
+        .update(profileUpdateData)
+        .eq("email", existingInvitation.email)
+        .eq("role", "teacher");
+
+      if (profileError) {
+        console.error("Error updating user profile:", profileError);
+        // Don't fail the request, just log the error
+      }
+    }
+
+    return NextResponse.json({
+      message: "Teacher invitation updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating teacher invitation:", error);
+    return NextResponse.json(
+      { error: "An unexpected error occurred" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(req: Request) {
   // Use the imported supabase client directly
 

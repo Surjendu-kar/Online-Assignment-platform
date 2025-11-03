@@ -1,6 +1,25 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer as supabase } from '@/lib/supabase/server';
 
+type InvitationWithRelations = {
+  id: string;
+  student_email: string;
+  first_name: string;
+  last_name: string;
+  department_id: string | null;
+  exam_id: string | null;
+  status: string;
+  expires_at: string;
+  invitation_token: string;
+  exams: {
+    institution_id: string;
+    department_id: string;
+  } | null;
+  departments: {
+    institution_id: string;
+  } | null;
+};
+
 // POST - Accept student invitation and create account
 export async function POST(request: Request) {
   try {
@@ -19,16 +38,25 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Fetch invitation by token
+    // Fetch invitation by token with exam and department info
     const { data: invitation, error: invError } = await supabase
       .from('student_invitations')
-      .select('*')
+      .select(`
+        *,
+        exams (
+          institution_id,
+          department_id
+        ),
+        departments (
+          institution_id
+        )
+      `)
       .eq('invitation_token', token)
-      .single();
+      .single() as { data: InvitationWithRelations | null; error: unknown };
 
     if (invError || !invitation) {
-      return NextResponse.json({ 
-        error: 'Invalid or expired invitation token' 
+      return NextResponse.json({
+        error: 'Invalid or expired invitation token'
       }, { status: 404 });
     }
 
@@ -60,6 +88,12 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
+    // Get institution_id from exam or department
+    const institutionId =
+      invitation.exams?.institution_id ||
+      invitation.departments?.institution_id ||
+      null;
+
     // Create user profile
     const { error: profileError } = await supabase
       .from('user_profiles')
@@ -69,6 +103,7 @@ export async function POST(request: Request) {
         first_name: invitation.first_name,
         last_name: invitation.last_name,
         role: 'student',
+        institution_id: institutionId,
         department_id: invitation.department_id,
         profile_completed: true,
         created_at: new Date().toISOString(),

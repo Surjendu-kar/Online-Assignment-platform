@@ -58,7 +58,7 @@ interface Student {
   completedExams: number;
   averageScore: number;
   dateJoined: Date;
-  lastActive: Date;
+  invitedBy?: string;
   profileImage?: string;
   studentId?: string;
   department?: string;
@@ -142,6 +142,7 @@ interface StudentInvitation {
   status: string;
   created_at: string;
   expires_at: string;
+  teacher_id: string;
   exams: {
     id: string;
     title: string;
@@ -154,6 +155,9 @@ interface StudentInvitation {
     name: string;
     code: string;
   };
+  teacher?: {
+    email: string;
+  };
 }
 
 export default function StudentsPage() {
@@ -161,9 +165,6 @@ export default function StudentsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeInstitutionId, setActiveInstitutionId] = useState<string | null>(
-    null
-  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -188,38 +189,9 @@ export default function StudentsPage() {
 
   const itemsPerPage = 5;
 
-  // Get active institution on mount and listen for changes
-  useEffect(() => {
-    const institutionId = localStorage.getItem("activeInstitutionId");
-    setActiveInstitutionId(institutionId);
-
-    // Listen for institution changes from sidebar
-    const handleInstitutionChange = (e: CustomEvent) => {
-      const newInstitutionId = e.detail?.institutionId;
-      if (newInstitutionId) {
-        setActiveInstitutionId(newInstitutionId);
-      }
-    };
-
-    window.addEventListener(
-      "institutionChanged",
-      handleInstitutionChange as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        "institutionChanged",
-        handleInstitutionChange as EventListener
-      );
-  }, []);
-
-  // Fetch exams and invitations when institution changes
+  // Fetch exams and invitations with proper filtering
   useEffect(() => {
     const fetchData = async () => {
-      if (!activeInstitutionId) {
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
 
@@ -230,8 +202,24 @@ export default function StudentsPage() {
           return;
         }
 
-        // Fetch exams
-        const examsResponse = await fetch("/api/exams", {
+        // Get institution and department from localStorage for filtering
+        const institutionId = localStorage.getItem("activeInstitutionId");
+        const departmentId = localStorage.getItem("activeDepartmentId");
+
+        // Build query params
+        const params = new URLSearchParams();
+        if (institutionId) {
+          params.append("institutionId", institutionId);
+        }
+        if (departmentId && departmentId !== "all") {
+          params.append("departmentId", departmentId);
+        }
+
+        const queryString = params.toString();
+
+        // Fetch exams with filters
+        const examsUrl = `/api/exams${queryString ? `?${queryString}` : ""}`;
+        const examsResponse = await fetch(examsUrl, {
           headers: {
             Authorization: `Bearer ${sessionData.session.access_token}`,
           },
@@ -252,14 +240,19 @@ export default function StudentsPage() {
         if (departmentsResponse.ok) {
           const departmentsData = await departmentsResponse.json();
           // Filter departments by active institution
-          const filteredDepartments = departmentsData.filter(
-            (dept: Department) => dept.institution_id === activeInstitutionId
-          );
-          setDepartments(filteredDepartments);
+          if (institutionId) {
+            const filteredDepartments = departmentsData.filter(
+              (dept: Department) => dept.institution_id === institutionId
+            );
+            setDepartments(filteredDepartments);
+          } else {
+            setDepartments(departmentsData);
+          }
         }
 
-        // Fetch student invitations
-        const invitationsResponse = await fetch("/api/students", {
+        // Fetch student invitations with filters
+        const studentsUrl = `/api/students${queryString ? `?${queryString}` : ""}`;
+        const invitationsResponse = await fetch(studentsUrl, {
           headers: {
             Authorization: `Bearer ${sessionData.session.access_token}`,
           },
@@ -277,8 +270,20 @@ export default function StudentsPage() {
       }
     };
 
-    fetchData();
-  }, [activeInstitutionId]);
+    const handleDepartmentChange = () => {
+      fetchData();
+    };
+
+    fetchData(); // Initial load
+
+    // Listen ONLY for department changes (not institution changes)
+    // Institution change is followed by department selection, so we wait for that
+    window.addEventListener("departmentChanged", handleDepartmentChange);
+
+    return () => {
+      window.removeEventListener("departmentChanged", handleDepartmentChange);
+    };
+  }, []);
 
   // Transform invitations to Student format for display
   const processedStudents = useMemo(() => {
@@ -300,7 +305,7 @@ export default function StudentsPage() {
         completedExams: 0,
         averageScore: 0,
         dateJoined: new Date(invitation.created_at),
-        lastActive: new Date(invitation.created_at),
+        invitedBy: invitation.teacher?.email || "Unknown",
         profileImage: undefined,
         studentId: invitation.id.slice(0, 8).toUpperCase(),
         department: invitation.departments?.name || "Not assigned",
@@ -506,8 +511,22 @@ export default function StudentsPage() {
         return { success: false, error: result.error || "Operation failed" };
       }
 
-      // Refresh invitations list
-      const invitationsResponse = await fetch("/api/students", {
+      // Refresh invitations list with filters
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      const departmentId = localStorage.getItem("activeDepartmentId");
+
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.append("institutionId", institutionId);
+      }
+      if (departmentId && departmentId !== "all") {
+        params.append("departmentId", departmentId);
+      }
+
+      const queryString = params.toString();
+      const studentsUrl = `/api/students${queryString ? `?${queryString}` : ""}`;
+
+      const invitationsResponse = await fetch(studentsUrl, {
         headers: {
           Authorization: `Bearer ${sessionData.session.access_token}`,
         },
@@ -585,8 +604,22 @@ export default function StudentsPage() {
         throw new Error("Failed to delete invitations");
       }
 
-      // Refresh invitations list
-      const invitationsResponse = await fetch("/api/students", {
+      // Refresh invitations list with filters
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      const departmentId = localStorage.getItem("activeDepartmentId");
+
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.append("institutionId", institutionId);
+      }
+      if (departmentId && departmentId !== "all") {
+        params.append("departmentId", departmentId);
+      }
+
+      const queryString = params.toString();
+      const studentsUrl = `/api/students${queryString ? `?${queryString}` : ""}`;
+
+      const invitationsResponse = await fetch(studentsUrl, {
         headers: {
           Authorization: `Bearer ${sessionData.session.access_token}`,
         },
@@ -645,8 +678,22 @@ export default function StudentsPage() {
         throw new Error("Failed to delete invitation");
       }
 
-      // Refresh invitations list
-      const invitationsResponse = await fetch("/api/students", {
+      // Refresh invitations list with filters
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      const departmentId = localStorage.getItem("activeDepartmentId");
+
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.append("institutionId", institutionId);
+      }
+      if (departmentId && departmentId !== "all") {
+        params.append("departmentId", departmentId);
+      }
+
+      const queryString = params.toString();
+      const studentsUrl = `/api/students${queryString ? `?${queryString}` : ""}`;
+
+      const invitationsResponse = await fetch(studentsUrl, {
         headers: {
           Authorization: `Bearer ${sessionData.session.access_token}`,
         },

@@ -31,8 +31,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AddExamDialog } from "@/components/AddExamDialog";
 import { supabase } from "@/lib/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
 import { WarningDialog } from "@/components/WarningDialog";
+import ExamTableSkeleton from "@/components/skeleton/ExamTableSkeleton";
 import {
   ChevronLeft,
   ChevronRight,
@@ -187,8 +187,8 @@ export default function ExamsPage() {
       const data = await response.json();
       setExams(data);
 
-      // Fetch department names if "All Departments" view
-      if (departmentId === "all" && institutionId) {
+      // Always fetch department names for mapping (needed for displaying department column)
+      if (institutionId) {
         await fetchDepartmentNames(institutionId);
       }
     } catch (error) {
@@ -762,17 +762,10 @@ export default function ExamsPage() {
                   </TableHeader>
                   <TableBody>
                     {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
-                          <div className="flex flex-col items-center gap-2">
-                            <Skeleton className="h-8 w-8 rounded-full" />
-                            <Skeleton className="h-4 w-32" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                      <ExamTableSkeleton />
                     ) : paginatedExams.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6}>
+                        <TableCell colSpan={7}>
                           <EmptyState onReset={resetAllFilters} />
                         </TableCell>
                       </TableRow>

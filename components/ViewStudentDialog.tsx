@@ -25,7 +25,7 @@ interface Student {
   completedExams: number;
   averageScore: number;
   dateJoined: Date;
-  lastActive: Date;
+  invitedBy?: string;
   profileImage?: string;
   studentId?: string;
   department?: string;
@@ -172,9 +172,9 @@ export const ViewStudentDialog = ({
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Last Active
+                  Invited By
                 </label>
-                <p className="font-medium">{formatDate(student.lastActive)}</p>
+                <p className="font-medium">{student.invitedBy || "Unknown"}</p>
               </div>
             </div>
           </div>

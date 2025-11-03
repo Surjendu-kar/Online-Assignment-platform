@@ -32,6 +32,7 @@ interface Department {
   id: string;
   name: string;
   code: string;
+  institution_id?: string;
 }
 
 interface AddStudentDialogProps {
@@ -92,14 +93,123 @@ export const AddStudentDialog = ({
     selectedExam: editStudent?.selectedExam || "",
     expirationDate: editStudent?.expirationDate || getDefaultExpirationDate(),
   });
-  const [submitting, setSubmitting] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [internalIsOpen, setInternalIsOpen] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [activeDepartmentId, setActiveDepartmentId] = React.useState<string | null>(null);
+  const [loadingDepartments, setLoadingDepartments] = React.useState(false);
+  const [fetchedDepartments, setFetchedDepartments] = React.useState<Department[]>([]);
+  const [loadingExams, setLoadingExams] = React.useState(false);
+  const [filteredExams, setFilteredExams] = React.useState<Exam[]>([]);
 
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const setIsOpen = externalOnOpenChange || setInternalIsOpen;
 
   const isEditing = !!editStudent;
+
+  // Determine which departments to use: fetched or provided via props
+  const departmentsToUse = fetchedDepartments.length > 0 ? fetchedDepartments : departments;
+
+  // Determine which exams to use: filtered or provided via props
+  const examsToUse = filteredExams.length > 0 ? filteredExams : exams;
+
+  // Fetch active department and departments when dialog opens
+  React.useEffect(() => {
+    if (isOpen) {
+      const deptId = localStorage.getItem("activeDepartmentId");
+      setActiveDepartmentId(deptId);
+
+      // Only fetch departments if "All Departments" is selected or in edit mode
+      if (deptId === "all" || isEditing) {
+        fetchDepartments();
+      }
+
+      // Initialize exams based on active department
+      if (deptId && deptId !== "all" && !isEditing) {
+        // If a specific department is active, fetch its exams
+        fetchExamsForDepartment(deptId);
+      } else {
+        // Otherwise, use exams from props
+        setFilteredExams(exams);
+      }
+    }
+  }, [isOpen, isEditing, exams]);
+
+  const fetchDepartments = async () => {
+    try {
+      setLoadingDepartments(true);
+      // Get active institution from localStorage
+      const activeInstitutionId = localStorage.getItem('activeInstitutionId');
+
+      // Fetch departments from API
+      const response = await fetch('/api/departments');
+      const departmentsData: Department[] = await response.json();
+
+      if (response.ok) {
+        // Filter departments by institution if institution is selected
+        let filteredDepartments: Department[] = [];
+        if (activeInstitutionId) {
+          filteredDepartments = departmentsData
+            .filter((dept) => dept.institution_id === activeInstitutionId && dept.id !== "all")
+            .map((dept) => ({
+              id: dept.id,
+              name: dept.name,
+              code: dept.code
+            }));
+        } else {
+          // If no institution selected, show all departments except "all"
+          filteredDepartments = departmentsData
+            .filter((dept) => dept.id !== "all")
+            .map((dept) => ({
+              id: dept.id,
+              name: dept.name,
+              code: dept.code
+            }));
+        }
+        setFetchedDepartments(filteredDepartments);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      setFetchedDepartments([]);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  const fetchExamsForDepartment = async (departmentId: string) => {
+    try {
+      setLoadingExams(true);
+      // Get active institution from localStorage
+      const activeInstitutionId = localStorage.getItem('activeInstitutionId');
+
+      // Build query params
+      const params = new URLSearchParams();
+      if (activeInstitutionId) {
+        params.append('institutionId', activeInstitutionId);
+      }
+      if (departmentId && departmentId !== 'all') {
+        params.append('departmentId', departmentId);
+      }
+
+      const queryString = params.toString();
+      const examsUrl = `/api/exams${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(examsUrl);
+      const examsData: Exam[] = await response.json();
+
+      if (response.ok) {
+        setFilteredExams(examsData);
+      } else {
+        console.error('Failed to fetch exams:', examsData);
+        setFilteredExams([]);
+      }
+    } catch (error) {
+      console.error('Error fetching exams:', error);
+      setFilteredExams([]);
+    } finally {
+      setLoadingExams(false);
+    }
+  };
 
   React.useEffect(() => {
     if (editStudent) {
@@ -131,7 +241,8 @@ export const AddStudentDialog = ({
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (!formData.department) {
+    // Only require department selection if "All Departments" is selected or in edit mode
+    if ((activeDepartmentId === "all" || isEditing) && !formData.department) {
       newErrors.department = "Department is required";
     }
 
@@ -160,9 +271,14 @@ export const AddStudentDialog = ({
 
     if (!validateForm()) return;
 
-    setSubmitting(true);
+    setIsSubmitting(true);
 
     try {
+      // Use activeDepartmentId if a specific department is selected (not "all")
+      const departmentToUse = activeDepartmentId && activeDepartmentId !== "all" && !isEditing
+        ? activeDepartmentId
+        : formData.department;
+
       if (onSendInvitation) {
         // Use the new invitation API
         const result = await onSendInvitation({
@@ -170,7 +286,7 @@ export const AddStudentDialog = ({
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
-          departmentId: formData.department,
+          departmentId: departmentToUse,
           examId: formData.selectedExam,
           expirationDate: formData.expirationDate,
         });
@@ -190,7 +306,11 @@ export const AddStudentDialog = ({
         }
       } else {
         // Fallback to old method
-        onSaveStudent?.(formData);
+        const submissionData = {
+          ...formData,
+          department: departmentToUse
+        };
+        onSaveStudent?.(submissionData);
         if (!isEditing) {
           setFormData({
             firstName: "",
@@ -204,7 +324,7 @@ export const AddStudentDialog = ({
         setIsOpen(false);
       }
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -212,6 +332,13 @@ export const AddStudentDialog = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+
+    // When department changes, fetch exams for that department
+    if (field === "department" && value) {
+      fetchExamsForDepartment(value);
+      // Clear the selected exam since department changed
+      setFormData((prev) => ({ ...prev, selectedExam: "" }));
     }
   };
 
@@ -263,6 +390,7 @@ export const AddStudentDialog = ({
                   }
                   placeholder="John"
                   className={errors.firstName ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.firstName && (
                   <span className="text-sm text-red-500">
@@ -281,6 +409,7 @@ export const AddStudentDialog = ({
                   }
                   placeholder="Doe"
                   className={errors.lastName ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.lastName && (
                   <span className="text-sm text-red-500">
@@ -290,8 +419,8 @@ export const AddStudentDialog = ({
               </div>
             </div>
 
-            {/* Second row: email, department */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Second row: email, department (conditional) */}
+            <div className={`grid ${activeDepartmentId === "all" || isEditing ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
@@ -301,47 +430,55 @@ export const AddStudentDialog = ({
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="john.doe@university.edu"
                   className={errors.email ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.email && (
                   <span className="text-sm text-red-500">{errors.email}</span>
                 )}
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="department">Department *</Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) =>
-                    handleInputChange("department", value)
-                  }
-                >
-                  <SelectTrigger
-                    className={`!w-full ${
-                      errors.department ? "border-red-500" : ""
-                    }`}
+              {(activeDepartmentId === "all" || isEditing) && (
+                <div className="grid gap-2">
+                  <Label htmlFor="department">Department *</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) =>
+                      handleInputChange("department", value)
+                    }
+                    disabled={loadingDepartments || isSubmitting}
                   >
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        No departments available
-                      </div>
-                    ) : (
-                      departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.department && (
-                  <span className="text-sm text-red-500">
-                    {errors.department}
-                  </span>
-                )}
-              </div>
+                    <SelectTrigger
+                      className={`!w-full ${
+                        errors.department ? "border-red-500" : ""
+                      }`}
+                    >
+                      <SelectValue placeholder={loadingDepartments ? "Loading departments..." : "Select department"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadingDepartments ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          Loading departments...
+                        </div>
+                      ) : departmentsToUse.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          No departments available
+                        </div>
+                      ) : (
+                        departmentsToUse.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>
+                            {dept.name} {dept.code ? `(${dept.code})` : ''}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.department && (
+                    <span className="text-sm text-red-500">
+                      {errors.department}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Third row: select exam, expiration date */}
@@ -353,21 +490,34 @@ export const AddStudentDialog = ({
                   onValueChange={(value) =>
                     handleInputChange("selectedExam", value)
                   }
+                  disabled={loadingExams || ((activeDepartmentId === "all" || isEditing) && !formData.department) || isSubmitting}
                 >
                   <SelectTrigger
                     className={`!w-full ${
                       errors.selectedExam ? "border-red-500" : ""
                     }`}
                   >
-                    <SelectValue placeholder="Choose an exam" />
+                    <SelectValue
+                      placeholder={
+                        loadingExams
+                          ? "Loading exams..."
+                          : ((activeDepartmentId === "all" || isEditing) && !formData.department)
+                          ? "Select department first"
+                          : "Choose an exam"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {exams.length === 0 ? (
+                    {loadingExams ? (
                       <div className="p-2 text-sm text-muted-foreground">
-                        No exams available
+                        Loading exams...
+                      </div>
+                    ) : examsToUse.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No exams available for this department
                       </div>
                     ) : (
-                      exams.map((exam) => (
+                      examsToUse.map((exam) => (
                         <SelectItem key={exam.id} value={exam.id}>
                           {exam.title}
                         </SelectItem>
@@ -397,6 +547,7 @@ export const AddStudentDialog = ({
                     handleInputChange("expirationDate", e.target.value)
                   }
                   className={errors.expirationDate ? "border-red-500" : ""}
+                  disabled={isSubmitting}
                 />
                 {errors.expirationDate && (
                   <span className="text-sm text-red-500">
@@ -409,12 +560,12 @@ export const AddStudentDialog = ({
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" type="button">
+              <Button variant="outline" type="button" disabled={isSubmitting}>
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Sending..." : isEditing ? "Update Student" : "Send Invitation"}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Sending Invitation..." : isEditing ? "Update Student" : "Send Invitation"}
             </Button>
           </DialogFooter>
         </form>
