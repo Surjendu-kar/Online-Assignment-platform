@@ -3,10 +3,22 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, Calendar, FileText, Play, Trophy } from "lucide-react";
+import {
+  BookOpen,
+  Clock,
+  Calendar,
+  FileText,
+  Play,
+  Trophy,
+} from "lucide-react";
 import { formatDuration } from "@/lib/format-duration";
 import { ExamsListSkeleton } from "@/components/ExamsListSkeleton";
 
@@ -28,7 +40,9 @@ export default function ExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [navigatingExamId, setNavigatingExamId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "pending" | "completed" | "expired">("all");
+  const [filter, setFilter] = useState<
+    "all" | "pending" | "completed" | "expired"
+  >("all");
 
   useEffect(() => {
     fetchExams();
@@ -39,7 +53,7 @@ export default function ExamsPage() {
       setLoading(true);
       const response = await fetch("/api/student/assigned-exams");
       const data = await response.json();
-      
+
       if (response.ok) {
         setExams(data);
       } else {
@@ -78,9 +92,10 @@ export default function ExamsPage() {
     router.push(`/student/exam/${examId}`);
   };
 
-  const filteredExams = exams.filter(exam => {
+  const filteredExams = exams.filter((exam) => {
     if (filter === "all") return true;
-    if (filter === "pending") return exam.status === "pending" || exam.status === "upcoming";
+    if (filter === "pending")
+      return exam.status === "pending" || exam.status === "upcoming";
     if (filter === "completed") return exam.status === "completed";
     if (filter === "expired") return exam.status === "expired";
     return true;
@@ -95,7 +110,9 @@ export default function ExamsPage() {
     >
       <div>
         <h1 className="text-3xl font-bold">Exams</h1>
-        <p className="text-muted-foreground">View your upcoming and past exams</p>
+        <p className="text-muted-foreground">
+          View your upcoming and past exams
+        </p>
       </div>
 
       {/* Filter Tabs */}
@@ -112,28 +129,36 @@ export default function ExamsPage() {
           onClick={() => setFilter("pending")}
           size="sm"
         >
-          Pending ({exams.filter(e => e.status === "pending" || e.status === "upcoming").length})
+          Pending (
+          {
+            exams.filter(
+              (e) => e.status === "pending" || e.status === "upcoming"
+            ).length
+          }
+          )
         </Button>
         <Button
           variant={filter === "completed" ? "default" : "outline"}
           onClick={() => setFilter("completed")}
           size="sm"
         >
-          Completed ({exams.filter(e => e.status === "completed").length})
+          Completed ({exams.filter((e) => e.status === "completed").length})
         </Button>
         <Button
           variant={filter === "expired" ? "default" : "outline"}
           onClick={() => setFilter("expired")}
           size="sm"
         >
-          Expired ({exams.filter(e => e.status === "expired").length})
+          Expired ({exams.filter((e) => e.status === "expired").length})
         </Button>
       </div>
 
       <div className="grid gap-6">
         <Card>
           <CardHeader className="gap-0">
-            <CardDescription>All your assigned exams and assessments</CardDescription>
+            <CardDescription>
+              All your assigned exams and assessments
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -154,13 +179,15 @@ export default function ExamsPage() {
                     className="flex items-center justify-between rounded-lg border p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center justify-between gap-3 mb-2">
                         <h3 className="font-semibold text-lg">{exam.title}</h3>
                         <Badge className={getStatusColor(exam.status)}>
                           {getStatusLabel(exam.status)}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">{exam.department}</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {exam.department}
+                      </p>
                       <div className="flex items-center gap-6 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
@@ -173,7 +200,9 @@ export default function ExamsPage() {
                         {exam.endTime && (
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            <span>Due: {new Date(exam.endTime).toLocaleDateString()}</span>
+                            <span>
+                              Due: {new Date(exam.endTime).toLocaleDateString()}
+                            </span>
                           </div>
                         )}
                         {exam.score !== null && exam.score !== undefined && (
@@ -235,14 +264,7 @@ export default function ExamsPage() {
                           )}
                         </Button>
                       )}
-                      {exam.status === "completed" && (
-                        <Button
-                          onClick={() => router.push("/student/results")}
-                          variant="outline"
-                        >
-                          View Result
-                        </Button>
-                      )}
+
                       {exam.status === "expired" && (
                         <Button disabled variant="outline">
                           Expired

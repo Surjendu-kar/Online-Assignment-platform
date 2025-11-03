@@ -44,14 +44,40 @@ export async function GET() {
     
     const { data: exams, error: examsError } = await supabase
       .from('exams')
-      .select('id, title, department')
+      .select(`
+        id,
+        title,
+        department_id,
+        departments (
+          name
+        )
+      `)
       .in('id', examIds);
 
     if (examsError) {
       console.error('Error fetching exams:', examsError);
     }
 
-    const examMap = new Map(exams?.map(e => [e.id, e]) || []);
+    const examMap = new Map(
+      exams?.map(e => {
+        let departmentName = 'N/A';
+
+        if (Array.isArray(e.departments) && e.departments.length > 0) {
+          departmentName = e.departments[0]?.name || 'N/A';
+        } else if (e.departments && typeof e.departments === 'object' && 'name' in e.departments) {
+          departmentName = (e.departments as { name: string }).name || 'N/A';
+        }
+
+        return [
+          e.id,
+          {
+            id: e.id,
+            title: e.title,
+            department: departmentName
+          }
+        ];
+      }) || []
+    );
 
     const results = (responses || []).map((result) => {
       const exam = examMap.get(result.exam_id);

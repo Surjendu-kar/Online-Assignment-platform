@@ -861,22 +861,22 @@ ${result.output.trim()}
                       Previous
                     </Button>
 
-
-                    <Button
-                      onClick={() =>
-                        setCurrentQuestion(
-                          Math.min(
-                            examData.questions.length - 1,
-                            currentQuestion + 1
+                    {currentQuestion < examData.questions.length - 1 && (
+                      <Button
+                        onClick={() =>
+                          setCurrentQuestion(
+                            Math.min(
+                              examData.questions.length - 1,
+                              currentQuestion + 1
+                            )
                           )
-                        )
-                      }
-                      disabled={currentQuestion === examData.questions.length - 1}
-                      className="cursor-pointer"
-                    >
-                      Next
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                        }
+                        className="cursor-pointer"
+                      >
+                        Next
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

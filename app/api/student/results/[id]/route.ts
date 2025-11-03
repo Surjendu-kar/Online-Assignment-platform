@@ -37,7 +37,14 @@ export async function GET(
 
     const { data: exam, error: examError } = await supabase
       .from('exams')
-      .select('id, title, department')
+      .select(`
+        id,
+        title,
+        department_id,
+        departments (
+          name
+        )
+      `)
       .eq('id', response.exam_id)
       .single();
 
@@ -45,7 +52,13 @@ export async function GET(
       console.error('Error fetching exam:', examError);
     }
 
-    const departmentName = exam?.department || 'N/A';
+    let departmentName = 'N/A';
+
+    if (Array.isArray(exam?.departments) && exam.departments.length > 0) {
+      departmentName = exam.departments[0]?.name || 'N/A';
+    } else if (exam?.departments && typeof exam.departments === 'object' && 'name' in exam.departments) {
+      departmentName = (exam.departments as { name: string }).name || 'N/A';
+    }
 
     const { data: mcqQuestions } = await supabase
       .from('mcq')
@@ -67,10 +80,6 @@ export async function GET(
 
     const studentAnswers = response.answers || {};
 
-    console.log('Response:', { id, exam_id: response.exam_id });
-    console.log('Exam:', exam);
-    console.log('MCQ:', mcqQuestions?.length || 0, 'SAQ:', saqQuestions?.length || 0, 'Coding:', codingQuestions?.length || 0);
-
     interface QuestionWithAnswer {
       question_number: number;
       question_text: string;
@@ -85,7 +94,7 @@ export async function GET(
 
     interface MCQQuestion {
       id: string;
-      question: string;
+      question_text: string;
       marks: number;
       options?: string[];
       correct_option: number;
@@ -93,16 +102,17 @@ export async function GET(
 
     interface SAQQuestion {
       id: string;
-      question: string;
+      question_text: string;
       marks: number;
-      correct_answer?: string;
+      answer_text?: string;
+      grading_guidelines?: string;
     }
 
     interface CodingQuestion {
       id: string;
-      question: string;
+      question_text: string;
       marks: number;
-      correct_answer?: string;
+      expected_output?: string;
     }
 
     const questionsWithAnswers: QuestionWithAnswer[] = [];
@@ -112,7 +122,7 @@ export async function GET(
       const studentAnswer = studentAnswers[question.id];
       questionsWithAnswers.push({
         question_number: questionNumber++,
-        question_text: question.question,
+        question_text: question.question_text,
         question_type: 'mcq',
         options: question.options || [],
         correct_answer: question.options?.[question.correct_option] || '',
@@ -127,10 +137,10 @@ export async function GET(
       const studentAnswer = studentAnswers[question.id];
       questionsWithAnswers.push({
         question_number: questionNumber++,
-        question_text: question.question,
+        question_text: question.question_text,
         question_type: 'saq',
         options: [],
-        correct_answer: question.correct_answer || '',
+        correct_answer: question.grading_guidelines || question.answer_text || 'No model answer provided',
         student_answer: studentAnswer?.answer || null,
         is_correct: studentAnswer?.marksObtained > 0,
         points: question.marks || 0,
@@ -142,10 +152,10 @@ export async function GET(
       const studentAnswer = studentAnswers[question.id];
       questionsWithAnswers.push({
         question_number: questionNumber++,
-        question_text: question.question,
+        question_text: question.question_text,
         question_type: 'coding',
         options: [],
-        correct_answer: question.correct_answer || '',
+        correct_answer: question.expected_output || 'No expected output provided',
         student_answer: studentAnswer?.answer || null,
         is_correct: studentAnswer?.marksObtained > 0,
         points: question.marks || 0,

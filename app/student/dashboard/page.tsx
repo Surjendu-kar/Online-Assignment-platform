@@ -95,7 +95,7 @@ function StatsCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card>
+      <Card className="gap-4">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">{title}</CardTitle>
           <Icon className={`h-4 w-4 text-${color}-600`} />
@@ -139,7 +139,7 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="hover:shadow-md transition-shadow">
+      <Card className="hover:shadow-md transition-shadow gap-2">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -151,27 +151,27 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               <Clock className="h-4 w-4" />
               <span>{formatDuration(assignment.duration)}</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               <FileText className="h-4 w-4" />
               <span>{assignment.totalQuestions} questions</span>
             </div>
           </div>
 
           {assignment.score !== null && assignment.score !== undefined && (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               <Trophy className="h-4 w-4 text-yellow-500" />
               <span className="font-semibold">{assignment.score}%</span>
             </div>
           )}
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <div className="flex items-center space-x-1 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <span>
                 {assignment.endTime
@@ -180,14 +180,17 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
               </span>
             </div>
 
-            {(assignment.status === "pending" || assignment.status === "upcoming") && (
+            {(assignment.status === "pending" ||
+              assignment.status === "upcoming") && (
               <Button
                 size="sm"
                 onClick={() => router.push(`/student/exam/${assignment.id}`)}
                 disabled={assignment.status === "upcoming"}
               >
                 <Play className="h-4 w-4 mr-2" />
-                {assignment.status === "upcoming" ? "Not Started" : "Start Exam"}
+                {assignment.status === "upcoming"
+                  ? "Not Started"
+                  : "Start Exam"}
               </Button>
             )}
 
@@ -273,18 +276,22 @@ export default function StudentDashboard() {
 
   const fetchStudentData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase
           .from("user_profiles")
-          .select(`
+          .select(
+            `
             first_name,
             last_name,
             email,
             departments (
               name
             )
-          `)
+          `
+          )
           .eq("id", user.id)
           .single();
 
@@ -331,16 +338,21 @@ export default function StudentDashboard() {
 
   const stats = {
     totalAssignments: assignments.length,
-    completedAssignments: assignments.filter((a) => a.status === "completed").length,
-    averageScore: assignments.filter((a) => a.score !== null && a.score !== undefined).length > 0
-      ? Math.round(
-          assignments
-            .filter((a) => a.score !== null)
-            .reduce((sum, a) => sum + (a.score || 0), 0) /
-            assignments.filter((a) => a.score !== null).length
-        )
-      : 0,
-    pendingAssignments: assignments.filter((a) => a.status === "pending" || a.status === "upcoming").length,
+    completedAssignments: assignments.filter((a) => a.status === "completed")
+      .length,
+    averageScore:
+      assignments.filter((a) => a.score !== null && a.score !== undefined)
+        .length > 0
+        ? Math.round(
+            assignments
+              .filter((a) => a.score !== null)
+              .reduce((sum, a) => sum + (a.score || 0), 0) /
+              assignments.filter((a) => a.score !== null).length
+          )
+        : 0,
+    pendingAssignments: assignments.filter(
+      (a) => a.status === "pending" || a.status === "upcoming"
+    ).length,
   };
 
   return (
@@ -350,37 +362,6 @@ export default function StudentDashboard() {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      {/* Welcome Section */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-6"
-      >
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-16 w-16 border-2 border-white">
-            <AvatarImage src={studentData.avatar} alt={studentData.name} />
-            <AvatarFallback className="text-blue-600 font-semibold text-lg">
-              {studentData.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-2xl font-bold">
-              Welcome back, {studentData.name}!
-            </h1>
-            <p className="text-blue-100">
-              {studentData.department} • {studentData.semester}
-            </p>
-            <p className="text-blue-200 text-sm">
-              Student ID: {studentData.studentId}
-            </p>
-          </div>
-        </div>
-      </motion.div>
-
       {/* Stats Cards */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -428,9 +409,9 @@ export default function StudentDashboard() {
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Target className="h-5 w-5" />
+              <CardTitle className="flex items-center justify-between space-x-2">
                 <span>My Assignments</span>
+                <Target className="h-4 w-4" />
               </CardTitle>
               <CardDescription>
                 Your current and upcoming assignments
@@ -470,45 +451,20 @@ export default function StudentDashboard() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card>
+          <Card className="gap-4">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Clock className="h-5 w-5" />
+              <CardTitle className="flex items-center justify-between space-x-2">
                 <span>Recent Activity</span>
+                <Clock className="h-4 w-4" />
               </CardTitle>
               <CardDescription>Your latest activities</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {mockRecentActivity.map((activity) => (
                   <ActivityItem key={activity.id} activity={activity} />
                 ))}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button 
-                className="w-full justify-start" 
-                variant="outline"
-                onClick={() => router.push("/student/exams")}
-              >
-                <BookOpen className="h-4 w-4 mr-2" />
-                View All Assignments
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Trophy className="h-4 w-4 mr-2" />
-                View Grades
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Users className="h-4 w-4 mr-2" />
-                Class Schedule
-              </Button>
             </CardContent>
           </Card>
         </motion.div>

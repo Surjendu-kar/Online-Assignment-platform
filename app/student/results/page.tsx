@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -13,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BarChart3, FileText, RefreshCw, ArrowUpDown } from "lucide-react";
+import { BarChart3, FileText, ArrowUpDown } from "lucide-react";
 import toast from "react-hot-toast";
 import { ViewResultDialog } from "@/components/ViewResultDialog";
 
@@ -145,18 +144,12 @@ export default function ResultsPage() {
       className="flex flex-col gap-6 p-6"
     >
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center space-x-2">
-              <BarChart3 className="h-5 w-5" />
-              <span>My Results</span>
-            </CardTitle>
-            <CardDescription>Your exam results and scores</CardDescription>
-          </div>
-          <Button onClick={fetchResults} variant="outline" size="sm" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <BarChart3 className="h-5 w-5" />
+            <span>My Results</span>
+          </CardTitle>
+          <CardDescription>Your exam results and scores</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-hidden">
@@ -260,7 +253,7 @@ export default function ResultsPage() {
                           className="border-b transition-all duration-200 hover:bg-muted/30 hover:shadow-sm group cursor-pointer"
                           onClick={() => handleViewResult(result)}
                         >
-                          <TableCell className="font-medium">{result.exam_title}</TableCell>
+                          <TableCell className="font-medium capitalize">{result.exam_title}</TableCell>
                           <TableCell>{result.department}</TableCell>
                           <TableCell>
                             {new Date(result.submitted_at).toLocaleDateString("en-US", {
