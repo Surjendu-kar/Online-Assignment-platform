@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { supabase } from "@/lib/supabase/client";
+import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Table,
@@ -32,8 +34,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { WarningDialog } from "@/components/WarningDialog";
 import { ViewStudentDialog } from "@/components/ViewStudentDialog";
 import { AddStudentDialog } from "@/components/AddStudentDialog";
-import studentsData from "@/data/studentsData.json";
-import examsData from "@/data/examsData.json";
 import {
   ChevronLeft,
   ChevronRight,
@@ -46,6 +46,8 @@ import {
   Trash2,
   User,
 } from "lucide-react";
+
+import StudentTableSkeleton from "@/components/skeleton/StudentTableSkeleton";
 
 interface Student {
   id: string;
@@ -64,12 +66,6 @@ interface Student {
   departmentId?: string;
   examId?: string;
 }
-
-const demoStudents: Student[] = studentsData.map((student) => ({
-  ...student,
-  status: student.status as "active" | "pending" | "suspended",
-  dateJoined: new Date(student.dateJoined),
-}));
 
 type SortField =
   | "name"
@@ -124,8 +120,51 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
+interface Exam {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+  institution_id: string;
+}
+
+interface StudentInvitation {
+  id: string;
+  student_email: string;
+  first_name: string;
+  last_name: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+  teacher_id: string;
+  exams: {
+    id: string;
+    title: string;
+    start_time: string;
+    end_time: string;
+    duration: number;
+  };
+  departments: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  teacher?: {
+    email: string;
+  };
+}
+
 export default function TeacherStudentsPage() {
-  const [students, setStudents] = useState<Student[]>(demoStudents);
+  const [invitations, setInvitations] = useState<StudentInvitation[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -150,13 +189,135 @@ export default function TeacherStudentsPage() {
 
   const itemsPerPage = 5;
 
-  const getExamName = (examId: string) => {
-    const exam = examsData.find((exam) => exam.id === examId);
-    return exam ? exam.name : "No exam assigned";
-  };
+  // Fetch exams and invitations with proper filtering
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Get session
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          toast.error("You must be logged in");
+          return;
+        }
+
+        // Get institution and department from localStorage for filtering
+        const institutionId = localStorage.getItem("activeInstitutionId");
+        const departmentId = localStorage.getItem("activeDepartmentId");
+
+        // Build query params
+        const params = new URLSearchParams();
+        if (institutionId) {
+          params.append("institutionId", institutionId);
+        }
+        if (departmentId && departmentId !== "all") {
+          params.append("departmentId", departmentId);
+        }
+
+        const queryString = params.toString();
+
+        // Fetch exams with filters
+        const examsUrl = `/api/exams${queryString ? `?${queryString}` : ""}`;
+        const examsResponse = await fetch(examsUrl, {
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+        });
+
+        if (examsResponse.ok) {
+          const examsData = await examsResponse.json();
+          setExams(examsData);
+        }
+
+        // Fetch departments filtered by active institution
+        const departmentsResponse = await fetch("/api/departments", {
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+        });
+
+        if (departmentsResponse.ok) {
+          const departmentsData = await departmentsResponse.json();
+          // Filter departments by active institution
+          if (institutionId) {
+            const filteredDepartments = departmentsData.filter(
+              (dept: Department) => dept.institution_id === institutionId
+            );
+            setDepartments(filteredDepartments);
+          } else {
+            setDepartments(departmentsData);
+          }
+        }
+
+        // Fetch student invitations with filters
+        const studentsUrl = `/api/students${queryString ? `?${queryString}` : ""}`;
+        const invitationsResponse = await fetch(studentsUrl, {
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+        });
+
+        if (invitationsResponse.ok) {
+          const invitationsData = await invitationsResponse.json();
+          setInvitations(invitationsData);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleDepartmentChange = () => {
+      fetchData();
+    };
+
+    fetchData(); // Initial load
+
+    // Listen ONLY for department changes (not institution changes)
+    // Institution change is followed by department selection, so we wait for that
+    window.addEventListener("departmentChanged", handleDepartmentChange);
+
+    return () => {
+      window.removeEventListener("departmentChanged", handleDepartmentChange);
+    };
+  }, []);
+
+  // Transform invitations to Student format for display
+  const processedStudents = useMemo(() => {
+    return invitations.map((invitation) => {
+      // Map database status to display status
+      let displayStatus: "active" | "pending" | "suspended" = "pending";
+      if (invitation.status === "accepted") {
+        displayStatus = "active";
+      } else if (invitation.status === "suspended") {
+        displayStatus = "suspended";
+      }
+
+      return {
+        id: invitation.id,
+        name: `${invitation.first_name} ${invitation.last_name}`,
+        email: invitation.student_email,
+        status: displayStatus,
+        assignedExams: 1,
+        completedExams: 0,
+        averageScore: 0,
+        dateJoined: new Date(invitation.created_at),
+        invitedBy: invitation.teacher?.email || "Unknown",
+        profileImage: undefined,
+        studentId: invitation.id.slice(0, 8).toUpperCase(),
+        department: invitation.departments?.name || "Not assigned",
+        assignedExam: invitation.exams?.title || "No exam assigned",
+        departmentId: invitation.departments?.id || "",
+        examId: invitation.exams?.id || "",
+      };
+    });
+  }, [invitations]);
 
   const filteredAndSortedStudents = useMemo(() => {
-    const filtered = students.filter((student) => {
+    const filtered = processedStudents.filter((student) => {
       const matchesSearch =
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -223,7 +384,14 @@ export default function TeacherStudentsPage() {
     });
 
     return filtered;
-  }, [students, searchTerm, statusFilter, dateFilter, sortField, sortOrder]);
+  }, [
+    processedStudents,
+    searchTerm,
+    statusFilter,
+    dateFilter,
+    sortField,
+    sortOrder,
+  ]);
 
   const totalPages = Math.ceil(filteredAndSortedStudents.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -233,12 +401,19 @@ export default function TeacherStudentsPage() {
   );
 
   const stats = useMemo(() => {
-    const total = students.length;
-    const active = students.filter((s) => s.status === "active").length;
-    const pending = students.filter((s) => s.status === "pending").length;
+    const total = processedStudents.length;
+    const active = processedStudents.filter(
+      (s) => s.status === "active"
+    ).length;
+    const pending = processedStudents.filter(
+      (s) => s.status === "pending"
+    ).length;
+    const suspended = processedStudents.filter(
+      (s) => s.status === "suspended"
+    ).length;
 
-    return { total, active, pending };
-  }, [students]);
+    return { total, active, pending, suspended };
+  }, [processedStudents]);
 
   const resetAllFilters = () => {
     setSearchTerm("");
@@ -271,8 +446,8 @@ export default function TeacherStudentsPage() {
       firstName: firstName || "",
       lastName: lastName || "",
       email: student.email,
-      department: student.department || "",
-      selectedExam: student.assignedExam || "",
+      department: student.departmentId || "",
+      selectedExam: student.examId || "",
       expirationDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
@@ -292,41 +467,91 @@ export default function TeacherStudentsPage() {
     handleDeleteSingle(student);
   };
 
-  const handleAddStudent = (studentData: {
+  const handleSendStudentInvitation = async (studentData: {
+    id?: string;
     firstName: string;
     lastName: string;
     email: string;
-    department: string;
-    selectedExam: string;
+    examId: string;
+    departmentId: string;
     expirationDate: string;
-  }) => {
-    if (editingStudent) {
-      const updatedStudent: Student = {
-        ...students.find((s) => s.id === editingStudent.id)!,
-        name: `${studentData.firstName} ${studentData.lastName}`,
-        email: studentData.email,
-        department: studentData.department,
-        assignedExam: studentData.selectedExam,
-      };
-      setStudents((prev) =>
-        prev.map((s) => (s.id === editingStudent.id ? updatedStudent : s))
+  }): Promise<{ success: boolean; error?: string }> => {
+    const isEditing = !!studentData.id;
+    const loadingToast = toast.loading(
+      isEditing ? "Updating student..." : "Sending invitation..."
+    );
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.dismiss(loadingToast);
+        toast.error("You must be logged in");
+        return { success: false, error: "Not authenticated" };
+      }
+
+      const response = await fetch("/api/students", {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify(studentData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.dismiss(loadingToast);
+        toast.error(
+          result.error ||
+            (isEditing
+              ? "Failed to update student"
+              : "Failed to send invitation")
+        );
+        return { success: false, error: result.error || "Operation failed" };
+      }
+
+      // Refresh invitations list with filters
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      const departmentId = localStorage.getItem("activeDepartmentId");
+
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.append("institutionId", institutionId);
+      }
+      if (departmentId && departmentId !== "all") {
+        params.append("departmentId", departmentId);
+      }
+
+      const queryString = params.toString();
+      const studentsUrl = `/api/students${queryString ? `?${queryString}` : ""}`;
+
+      const invitationsResponse = await fetch(studentsUrl, {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (invitationsResponse.ok) {
+        const invitationsData = await invitationsResponse.json();
+        setInvitations(invitationsData);
+      }
+
+      toast.dismiss(loadingToast);
+      toast.success(
+        isEditing
+          ? "Student updated successfully"
+          : `Student invitation sent successfully to ${studentData.email}`
       );
-      setEditingStudent(null);
-    } else {
-      const newStudent: Student = {
-        id: Date.now().toString(),
-        name: `${studentData.firstName} ${studentData.lastName}`,
-        email: studentData.email,
-        status: "pending",
-        assignedExams: 1,
-        completedExams: 0,
-        averageScore: 0,
-        dateJoined: new Date(),
-        studentId: `STU${Date.now().toString().slice(-6)}`,
-        department: studentData.department,
-        assignedExam: studentData.selectedExam,
-      };
-      setStudents((prev) => [newStudent, ...prev]);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error:", error);
+      toast.dismiss(loadingToast);
+      toast.error(
+        isEditing ? "Failed to update student" : "Failed to send invitation"
+      );
+      return { success: false, error: "Operation failed" };
     }
   };
 
@@ -349,50 +574,145 @@ export default function TeacherStudentsPage() {
   };
 
   const handleDeleteSelected = () => {
-    setStudentToDelete(null);
+    setStudentToDelete(null); // Clear single delete state
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDeleteSelected = () => {
+  const confirmDeleteSelected = async () => {
     const selectedIds = Array.from(selectedRows);
-    setStudents((prev) =>
-      prev.filter((student) => !selectedIds.includes(student.id))
-    );
-    setSelectedRows(new Set());
-    setStudentToDelete(null);
-    const remainingStudents = students.filter(
-      (student) => !selectedIds.includes(student.id)
-    );
-    const newTotalPages = Math.ceil(remainingStudents.length / itemsPerPage);
-    if (currentPage > newTotalPages && newTotalPages > 0) {
-      setCurrentPage(newTotalPages);
+    const loadingToast = toast.loading("Deleting student invitations...");
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.dismiss(loadingToast);
+        toast.error("You must be logged in");
+        return;
+      }
+
+      // Delete selected invitations
+      const response = await fetch("/api/students", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete invitations");
+      }
+
+      // Refresh invitations list with filters
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      const departmentId = localStorage.getItem("activeDepartmentId");
+
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.append("institutionId", institutionId);
+      }
+      if (departmentId && departmentId !== "all") {
+        params.append("departmentId", departmentId);
+      }
+
+      const queryString = params.toString();
+      const studentsUrl = `/api/students${queryString ? `?${queryString}` : ""}`;
+
+      const invitationsResponse = await fetch(studentsUrl, {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (invitationsResponse.ok) {
+        const invitationsData = await invitationsResponse.json();
+        setInvitations(invitationsData);
+      }
+
+      setSelectedRows(new Set());
+      setStudentToDelete(null);
+      setIsDeleteModalOpen(false);
+
+      toast.dismiss(loadingToast);
+      toast.success(
+        `${selectedIds.length} student invitation(s) deleted successfully`
+      );
+    } catch (error) {
+      console.error("Error deleting invitations:", error);
+      toast.dismiss(loadingToast);
+      toast.error("Failed to delete invitations");
     }
   };
 
   const handleDeleteSingle = (student: Student) => {
-    setSelectedRows(new Set());
+    setSelectedRows(new Set()); // Clear bulk selection state
     setStudentToDelete(student);
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDeleteSingle = () => {
+  const confirmDeleteSingle = async () => {
     if (!studentToDelete) return;
 
-    setStudents((prev) =>
-      prev.filter((student) => student.id !== studentToDelete.id)
-    );
-    if (selectedRows.has(studentToDelete.id)) {
-      const newSelection = new Set(selectedRows);
-      newSelection.delete(studentToDelete.id);
-      setSelectedRows(newSelection);
-    }
-    setStudentToDelete(null);
-    const remainingStudents = students.filter(
-      (student) => student.id !== studentToDelete.id
-    );
-    const newTotalPages = Math.ceil(remainingStudents.length / itemsPerPage);
-    if (currentPage > newTotalPages && newTotalPages > 0) {
-      setCurrentPage(newTotalPages);
+    const loadingToast = toast.loading("Deleting student invitation...");
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.dismiss(loadingToast);
+        toast.error("You must be logged in");
+        return;
+      }
+
+      // Delete the invitation
+      const response = await fetch("/api/students", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({ ids: [studentToDelete.id] }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete invitation");
+      }
+
+      // Refresh invitations list with filters
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      const departmentId = localStorage.getItem("activeDepartmentId");
+
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.append("institutionId", institutionId);
+      }
+      if (departmentId && departmentId !== "all") {
+        params.append("departmentId", departmentId);
+      }
+
+      const queryString = params.toString();
+      const studentsUrl = `/api/students${queryString ? `?${queryString}` : ""}`;
+
+      const invitationsResponse = await fetch(studentsUrl, {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (invitationsResponse.ok) {
+        const invitationsData = await invitationsResponse.json();
+        setInvitations(invitationsData);
+      }
+
+      setStudentToDelete(null);
+      setIsDeleteModalOpen(false);
+
+      toast.dismiss(loadingToast);
+      toast.success("Student invitation deleted successfully");
+    } catch (error) {
+      console.error("Error deleting invitation:", error);
+      toast.dismiss(loadingToast);
+      toast.error("Failed to delete invitation");
     }
   };
 
@@ -489,7 +809,7 @@ export default function TeacherStudentsPage() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px]" size="lg">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -500,7 +820,7 @@ export default function TeacherStudentsPage() {
                 </SelectContent>
               </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px]" size="lg">
                   <SelectValue placeholder="Filter by date" />
                 </SelectTrigger>
                 <SelectContent>
@@ -584,7 +904,9 @@ export default function TeacherStudentsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedStudents.length === 0 ? (
+                    {loading ? (
+                      <StudentTableSkeleton />
+                    ) : paginatedStudents.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7}>
                           <EmptyState onReset={resetAllFilters} />
@@ -661,9 +983,7 @@ export default function TeacherStudentsPage() {
                               {student.department || "Not assigned"}
                             </TableCell>
                             <TableCell className="border-r">
-                              {student.assignedExam
-                                ? getExamName(student.assignedExam)
-                                : "No exam assigned"}
+                              {student.assignedExam || "No exam assigned"}
                             </TableCell>
                             <TableCell>{student.averageScore}%</TableCell>
                           </motion.tr>
@@ -724,15 +1044,18 @@ export default function TeacherStudentsPage() {
         </Card>
       </motion.div>
 
+      {/* Add Student Dialog */}
       <AddStudentDialog
         isOpen={isAddStudentOpen}
+        exams={exams}
+        departments={departments}
         onOpenChange={(open) => {
           setIsAddStudentOpen(open);
           if (!open) {
             setEditingStudent(null);
           }
         }}
-        onSaveStudent={handleAddStudent}
+        onSendInvitation={handleSendStudentInvitation}
         editStudent={editingStudent}
       />
 
@@ -748,7 +1071,9 @@ export default function TeacherStudentsPage() {
       <WarningDialog
         open={isDeleteModalOpen && selectedRows.size > 0}
         onOpenChange={setIsDeleteModalOpen}
-        title="Confirm Bulk Deletion"
+        title={
+          selectedRows.size > 1 ? "Confirm Bulk Deletion" : "Confirm Deletion"
+        }
         description={`Are you sure you want to delete ${
           selectedRows.size
         } selected student${
@@ -766,7 +1091,7 @@ export default function TeacherStudentsPage() {
           <p className="text-sm font-medium mb-2">Students to be deleted:</p>
           <div className="space-y-1">
             {Array.from(selectedRows).map((studentId) => {
-              const student = students.find((s) => s.id === studentId);
+              const student = processedStudents.find((s) => s.id === studentId);
               return student ? (
                 <div key={studentId} className="flex items-center gap-2">
                   <Avatar className="h-6 w-6">

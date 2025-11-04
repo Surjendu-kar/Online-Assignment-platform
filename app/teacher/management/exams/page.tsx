@@ -125,7 +125,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
-export default function ExamsPage() {
+export default function TeacherExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -140,9 +140,6 @@ export default function ExamsPage() {
   const [isDialogLoading, setIsDialogLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [departments, setDepartments] = useState<Map<string, string>>(
-    new Map()
-  );
-  const [creatorEmails, setCreatorEmails] = useState<Map<string, string>>(
     new Map()
   );
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -194,9 +191,6 @@ export default function ExamsPage() {
       if (institutionId) {
         await fetchDepartmentNames(institutionId);
       }
-
-      // Fetch creator emails for the exams
-      await fetchCreatorEmails(data);
     } catch (error) {
       console.log(error);
 
@@ -223,41 +217,6 @@ export default function ExamsPage() {
       }
     } catch (error) {
       console.error("Error fetching department names:", error);
-    }
-  };
-
-  // Fetch creator emails for mapping
-  const fetchCreatorEmails = async (exams: Exam[]) => {
-    try {
-      // Extract unique creator IDs from exams
-      const creatorIds = [
-        ...new Set(exams.map((exam) => exam.created_by).filter(Boolean)),
-      ] as string[];
-
-      if (creatorIds.length === 0) {
-        return;
-      }
-
-      // Fetch user profiles for these IDs
-      const { data: profiles, error } = await supabase
-        .from("user_profiles")
-        .select("id, email")
-        .in("id", creatorIds);
-
-      if (error) {
-        console.error("Error fetching creator emails:", error);
-        return;
-      }
-
-      if (profiles) {
-        const emailMap = new Map<string, string>();
-        profiles.forEach((profile: { id: string; email: string }) => {
-          emailMap.set(profile.id, profile.email);
-        });
-        setCreatorEmails(emailMap);
-      }
-    } catch (error) {
-      console.error("Error fetching creator emails:", error);
     }
   };
 
@@ -579,7 +538,7 @@ export default function ExamsPage() {
       setExamsToDelete([]);
       await fetchExams();
     } catch (error) {
-      console.error("[ExamsPage] Error deleting exams:", error);
+      console.error("[TeacherExamsPage] Error deleting exams:", error);
       if (loadingToastId) toast.dismiss(loadingToastId); // Dismiss if it exists
       toast.error("Failed to delete exams");
     } finally {
@@ -770,11 +729,6 @@ export default function ExamsPage() {
                           <span>Department</span>
                         </div>
                       </TableHead>
-                      <TableHead className="resize-x overflow-hidden min-w-[180px] border-r">
-                        <div className="flex items-center space-x-2">
-                          <span>Created By</span>
-                        </div>
-                      </TableHead>
                       <TableHead className="resize-x overflow-hidden min-w-[100px] border-r">
                         <div className="flex items-center space-x-2">
                           <span>Duration</span>
@@ -811,7 +765,7 @@ export default function ExamsPage() {
                       <ExamTableSkeleton />
                     ) : paginatedExams.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8}>
+                        <TableCell colSpan={7}>
                           <EmptyState onReset={resetAllFilters} />
                         </TableCell>
                       </TableRow>
@@ -855,12 +809,6 @@ export default function ExamsPage() {
                             <TableCell className="border-r">
                               <span className="text-sm">
                                 {departments.get(exam.department_id || "") ||
-                                  "Unknown"}
-                              </span>
-                            </TableCell>
-                            <TableCell className="border-r">
-                              <span className="text-sm text-muted-foreground">
-                                {creatorEmails.get(exam.created_by || "") ||
                                   "Unknown"}
                               </span>
                             </TableCell>
