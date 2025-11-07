@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PublicNavbar } from "@/components/PublicNavbar";
+import SmoothScrollProvider from "@/components/SmoothScrollProvider";
 
 export const metadata: Metadata = {
   title: {
@@ -53,10 +54,12 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen">
-      <PublicNavbar />
-      <main>{children}</main>
-      {/* Footer will be added here in Task 3 */}
-    </div>
+    <SmoothScrollProvider>
+      <div className="min-h-screen">
+        <PublicNavbar />
+        <main>{children}</main>
+        {/* Footer will be added here in Task 3 */}
+      </div>
+    </SmoothScrollProvider>
   );
 }

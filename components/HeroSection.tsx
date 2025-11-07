@@ -5,7 +5,7 @@ import React from "react";
 
 export default function HeroSection() {
   return (
-    <div className="w-full min-h-screen relative bg-background">
+    <div className="w-full min-h-screen relative bg-background" data-scroll-section>
       {/* Background Light Rays */}
       <LightRays
         raysOrigin="top-center"
@@ -21,10 +21,10 @@ export default function HeroSection() {
       />
 
       {/* Hero Content */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-4">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-4" data-scroll data-scroll-speed="0.2">
         <div className="flex flex-col items-center justify-center">
           {/* Main Heading */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-center relative z-20 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-4">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-center relative z-20 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-4" data-scroll data-scroll-speed="0.5">
             Transform How Your Institution
             <br />
             Conducts Exams
