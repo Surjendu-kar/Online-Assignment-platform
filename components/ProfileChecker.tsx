@@ -16,13 +16,18 @@ export const ProfileChecker = ({ children }: ProfileCheckerProps) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Paths where we don't want to show the setup dialog
+  // Paths where we don't want to show the setup dialog or authentication checks
   const excludedPaths = ["/login", "/signup", "/auth", "/student-invitation", "/teacher-invitation"];
+
+  // Public routes that should be accessible without authentication
+  // Note: Route groups like (public) don't appear in URLs, so we check specific public paths
+  const publicRoutes = ["/", "/features", "/about", "/contact", "/legal"];
+  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
 
   useEffect(() => {
     const checkProfile = async () => {
-      // Skip profile check on excluded paths
-      if (excludedPaths.some(path => pathname.startsWith(path))) {
+      // Skip profile check on excluded paths and public routes
+      if (excludedPaths.some(path => pathname.startsWith(path)) || isPublicRoute) {
         return;
       }
 
@@ -70,7 +75,7 @@ export const ProfileChecker = ({ children }: ProfileCheckerProps) => {
 
     checkProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, isPublicRoute]);
 
   const handleSetupComplete = () => {
     setShowSetup(false);
