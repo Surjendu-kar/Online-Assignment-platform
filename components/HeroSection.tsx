@@ -1,9 +1,29 @@
 "use client";
 import LightRays from "@/components/ui/LightRays";
 import { SparklesCore } from "@/components/ui/sparkles";
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 export default function HeroSection() {
+  const [rayLength, setRayLength] = useState(1.4);
+
+  useEffect(() => {
+    const updateRayLength = () => {
+      // sm breakpoint is 640px in Tailwind
+      if (window.innerWidth < 640) {
+        setRayLength(3);
+      } else {
+        setRayLength(1.4);
+      }
+    };
+
+    // Set initial value
+    updateRayLength();
+
+    // Update on resize
+    window.addEventListener("resize", updateRayLength);
+    return () => window.removeEventListener("resize", updateRayLength);
+  }, []);
+
   return (
     <div className="w-full min-h-screen relative bg-background" data-scroll-section>
       {/* Background Light Rays */}
@@ -12,7 +32,7 @@ export default function HeroSection() {
         raysColor="#ffffff"
         raysSpeed={1.5}
         lightSpread={0.8}
-        rayLength={1.4}
+        rayLength={rayLength}
         followMouse={true}
         mouseInfluence={0.1}
         noiseAmount={0.1}
