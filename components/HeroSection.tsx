@@ -166,6 +166,8 @@ export default function HeroSection() {
           repeatType: "reverse",
         }}
         className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 cursor-pointer"
+        data-scroll
+        data-scroll-speed="0.5"
       >
         <span className="text-xs text-muted-foreground font-medium">
           Scroll to explore
@@ -184,13 +186,17 @@ export default function HeroSection() {
       </motion.div>
 
       {/* Card Swap - Dashboard Previews - Right Side */}
-      <div className="relative h-[450px] pointer-events-none top-30">
+      <div
+        className="relative h-[450px] pointer-events-none top-30"
+        data-scroll
+        data-scroll-speed="0.2"
+      >
         <CardSwap
           width={700}
           height={450}
           cardDistance={60}
           verticalDistance={70}
-          delay={4000}
+          delay={3000}
           pauseOnHover={true}
           easing="elastic"
         >
