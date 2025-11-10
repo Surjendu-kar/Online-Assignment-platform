@@ -71,7 +71,7 @@ export default function FAQSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 leading-tight pb-1">
             Frequently Asked Questions
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl">
