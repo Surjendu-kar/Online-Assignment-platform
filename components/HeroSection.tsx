@@ -44,7 +44,7 @@ export default function HeroSection() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-4" data-scroll data-scroll-speed="0.2">
         <div className="flex flex-col items-center justify-center">
           {/* Main Heading */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-center relative z-20 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-4" data-scroll data-scroll-speed="0.5">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-center relative z-20 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-4" data-scroll data-scroll-speed="0.1">
             Transform How Your Institution
             <br />
             Conducts Exams

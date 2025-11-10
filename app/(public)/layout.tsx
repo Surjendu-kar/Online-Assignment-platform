@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PublicNavbar } from "@/components/PublicNavbar";
+import Footer from "@/components/Footer";
 import SmoothScrollProvider from "@/components/SmoothScrollProvider";
 
 export const metadata: Metadata = {
@@ -58,7 +59,7 @@ export default function PublicLayout({
       <div className="min-h-screen">
         <PublicNavbar />
         <main>{children}</main>
-        {/* Footer will be added here in Task 3 */}
+        <Footer />
       </div>
     </SmoothScrollProvider>
   );
