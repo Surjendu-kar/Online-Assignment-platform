@@ -15,8 +15,8 @@ import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/t
 import Link from "next/link";
 
 const navItems = [
-  { name: "Home", link: "#hero" },
-  { name: "Features", link: "#features" },
+  { name: "Home", link: "/" },
+  { name: "Features", link: "/features" },
   { name: "How It Works", link: "#how-it-works" },
   { name: "Demo", link: "#demo" },
 ];
