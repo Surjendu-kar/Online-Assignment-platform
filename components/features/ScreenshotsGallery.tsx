@@ -12,7 +12,6 @@ import {
   Tablet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 const screenshots = [
   {
@@ -27,8 +26,7 @@ const screenshots = [
   {
     id: 2,
     title: "Exam Creation Wizard",
-    description:
-      "Step-by-step exam builder with multi-question type support",
+    description: "Step-by-step exam builder with multi-question type support",
     category: "Teacher",
     image: "/screenshots/exam-creation.png",
     placeholder: "bg-gradient-to-br from-purple-500 to-pink-500",

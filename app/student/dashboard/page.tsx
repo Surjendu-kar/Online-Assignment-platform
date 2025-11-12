@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   BookOpen,
   Clock,
@@ -23,7 +22,6 @@ import {
   Calendar,
   Trophy,
   Target,
-  Users,
   Play,
   FileText,
 } from "lucide-react";
@@ -257,7 +255,6 @@ function ActivityItem({ activity }: { activity: RecentActivity }) {
 }
 
 export default function StudentDashboard() {
-  const router = useRouter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [studentData, setStudentData] = useState({

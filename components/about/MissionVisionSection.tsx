@@ -1,0 +1,92 @@
+"use client";
+
+import React from "react";
+import { motion } from "motion/react";
+import { Target, Telescope, Heart } from "lucide-react";
+
+const cards = [
+  {
+    icon: Target,
+    title: "Our Mission",
+    description:
+      "To democratize access to high-quality online examination tools by providing educational institutions with a secure, efficient, and user-friendly platform that simplifies exam creation, delivery, and grading while maintaining academic integrity.",
+    gradient: "from-blue-500 to-cyan-500",
+  },
+  {
+    icon: Telescope,
+    title: "Our Vision",
+    description:
+      "To become the global standard for online exam management, empowering educators worldwide to focus on teaching while we handle the complexity of assessments. We envision a future where technology seamlessly enhances educational outcomes.",
+    gradient: "from-purple-500 to-pink-500",
+  },
+  {
+    icon: Heart,
+    title: "Our Commitment",
+    description:
+      "We're committed to continuous innovation, unwavering data security, and exceptional customer support. Every feature we build is designed with educators and students in mind, ensuring that assessments are fair, accessible, and meaningful.",
+    gradient: "from-orange-500 to-red-500",
+  },
+];
+
+export default function MissionVisionSection() {
+  return (
+    <section className="w-full py-20 md:py-32 bg-background">
+      <div className="container mx-auto px-4 max-w-7xl">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
+            Who We Are
+          </h2>
+          <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
+            Built by educators and technologists who understand the challenges
+            of modern education
+          </p>
+        </motion.div>
+
+        {/* Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {cards.map((card, index) => {
+            const Icon = card.icon;
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="group"
+              >
+                <div className="h-full rounded-2xl p-8 bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10">
+                  {/* Icon */}
+                  <div
+                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${card.gradient} p-0.5 mb-6 group-hover:scale-110 transition-transform duration-300`}
+                  >
+                    <div className="w-full h-full rounded-2xl bg-background flex items-center justify-center">
+                      <Icon className="w-8 h-8 text-primary" />
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-2xl font-bold text-foreground mb-4">
+                    {card.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-muted-foreground leading-relaxed">
+                    {card.description}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}

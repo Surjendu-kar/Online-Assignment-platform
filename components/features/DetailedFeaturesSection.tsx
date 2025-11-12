@@ -250,9 +250,10 @@ export default function DetailedFeaturesSection() {
             className="text-center"
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-              Powerful Features for Modern Education
+              Powerful Features for <br />
+              Modern Education
             </h1>
-            <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto mb-8">
+            <p className="text-muted-foreground text-md md:text-lg max-w-3xl mx-auto mb-8">
               Everything you need to create, deliver, and grade comprehensive
               online exams with security, efficiency, and ease.
             </p>

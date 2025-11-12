@@ -1,5 +1,4 @@
 import { createRouteClient } from "@/lib/supabaseRouteClient";
-import { supabaseServer as supabase } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 interface Exam {
