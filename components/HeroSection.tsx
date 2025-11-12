@@ -212,7 +212,7 @@ export default function HeroSection() {
             </div>
             <div className="relative flex-1">
               <Image
-                src="/Admin_page.png"
+                src="/Admin_page.webp"
                 alt="Admin Dashboard Preview"
                 fill
                 className="object-cover object-top-left"
@@ -228,7 +228,7 @@ export default function HeroSection() {
             </div>
             <div className="relative flex-1">
               <Image
-                src="/Student_page.png"
+                src="/Student_page.webp"
                 alt="Student Dashboard Preview"
                 fill
                 className="object-cover object-top-left"
@@ -244,7 +244,7 @@ export default function HeroSection() {
             </div>
             <div className="relative flex-1">
               <Image
-                src="/Teacher_page.png"
+                src="/Teacher_page.webp"
                 alt="Teacher Dashboard Preview"
                 fill
                 className="object-cover object-top-left"
