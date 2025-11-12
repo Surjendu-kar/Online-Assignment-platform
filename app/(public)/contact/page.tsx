@@ -7,8 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
-import { Mail, Phone, MapPin, Clock, ChevronDown } from "lucide-react";
-import { Metadata } from "next";
+import { Mail, Phone, Clock, ChevronDown } from "lucide-react";
 
 function ContactPage() {
   const [formData, setFormData] = React.useState({
@@ -92,8 +91,8 @@ function ContactPage() {
             </span>
           </h1>
           <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
-            Have questions about our platform? We're here to help. Send us a
-            message and we'll respond as soon as possible.
+            Have questions about our platform? We&apos;re here to help. Send us
+            a message and we&apos;ll respond as soon as possible.
           </p>
         </motion.div>
 
