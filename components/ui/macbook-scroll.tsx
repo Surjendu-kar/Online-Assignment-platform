@@ -75,10 +75,10 @@ export const MacbookScroll = ({
           translateY: textTransform,
           opacity: textOpacity,
         }}
-        className="mb-20 text-center text-3xl font-bold text-neutral-800 dark:text-white"
+        className="mb-20 text-center"
       >
         {title || (
-          <span>
+          <span className="text-3xl font-bold text-neutral-800 dark:text-white">
             This Macbook is built with Tailwindcss. <br /> No kidding.
           </span>
         )}
@@ -92,10 +92,10 @@ export const MacbookScroll = ({
         translate={translate}
       />
       {/* Base area */}
-      <div className="relative -z-10 h-[22rem] w-[32rem] overflow-hidden rounded-2xl bg-gray-200 dark:bg-[#272729]">
+      <div className="relative -z-10 h-[22rem] w-[32rem] overflow-hidden rounded-2xl bg-gray-400 dark:bg-[#272729]">
         {/* above keyboard bar */}
         <div className="relative h-10 w-full">
-          <div className="absolute inset-x-0 mx-auto h-4 w-[80%] bg-[#050505]" />
+          <div className="absolute inset-x-0 mx-auto h-4 w-[80%] bg-gray-700 dark:bg-[#050505]" />
         </div>
         <div className="relative flex">
           <div className="mx-auto h-full w-[10%] overflow-hidden">
@@ -109,10 +109,10 @@ export const MacbookScroll = ({
           </div>
         </div>
         <Trackpad />
-        <div className="absolute inset-x-0 bottom-0 mx-auto h-2 w-20 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#272729] to-[#050505]" />
-        {showGradient && (
-          <div className="absolute inset-x-0 bottom-0 z-50 h-40 w-full bg-gradient-to-t from-white via-white to-transparent dark:from-black dark:via-black"></div>
-        )}
+        <div className="absolute inset-x-0 bottom-0 mx-auto h-2 w-20 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-gray-400 via-gray-500 to-gray-800 dark:from-[#272729] dark:to-[#050505]" />
+        {/* {showGradient && (
+          <div className="absolute inset-x-0 bottom-0 z-50 h-40 w-full bg-gradient-to-t dark:from-black dark:via-black"></div>
+        )} */}
         {badge && <div className="absolute bottom-4 left-4">{badge}</div>}
       </div>
     </div>
@@ -140,15 +140,15 @@ export const Lid = ({
           transformOrigin: "bottom",
           transformStyle: "preserve-3d",
         }}
-        className="relative h-[14rem] w-[32rem] rounded-2xl bg-[#010101] p-2"
+        className="relative h-[14rem] w-[32rem] rounded-2xl bg-gray-800 dark:bg-[#010101] p-2"
       >
         <div
           style={{
-            boxShadow: "0px 2px 0px 2px #171717 inset",
+            boxShadow: "0px 2px 0px 2px rgba(100,100,100,0.3) inset",
           }}
-          className="absolute inset-0 flex items-center justify-center rounded-lg bg-[#010101]"
+          className="absolute inset-0 flex items-center justify-center rounded-lg bg-gray-800 dark:bg-[#010101]"
         >
-          <span className="text-white">
+          <span className="text-black dark:text-white">
             <AceternityLogo />
           </span>
         </div>
@@ -162,9 +162,9 @@ export const Lid = ({
           transformStyle: "preserve-3d",
           transformOrigin: "top",
         }}
-        className="absolute inset-0 h-[29rem] w-[32rem] rounded-2xl bg-[#010101] p-2"
+        className="absolute inset-0 h-[29rem] w-[32rem] rounded-2xl bg-gray-800 dark:bg-[#010101] p-2"
       >
-        <div className="absolute inset-0 rounded-lg bg-[#272729]" />
+        <div className="absolute inset-0 rounded-lg bg-gray-400 dark:bg-[#272729]" />
         <img
           src={src as string}
           alt="aceternity logo"
@@ -178,9 +178,9 @@ export const Lid = ({
 export const Trackpad = () => {
   return (
     <div
-      className="mx-auto my-1 h-32 w-[40%] rounded-xl"
+      className="mx-auto my-1 h-32 w-[40%] rounded-xl bg-gray-500/10 dark:bg-transparent"
       style={{
-        boxShadow: "0px 0px 1px 1px #00000020 inset",
+        boxShadow: "0px 0px 1px 1px rgba(0,0,0,0.2) inset",
       }}
     ></div>
   );
@@ -188,7 +188,7 @@ export const Trackpad = () => {
 
 export const Keypad = () => {
   return (
-    <div className="mx-1 h-full [transform:translateZ(0)] rounded-md bg-[#050505] p-1 [will-change:transform]">
+    <div className="mx-1 h-full [transform:translateZ(0)] rounded-md bg-gray-500 dark:bg-[#050505] p-1 [will-change:transform]">
       {/* First Row */}
       <div className="mb-[2px] flex w-full shrink-0 gap-[2px]">
         <KBtn
@@ -559,24 +559,24 @@ export const KBtn = ({
     <div
       className={cn(
         "[transform:translateZ(0)] rounded-[4px] p-[0.5px] [will-change:transform]",
-        backlit && "bg-white/[0.2] shadow-xl shadow-white",
+        backlit && "bg-gray-300/30 dark:bg-white/[0.2] shadow-xl shadow-gray-300 dark:shadow-white",
       )}
     >
       <div
         className={cn(
-          "flex h-6 w-6 items-center justify-center rounded-[3.5px] bg-[#0A090D]",
+          "flex h-6 w-6 items-center justify-center rounded-[3.5px] bg-gray-500 dark:bg-[#0A090D]",
           className,
         )}
         style={{
           boxShadow:
-            "0px -0.5px 2px 0 #0D0D0F inset, -0.5px 0px 2px 0 #0D0D0F inset",
+            "0px -0.5px 2px 0 rgba(0,0,0,0.4) inset, -0.5px 0px 2px 0 rgba(0,0,0,0.4) inset",
         }}
       >
         <div
           className={cn(
-            "flex w-full flex-col items-center justify-center text-[5px] text-neutral-200",
+            "flex w-full flex-col items-center justify-center text-[5px] text-white dark:text-neutral-200",
             childrenClassName,
-            backlit && "text-white",
+            backlit && "text-white dark:text-white",
           )}
         >
           {children}

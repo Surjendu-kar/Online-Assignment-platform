@@ -241,7 +241,7 @@ export default function DetailedFeaturesSection() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="w-full py-20 md:pt-62 bg-gradient-to-b from-background via-primary/5 to-background">
+      <section className="w-full py-20 md:pt-62 bg-gray-50 dark:bg-[#020618]">
         <div className="container mx-auto px-4 max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -249,9 +249,14 @@ export default function DetailedFeaturesSection() {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-              Powerful Features for <br />
-              Modern Education
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+              <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
+                Powerful Features for
+              </span>
+              <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
+                Modern Education
+              </span>
             </h1>
             <p className="text-muted-foreground text-md md:text-lg max-w-3xl mx-auto mb-8">
               Everything you need to create, deliver, and grade comprehensive
@@ -262,7 +267,7 @@ export default function DetailedFeaturesSection() {
       </section>
 
       {/* Feature Categories */}
-      <section className="w-full py-20 bg-background">
+      <section className="w-full py-20 bg-gray-50 dark:bg-background">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="space-y-24">
             {featureCategories.map((category, index) => (
@@ -283,7 +288,7 @@ export default function DetailedFeaturesSection() {
       <ScreenshotsGallery />
 
       {/* Integrations Section */}
-      <section className="w-full py-20 bg-gradient-to-b from-background via-primary/5 to-background">
+      <section className="w-full py-20 bg-gray-50 dark:bg-[#020618]">
         <div className="container mx-auto px-4 max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -292,8 +297,11 @@ export default function DetailedFeaturesSection() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-              Powerful Integrations
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4  leading-tight">
+              Powerful
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500 ">
+                {" "}Integrations
+              </span>
             </h2>
             <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
               Seamlessly integrated with industry-leading tools and services

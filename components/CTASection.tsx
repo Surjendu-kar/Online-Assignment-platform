@@ -8,7 +8,7 @@ import Link from "next/link";
 export default function CTASection() {
   return (
     <section
-      className="w-full py-20 md:py-32 bg-background relative overflow-hidden"
+      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background relative overflow-hidden"
       data-scroll-section
     >
       {/* Decorative Elements */}
@@ -28,8 +28,13 @@ export default function CTASection() {
           data-scroll-speed="0.3"
         >
           {/* Heading */}
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-6">
-            Ready to Transform Your Exam Process?
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
+            <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
+              Ready to Transform Your
+            </span>{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
+              Exam Process?
+            </span>
           </h2>
 
           {/* Subheading */}

@@ -57,7 +57,7 @@ export default function FAQSection() {
 
   return (
     <section
-      className="w-full py-20 md:py-32 bg-gradient-to-b from-accent/20 to-background"
+      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-[#020618]"
       data-scroll-section
     >
       <div className="container mx-auto px-4 max-w-4xl">
@@ -71,8 +71,13 @@ export default function FAQSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 leading-tight pb-1">
-            Frequently Asked Questions
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight pb-1">
+            <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
+              Frequently Asked
+            </span>{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
+              Questions
+            </span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl">
             Everything you need to know about our exam platform

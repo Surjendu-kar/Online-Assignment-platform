@@ -40,7 +40,7 @@ export default function AboutHeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-muted-foreground text-lg md:text-xl max-w-4xl mx-auto mb-8 leading-relaxed"
+            className="text-muted-foreground text-lg md:text-xl max-w-5xl mx-auto mb-8 leading-relaxed"
           >
             We&apos;re on a mission to revolutionize online education by providing
             secure, efficient, and comprehensive exam management solutions that

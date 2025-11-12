@@ -46,7 +46,7 @@ const features = [
 export default function FeaturesSection() {
   return (
     <section
-      className="w-full py-20 md:py-32 bg-background"
+      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background"
       data-scroll-section
     >
       <div className="container mx-auto px-4 max-w-7xl">
@@ -60,8 +60,13 @@ export default function FeaturesSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-            Powerful Features for Modern Education
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
+              Powerful Features for
+            </span>{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
+              Modern Education
+            </span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
             Everything you need to create, manage, and grade exams efficiently

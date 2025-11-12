@@ -41,7 +41,7 @@ export default function HowItWorksSection() {
 
   return (
     <section
-      className="w-full py-20 md:py-32 bg-background"
+      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background"
       data-scroll-section
     >
       <div className="container mx-auto px-4 max-w-7xl">
@@ -55,8 +55,11 @@ export default function HowItWorksSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-            How It Works
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            How
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
+              {""} It Works
+            </span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-lg max-w-2xl mx-auto">
             Four simple steps from setup to results
@@ -87,7 +90,7 @@ export default function HowItWorksSection() {
                         transition={{
                           duration: 0.5,
                           delay: lineDelay,
-                          ease: "easeInOut"
+                          ease: "easeInOut",
                         }}
                       />
                     </div>
@@ -101,7 +104,7 @@ export default function HowItWorksSection() {
                     transition={{
                       duration: 0.5,
                       delay: cardDelay,
-                      ease: "easeOut"
+                      ease: "easeOut",
                     }}
                     onMouseEnter={() => setHoveredIndex(index)}
                     onMouseLeave={() => setHoveredIndex(null)}

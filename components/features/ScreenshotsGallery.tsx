@@ -120,7 +120,7 @@ export default function ScreenshotsGallery() {
   }, [lightboxOpen, currentImageIndex]);
 
   return (
-    <section className="w-full py-20 bg-background">
+    <section className="w-full py-20 bg-gray-50 dark:bg-background">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Section Header */}
         <motion.div
@@ -130,8 +130,13 @@ export default function ScreenshotsGallery() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-            Platform Screenshots
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
+              Platform
+            </span>{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
+              Screenshots
+            </span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
             Explore our intuitive interface designed for admins, teachers, and

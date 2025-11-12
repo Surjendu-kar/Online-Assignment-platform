@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import type LocomotiveScroll from "locomotive-scroll";
 
 interface SmoothScrollProviderProps {
@@ -12,6 +13,7 @@ export default function SmoothScrollProvider({
 }: SmoothScrollProviderProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const locomotiveScrollRef = useRef<LocomotiveScroll | null>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     let isMounted = true;
@@ -57,6 +59,16 @@ export default function SmoothScrollProvider({
       }
     };
   }, []);
+
+  // Reset scroll position on route change
+  useEffect(() => {
+    if (locomotiveScrollRef.current) {
+      locomotiveScrollRef.current.scrollTo(0, { immediate: true });
+    } else {
+      // Fallback to native scroll if Locomotive Scroll is not initialized yet
+      window.scrollTo(0, 0);
+    }
+  }, [pathname]);
 
   return (
     <div ref={scrollRef} className="overflow-hidden">
