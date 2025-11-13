@@ -179,7 +179,7 @@ export default function ExamsPage() {
                     className="flex items-center justify-between rounded-lg border p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex-1">
-                      <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center  gap-3 mb-2">
                         <h3 className="font-semibold text-lg">{exam.title}</h3>
                         <Badge className={getStatusColor(exam.status)}>
                           {getStatusLabel(exam.status)}

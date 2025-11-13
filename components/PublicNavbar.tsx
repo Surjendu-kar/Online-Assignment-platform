@@ -21,7 +21,7 @@ const navItems = [
   { name: "About", link: "/about" },
   { name: "Features", link: "/features" },
   { name: "Contact", link: "/contact" },
-  { name: "Demo", link: "#demo" },
+  { name: "Demo", link: "/demo" },
 ];
 
 export function PublicNavbar() {
