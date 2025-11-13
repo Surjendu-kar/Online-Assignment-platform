@@ -1,5 +1,6 @@
 // app/api/exams/[id]/route.ts
 import { createRouteClient } from "@/lib/supabaseRouteClient";
+import { supabaseServer } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 const convertLocalToUTCISO = (localDatetimeString: string): string | null => {
@@ -33,6 +34,17 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get user profile to check role
+    const { data: profile, error: profileError } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
     // Get exam details
     const { data: exam, error: examError } = await supabase
       .from("exams")
@@ -44,21 +56,26 @@ export async function GET(
       return NextResponse.json({ error: "Exam not found" }, { status: 404 });
     }
 
+    // Determine which client to use for fetching questions
+    // Admins need service role to bypass RLS and see all questions
+    // Teachers/Students use regular client with RLS
+    const questionClient = profile.role === "admin" ? supabaseServer : supabase;
+
     // Get all questions for the exam
     const [mcqRes, saqRes, codingRes] = await Promise.all([
-      supabase
+      questionClient
         .from("mcq")
         .select("*")
         .eq("exam_id", examId)
         .is("user_id", null)
         .order("question_order"),
-      supabase
+      questionClient
         .from("saq")
         .select("*")
         .eq("exam_id", examId)
         .is("user_id", null)
         .order("question_order"),
-      supabase
+      questionClient
         .from("coding")
         .select("*")
         .eq("exam_id", examId)
@@ -130,14 +147,33 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user owns the exam
+    // Get user profile to check role
+    const { data: profile, error: profileError } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
+    // Check if user owns the exam (not required for admins)
     const { data: exam, error: checkError } = await supabase
       .from("exams")
       .select("created_by")
       .eq("id", examId)
       .single();
 
-    if (checkError || !exam || exam.created_by !== user.id) {
+    if (checkError || !exam) {
+      return NextResponse.json(
+        { error: "Exam not found" },
+        { status: 404 }
+      );
+    }
+
+    // Only admins can edit any exam, others can only edit their own
+    if (profile.role !== "admin" && exam.created_by !== user.id) {
       return NextResponse.json(
         { error: "Unauthorized to edit this exam" },
         { status: 403 }
@@ -194,11 +230,15 @@ export async function PUT(
       );
     }
 
+    // Determine which client to use for question operations
+    // Admins need service role to bypass RLS and modify all questions
+    const questionClient = profile.role === "admin" ? supabaseServer : supabase;
+
     // Delete existing questions
     await Promise.all([
-      supabase.from("mcq").delete().eq("exam_id", examId).is("user_id", null),
-      supabase.from("saq").delete().eq("exam_id", examId).is("user_id", null),
-      supabase
+      questionClient.from("mcq").delete().eq("exam_id", examId).is("user_id", null),
+      questionClient.from("saq").delete().eq("exam_id", examId).is("user_id", null),
+      questionClient
         .from("coding")
         .delete()
         .eq("exam_id", examId)
@@ -209,7 +249,7 @@ export async function PUT(
     if (questions && questions.length > 0) {
       for (const question of questions) {
         if (question.type === "mcq") {
-          await supabase.from("mcq").insert({
+          await questionClient.from("mcq").insert({
             exam_id: examId,
             question_text: question.question,
             options: question.options,
@@ -218,7 +258,7 @@ export async function PUT(
             question_order: question.order || questions.indexOf(question) + 1,
           });
         } else if (question.type === "saq") {
-          await supabase.from("saq").insert({
+          await questionClient.from("saq").insert({
             exam_id: examId,
             question_text: question.question,
             grading_guidelines: question.gradingGuidelines,
@@ -226,7 +266,7 @@ export async function PUT(
             question_order: question.order || questions.indexOf(question) + 1,
           });
         } else if (question.type === "coding") {
-          await supabase.from("coding").insert({
+          await questionClient.from("coding").insert({
             exam_id: examId,
             question_text: question.question,
             starter_code: question.codeTemplate,
@@ -266,14 +306,33 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user owns the exam
+    // Get user profile to check role
+    const { data: profile, error: profileError } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
+    // Check if user owns the exam (not required for admins)
     const { data: exam, error: checkError } = await supabase
       .from("exams")
       .select("created_by")
       .eq("id", examId)
       .single();
 
-    if (checkError || !exam || exam.created_by !== user.id) {
+    if (checkError || !exam) {
+      return NextResponse.json(
+        { error: "Exam not found" },
+        { status: 404 }
+      );
+    }
+
+    // Only admins can delete any exam, others can only delete their own
+    if (profile.role !== "admin" && exam.created_by !== user.id) {
       return NextResponse.json(
         { error: "Unauthorized to delete this exam" },
         { status: 403 }

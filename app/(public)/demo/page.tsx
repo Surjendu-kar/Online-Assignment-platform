@@ -9,7 +9,6 @@ import {
   ChevronRight,
   ChevronLeft,
   Check,
-  Play,
   Shield,
   BarChart3,
   FileEdit,
@@ -26,7 +25,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import Link from "next/link";
 import { LucideIcon } from "lucide-react";
 
 // Type definitions
@@ -732,7 +730,7 @@ export default function DemoPage() {
 
             {/* Image Title */}
             <div
-              className="absolute top-4 left-4 bg-black/50 text-white px-6 py-3 rounded-lg z-50 max-w-4xl"
+              className="absolute top-4 left-4 bg-transparent dark:bg-black/50 text-white px-6 py-3 rounded-lg z-50 max-w-4xl"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="font-semibold text-lg mb-1">
