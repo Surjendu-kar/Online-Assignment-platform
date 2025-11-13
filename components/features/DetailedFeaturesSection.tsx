@@ -4,7 +4,6 @@ import React from "react";
 import { motion } from "motion/react";
 import FeatureCategoryCard from "./FeatureCategoryCard";
 import UseCasesSection from "./UseCasesSection";
-import ScreenshotsGallery from "./ScreenshotsGallery";
 import {
   FileEdit,
   Shield,
@@ -283,9 +282,6 @@ export default function DetailedFeaturesSection() {
 
       {/* Use Cases Section */}
       <UseCasesSection />
-
-      {/* Screenshots Gallery */}
-      <ScreenshotsGallery />
 
       {/* Integrations Section */}
       <section className="w-full py-20 bg-gray-50 dark:bg-[#020618]">

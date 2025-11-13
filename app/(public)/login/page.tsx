@@ -21,32 +21,32 @@ function Login() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const { data, error } = await signIn(email, password);
-      
+
       if (error) {
         toast.error(error.message || "Failed to sign in");
         setLoading(false);
         return;
       }
-      
+
       if (data?.user) {
         // Get user role from localStorage (set in signIn function)
         const userRole = localStorage.getItem('userRole') || 'student';
-        
+
         // Use existing getRedirectPath function with the correct parameter
         const redirectPath = getRedirectPath({ role: userRole });
         console.log("Redirecting to:", redirectPath);
-        
+
         // Trigger redirect animation
         setIsRedirecting(true);
-        
+
         // Redirect after animation completes
         setTimeout(() => {
           router.push(redirectPath);
         }, 300);
-        
+
         toast.success("Signed in successfully");
       }
     } catch (error) {
@@ -66,8 +66,8 @@ function Login() {
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
-        animate={isRedirecting ? 
-          { opacity: 0, scale: 0.95, filter: "blur(10px)" } : 
+        animate={isRedirecting ?
+          { opacity: 0, scale: 0.95, filter: "blur(10px)" } :
           { scale: 1, opacity: 1 }
         }
         transition={{ duration: 0.3 }}

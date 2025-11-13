@@ -80,7 +80,7 @@ export default function HeroSection() {
 
       {/* Hero Content - Left Side */}
       <div
-        className="absolute top-1/2 left-8 md:left-16 lg:left-24 -translate-y-1/2 max-w-2xl z-20"
+        className="absolute top-1/2 left-6 md:left-16 lg:left-24 -translate-y-1/2 max-w-2xl z-20"
         data-scroll
         data-scroll-speed="0.2"
       >
@@ -90,7 +90,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-4xl md:text-5xl lg:text-5xl font-bold text-left relative z-20 mb-6 leading-[1.1]"
+            className="text-3xl md:text-5xl lg:text-5xl font-bold text-left relative z-20 mb-6 leading-[1.1]"
             data-scroll
             data-scroll-speed="0.1"
           >
@@ -108,7 +108,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-muted-foreground text-lg md:text-[15px] text-left max-w-xl mb-4 relative z-20 leading-relaxed"
+            className="text-muted-foreground text-sm pr-4 md:pr-0 md:text-[15px] text-left max-w-xl mb-4 relative z-20 leading-relaxed"
           >
             Streamline exam creation, proctoring, and grading with our advanced
             platform powered by AI-driven insights and real-time monitoring.
@@ -142,17 +142,17 @@ export default function HeroSection() {
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                <span className="text-[14px]">{feature}</span>
+                <span className="text-[13px] md:text-[14px]">{feature}</span>
               </motion.div>
             ))}
           </motion.div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 relative z-20">
-            <button className="cursor-pointer px-8 py-4 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all hover:scale-105 shadow-lg hover:shadow-xl">
+          <div className="flex gap-4 relative z-20">
+            <button className="cursor-pointer text-sm md:text-md px-4 md:px-8 py-3 md:py-4 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all hover:scale-105 shadow-lg hover:shadow-xl">
               Get Started Free
             </button>
-            <button className="cursor-pointer px-8 py-4 rounded-lg border border-border bg-background/50 backdrop-blur-sm font-semibold hover:bg-card transition-all hover:scale-105">
+            <button className="cursor-pointer text-sm md:text-md px-4 md:px-8 py-3  md:py-4 rounded-lg border border-border bg-background/50 backdrop-blur-sm font-semibold hover:bg-card transition-all hover:scale-105">
               Watch Demo
             </button>
           </div>
@@ -169,7 +169,7 @@ export default function HeroSection() {
           repeat: Infinity,
           repeatType: "reverse",
         }}
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 cursor-pointer"
+        className="absolute hidden bottom-5 left-1/2 -translate-x-1/2 z-20 md:flex flex-col items-center gap-2 cursor-pointer"
         data-scroll
         data-scroll-speed="0.5"
       >
@@ -191,7 +191,7 @@ export default function HeroSection() {
 
       {/* Card Swap - Dashboard Previews - Right Side */}
       <div
-        className="relative h-[450px] pointer-events-none top-30"
+        className="relative hidden md:block h-[450px] pointer-events-none top-30"
         data-scroll
         data-scroll-speed="0.2"
       >
