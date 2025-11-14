@@ -43,7 +43,7 @@ export default function TestimonialsSection() {
       className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background"
       data-scroll-section
     >
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="container mx-auto px-2 md:px-0 max-w-7xl">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

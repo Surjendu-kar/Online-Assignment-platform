@@ -44,7 +44,7 @@ export default function HowItWorksSection() {
       className="w-full pt-20 pb-0 md:py-32 bg-gray-50 dark:bg-background"
       data-scroll-section
     >
-      <div className="container mx-auto px-6 md:px-4 max-w-7xl">
+      <div className="container mx-auto px-4 md:px-0 max-w-7xl">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

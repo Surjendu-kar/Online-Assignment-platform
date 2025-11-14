@@ -72,7 +72,7 @@ export const MacbookScroll = ({
             translateY: textTransform,
             opacity: textOpacity,
           }}
-          className="mb-8 md:mb-20 text-center text-3xl md:text-4xl lg:text-5xl font-bold px-4"
+          className="mb-8 md:mb-20 text-center text-3xl md:text-4xl lg:text-5xl font-bold px-2 md:px-0"
         >
           {title}
         </motion.h2>
