@@ -238,37 +238,11 @@ const integrations = [
 
 export default function DetailedFeaturesSection() {
   return (
-    <div className="w-full">
-      {/* Hero Section */}
-      <section className="w-full py-20 md:pt-62 bg-gray-50 dark:bg-[#020618]">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
-          >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-              <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-                Powerful Features for
-              </span>
-              <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
-                Modern Education
-              </span>
-            </h1>
-            <p className="text-muted-foreground text-md md:text-lg max-w-3xl mx-auto mb-8">
-              Everything you need to create, deliver, and grade comprehensive
-              online exams with security, efficiency, and ease.
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
+    <div className="w-full h-full">
       {/* Feature Categories */}
       <section className="w-full py-20 bg-gray-50 dark:bg-background">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="space-y-24">
+          <div className="space-y-12 md:space-y-24">
             {featureCategories.map((category, index) => (
               <FeatureCategoryCard
                 key={index}
@@ -284,27 +258,28 @@ export default function DetailedFeaturesSection() {
       <UseCasesSection />
 
       {/* Integrations Section */}
-      <section className="w-full py-20 bg-gray-50 dark:bg-[#020618]">
-        <div className="container mx-auto px-4 max-w-7xl">
+      <section className="w-full py-10 md:py-20 bg-gray-50 dark:bg-[#020618]">
+        <div className="container mx-auto md:px-0 px-4 max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-10 md:mb-16"
           >
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4  leading-tight">
+            <h2 className="text-3xl md:text-5xl font-bold mb-2 md:mb-4  leading-tight">
               Powerful
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500 ">
-                {" "}Integrations
+                {" "}
+                Integrations
               </span>
             </h2>
-            <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
+            <p className="text-muted-foreground md:text-lg text-sm max-w-3xl mx-auto">
               Seamlessly integrated with industry-leading tools and services
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
             {integrations.map((integration, index) => {
               const Icon = integration.icon;
               return (
@@ -317,15 +292,15 @@ export default function DetailedFeaturesSection() {
                   whileHover={{ scale: 1.05 }}
                   className="relative group cursor-pointer"
                 >
-                  <div className="relative h-full rounded-2xl p-8 bg-card border border-border transition-all duration-300 group-hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/10">
+                  <div className="relative h-full rounded-2xl p-4 md:p-8 bg-card border border-border transition-all duration-300 group-hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/10">
                     <div className="flex flex-col items-center text-center">
-                      <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center mb-4 group-hover:border-primary group-hover:bg-primary/20 transition-all duration-300">
-                        <Icon className="w-8 h-8 text-primary" />
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center mb-2 md:mb-4 group-hover:border-primary group-hover:bg-primary/20 transition-all duration-300">
+                        <Icon className="w-5 h-5 md:w-8 md:h-8 text-primary" />
                       </div>
-                      <h3 className="text-xl font-bold text-foreground mb-2">
+                      <h3 className="text-lg md:text-xl font-bold text-foreground mb-1 md:mb-2">
                         {integration.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         {integration.description}
                       </p>
                     </div>

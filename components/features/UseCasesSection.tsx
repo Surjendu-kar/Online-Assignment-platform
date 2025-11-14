@@ -145,16 +145,16 @@ export default function UseCasesSection() {
 
   return (
     <section className="w-full py-20 bg-gray-50 dark:bg-[#020618]">
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="container mx-auto px-2 md:px-4 max-w-7xl">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-10 md:mb-16"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+          <h2 className="text-3xl md:text-5xl font-bold mb-4">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Real-World
             </span>{" "}
@@ -162,14 +162,14 @@ export default function UseCasesSection() {
               Use Cases
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-lg max-w-3xl mx-auto">
             See how educators and students use our platform daily to transform
             the examination process
           </p>
         </motion.div>
 
         {/* Role Tabs */}
-        <div className="flex flex-wrap justify-center gap-4 mb-12">
+        <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-8 md:mb-12">
           {useCases.map((useCase, index) => {
             const Icon = useCase.icon;
             const isActive = activeCase === index;
@@ -181,14 +181,16 @@ export default function UseCasesSection() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className={cn(
-                  "flex items-center gap-3 px-6 py-3 rounded-xl border-2 transition-all duration-300",
+                  "flex items-center gap-3 px-4 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl border-2 transition-all duration-300",
                   isActive
                     ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                     : "border-border bg-card hover:border-primary/50"
                 )}
               >
-                <Icon className="w-5 h-5" />
-                <span className="font-semibold">{useCase.role}</span>
+                <Icon className="md:w-5 md:h-5 w-4 h-4" />
+                <span className="text-sm md:text-base font-semibold">
+                  {useCase.role}
+                </span>
               </motion.button>
             );
           })}
@@ -205,25 +207,25 @@ export default function UseCasesSection() {
             className="max-w-5xl mx-auto"
           >
             {/* Persona Card */}
-            <div className="mb-8 p-6 rounded-2xl bg-card border border-border">
-              <div className="flex items-start gap-6">
+            <div className="mb-4 md:mb-8 p-4 md:p-6 rounded-lg md:rounded-2xl bg-card border border-border">
+              <div className="flex items-start gap-4 md:gap-6">
                 <div
                   className={cn(
-                    "flex-shrink-0 w-20 h-20 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-2xl font-bold shadow-lg",
+                    "flex-shrink-0 w-14 h-14 md:w-20 md:h-20 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-base md:text-2xl font-bold shadow-lg",
                     useCases[activeCase].color
                   )}
                 >
                   {useCases[activeCase].persona.avatar}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-foreground mb-1">
+                  <h3 className="text-base md:text-2xl font-bold text-foreground md:mb-1">
                     {useCases[activeCase].persona.name}
                   </h3>
-                  <p className="text-muted-foreground mb-4">
+                  <p className="text-xs md:text-base text-muted-foreground mb-4">
                     {useCases[activeCase].persona.title}
                   </p>
-                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <p className="text-sm text-foreground">
+                  <div className="p-2 md:p-4 rounded-md md:rounded-lg bg-primary/10 border border-primary/20">
+                    <p className="text-xs md:text-sm text-foreground">
                       <span className="font-semibold">Scenario:</span>{" "}
                       {useCases[activeCase].scenario}
                     </p>
@@ -233,7 +235,7 @@ export default function UseCasesSection() {
             </div>
 
             {/* Steps */}
-            <div className="space-y-6 mb-8">
+            <div className="space-y-4 md:space-y-6 mb-8">
               {useCases[activeCase].steps.map((step, stepIndex) => (
                 <motion.div
                   key={stepIndex}
@@ -244,14 +246,14 @@ export default function UseCasesSection() {
                 >
                   {/* Connecting Line */}
                   {stepIndex < useCases[activeCase].steps.length - 1 && (
-                    <div className="absolute left-[23px] top-[60px] w-0.5 h-[calc(100%+1.5rem)] bg-border" />
+                    <div className="absolute left-[20px] md:left-[23px] top-[30px] md:top-[50px] w-0.5 h-[calc(100%+1.5rem)] bg-border" />
                   )}
 
                   <div className="flex items-start gap-4">
                     {/* Step Number */}
                     <div
                       className={cn(
-                        "relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br flex items-center justify-center text-white font-bold text-lg shadow-lg",
+                        "relative z-10 flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br flex items-center justify-center text-white font-bold text-base md:text-lg shadow-lg",
                         useCases[activeCase].color
                       )}
                     >
@@ -259,16 +261,13 @@ export default function UseCasesSection() {
                     </div>
 
                     {/* Step Content */}
-                    <div className="flex-1 p-4 rounded-xl bg-card border border-border">
+                    <div className="flex-1 p-4 rounded-lg md:rounded-xl bg-card border border-border">
                       <div className="flex items-start justify-between gap-4 mb-2">
-                        <h4 className="text-lg font-bold text-foreground">
+                        <h4 className="text-sm md:text-lg font-bold text-foreground">
                           {step.title}
                         </h4>
-                        <span className="flex-shrink-0 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold">
-                          {step.highlight}
-                        </span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         {step.description}
                       </p>
                     </div>
@@ -282,17 +281,17 @@ export default function UseCasesSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.4 }}
-              className="p-6 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20"
+              className="p-4 md:p-6 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20"
             >
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <ArrowRight className="w-5 h-5 text-primary" />
+                <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-foreground mb-2">
+                  <h4 className="text-base md:text-lg font-bold text-foreground mb-1 md:mb-2">
                     Outcome
                   </h4>
-                  <p className="text-foreground">
+                  <p className="text-foreground text-xs md:text-base">
                     {useCases[activeCase].outcome}
                   </p>
                 </div>

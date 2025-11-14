@@ -51,14 +51,14 @@ export default function FeatureCategoryCard({
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
           className={cn(
-            "relative w-20 h-20 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg",
+            "relative w-12 h-12 md:w-20 md:h-20 rounded-lg md:rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg",
             category.color
           )}
         >
-          <CategoryIcon className="w-10 h-10 text-white" />
+          <CategoryIcon className="w-6 h-6 md:w-10 md:h-10 text-white" />
         </motion.div>
         <div className={cn(isEven ? "text-left" : "md:text-right")}>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="text-2xl md:text-4xl font-bold text-foreground">
             {category.title}
           </h2>
         </div>
@@ -81,21 +81,21 @@ export default function FeatureCategoryCard({
               whileHover={{ scale: 1.03 }}
               className="group relative cursor-pointer"
             >
-              <div className="relative h-full rounded-xl p-6 bg-card border border-border transition-all duration-300 group-hover:border-primary/50 group-hover:shadow-md group-hover:shadow-primary/10">
+              <div className="relative h-full rounded-xl p-4 md:p-6 bg-card border border-border transition-all duration-300 group-hover:border-primary/50 group-hover:shadow-md group-hover:shadow-primary/10">
                 {/* Icon */}
                 <div className="flex items-start gap-4 ">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:border-primary group-hover:bg-primary/20 transition-all duration-300">
-                    <FeatureIcon className="w-6 h-6 text-primary" />
+                  <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-md md:rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:border-primary group-hover:bg-primary/20 transition-all duration-300">
+                    <FeatureIcon className="w-4 h-4 md:w-6 md:h-6 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors duration-300">
+                    <h3 className="text-base md:text-lg font-bold text-foreground group-hover:text-primary transition-colors duration-300">
                       {feature.title}
                     </h3>
                   </div>
                 </div>
 
                 {/* Description */}
-                <p className="text-sm text-muted-foreground leading-relaxed pl-16">
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed pl-14 md:pl-16">
                   {feature.description}
                 </p>
               </div>
