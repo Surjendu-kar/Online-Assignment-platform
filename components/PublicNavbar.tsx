@@ -121,7 +121,7 @@ export function PublicNavbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="relative z-20 flex items-center space-x-2 px-2 py-1 text-sm font-normal text-black"
+            className="relative z-20 flex items-center space-x-2 px-0 md:px-2 py-1 text-sm font-normal text-black"
           >
             <span className="font-bold text-xl text-black dark:text-white">
               ExamPlatform
