@@ -488,15 +488,15 @@ export default function DemoPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#020618]">
-      <div className="container mx-auto px-4 max-w-7xl pt-60 pb-20">
+      <div className="container mx-auto md:px-0 px-2 max-w-7xl pb-20">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="flex flex-col justify-center items-center min-h-screen text-center"
         >
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+          <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-4">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Experience the
             </span>{" "}
@@ -504,14 +504,14 @@ export default function DemoPage() {
               Platform
             </span>
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-sm md:text-lg text-muted-foreground max-w-3xl mx-auto">
             Explore how our exam management system works for different user
             roles
           </p>
         </motion.div>
 
         {/* Role Selector */}
-        <div className="flex flex-wrap justify-center gap-4 mb-16">
+        <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-12 md:mb-20">
           {(Object.entries(roleData) as [RoleKey, RoleData][]).map(
             ([role, data]) => {
               const RoleIcon = data.icon;
@@ -524,14 +524,16 @@ export default function DemoPage() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={cn(
-                    "flex items-center gap-3 px-8 py-4 rounded-xl border-2 transition-all duration-300 text-lg font-semibold",
+                    "flex items-center gap-3 px-4 py-3 md:px-8 md:py-4 rounded-xl border-2 transition-all duration-300 text-lg font-semibold",
                     isActive
                       ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                       : "border-border bg-card hover:border-primary/50"
                   )}
                 >
-                  <RoleIcon className="w-6 h-6" />
-                  <span className="capitalize">{role}</span>
+                  <RoleIcon className="w-4 h-4 md:w-6 md:h-6" />
+                  <span className="capitalize text-sm md:text-base">
+                    {role}
+                  </span>
                 </motion.button>
               );
             }
@@ -546,20 +548,20 @@ export default function DemoPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="space-y-12"
+            className="space-y-8 md:space-y-12"
           >
             {/* Role Header */}
             <div className="text-center">
-              <h2 className="text-3xl md:text-4xl font-bold mb-3">
+              <h2 className="text-3xl md:text-5xl font-bold mb-1 md:mb-3">
                 {currentRole.title}
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-sm md:text-lg text-muted-foreground max-w-2xl mx-auto">
                 {currentRole.subtitle}
               </p>
             </div>
 
             {/* Features Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {currentRole.features.map((feature, index) => {
                 const FeatureIcon = feature.icon;
                 return (
@@ -568,21 +570,21 @@ export default function DemoPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: index * 0.1 }}
-                    className="bg-card border border-border rounded-2xl p-6 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10"
+                    className="bg-card border border-border rounded-lg md:rounded-2xl p-4 md:p-6 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10"
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <FeatureIcon className="w-6 h-6 text-primary" />
+                    <div className="flex items-start gap-3 md:gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-md md:rounded-xl bg-primary/10 flex items-center justify-center">
+                        <FeatureIcon className="w-4 h-4 md:w-6 md:h-6 text-primary" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold mb-3">
+                        <h3 className="text-lg md:text-xl font-bold mb-1 md:mb-3">
                           {feature.category}
                         </h3>
-                        <ul className="space-y-2">
+                        <ul className="space-y-1 md:space-y-2">
                           {feature.items.map((item, idx) => (
                             <li key={idx} className="flex items-start gap-2">
-                              <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-muted-foreground">
+                              <Check className="w-3 h-3 md:w-4 md:h-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-xs md:text-sm text-muted-foreground">
                                 {item}
                               </span>
                             </li>
@@ -596,9 +598,9 @@ export default function DemoPage() {
             </div>
 
             {/* Page Previews */}
-            <div className="bg-card border border-border rounded-2xl p-8">
-              <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <Eye className="w-6 h-6 text-primary" />
+            <div className="bg-card border border-border rounded-lg md:rounded-2xl p-4 md:p-8">
+              <h3 className="text-lg md:text-2xl font-bold mb-6 flex items-center gap-2 md:gap-3">
+                <Eye className="w-5 h-5  md:w-6 md:h-6 text-primary" />
                 Platform Pages Preview
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -722,25 +724,25 @@ export default function DemoPage() {
             {/* Close Button */}
             <button
               onClick={closeLightbox}
-              className="absolute cursor-pointer top-15 right-10 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all z-50"
+              className="absolute cursor-pointer top-4 right-4 md:top-15 md:right-10 bg-white/10 hover:bg-white/20 text-white p-2 md:p-3 rounded-full transition-all z-50"
               aria-label="Close lightbox"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 md:w-6 md:h-6" />
             </button>
 
             {/* Image Title */}
             <div
-              className="absolute top-4 left-4 bg-transparent dark:bg-black/50 text-white px-6 py-3 rounded-lg z-50 max-w-4xl"
+              className="absolute top-4 left-4 md:left-4 bg-transparent dark:bg-black/50 text-white px-0 py-2 md:px-6 md:py-3 rounded-lg z-50 max-w-[calc(100vw-6rem)] md:max-w-4xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="font-semibold text-lg mb-1">
+              <p className="font-semibold text-sm md:text-lg mb-0.5 md:mb-1">
                 {
                   lightboxData.screenshots[lightboxData.currentIndex]
                     .description
                 }
               </p>
               {lightboxData.screenshots.length > 1 && (
-                <p className="text-sm text-gray-300">
+                <p className="text-xs md:text-sm text-gray-300">
                   Screenshot {lightboxData.currentIndex + 1} of{" "}
                   {lightboxData.screenshots.length}
                 </p>
@@ -748,7 +750,7 @@ export default function DemoPage() {
             </div>
 
             {/* Image Container - centered */}
-            <div className="absolute top-20 inset-0 flex items-center justify-center p-4 overflow-hidden pointer-events-none">
+            <div className="absolute top-16 md:top-20 inset-0 flex items-center justify-center p-2 md:p-4 overflow-hidden pointer-events-none">
               <div className="relative w-full h-full max-w-7xl max-h-[90vh]">
                 <AnimatePresence initial={false} mode="wait" custom={direction}>
                   <motion.div
@@ -799,20 +801,20 @@ export default function DemoPage() {
                     e.stopPropagation();
                     prevLightboxImage();
                   }}
-                  className="absolute cursor-pointer left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-4 rounded-full transition-all z-50"
+                  className="absolute cursor-pointer left-2 md:left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-2 md:p-4 rounded-full transition-all z-50"
                   aria-label="Previous image"
                 >
-                  <ChevronLeft className="w-8 h-8" />
+                  <ChevronLeft className="w-5 h-5 md:w-8 md:h-8" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     nextLightboxImage();
                   }}
-                  className="absolute cursor-pointer right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-4 rounded-full transition-all z-50"
+                  className="absolute cursor-pointer right-2 md:right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-2 md:p-4 rounded-full transition-all z-50"
                   aria-label="Next image"
                 >
-                  <ChevronRight className="w-8 h-8" />
+                  <ChevronRight className="w-5 h-5 md:w-8 md:h-8" />
                 </button>
               </>
             )}
