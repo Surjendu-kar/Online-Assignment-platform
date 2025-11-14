@@ -108,7 +108,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-muted-foreground text-sm pr-4 md:pr-0 md:text-[15px] text-left max-w-xl mb-4 relative z-20 leading-relaxed"
+            className="text-muted-foreground text-sm pr-4 md:pr-0 md:text-base text-left max-w-xl mb-4 relative z-20 leading-relaxed"
           >
             Streamline exam creation, proctoring, and grading with our advanced
             platform powered by AI-driven insights and real-time monitoring.

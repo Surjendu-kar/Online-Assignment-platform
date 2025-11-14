@@ -59,7 +59,7 @@ const reasons = [
 export default function WhyChooseUsSection() {
   return (
     <section className="w-full py-20 md:py-32 bg-gray-50 dark:bg-[#020618]">
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="container mx-auto px-2 md:px-0 max-w-7xl">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -68,7 +68,7 @@ export default function WhyChooseUsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+          <h2 className="text-3xl md:text-5xl  font-bold mb-4">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Why Choose
             </span>{" "}
@@ -76,14 +76,14 @@ export default function WhyChooseUsSection() {
               Our Platform?
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-lg max-w-3xl mx-auto">
             More than just software — a complete solution backed by expertise,
             reliability, and continuous innovation
           </p>
         </motion.div>
 
         {/* Reasons Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           {reasons.map((reason, index) => {
             const Icon = reason.icon;
             return (
@@ -95,19 +95,19 @@ export default function WhyChooseUsSection() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="group"
               >
-                <div className="h-full rounded-2xl p-8 bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10">
+                <div className="h-full rounded-lg md:rounded-2xl p-5 md:p-8 bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10">
                   {/* Icon */}
-                  <div className="w-14 h-14 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center mb-6 group-hover:border-primary group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
-                    <Icon className="w-7 h-7 text-primary" />
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg md:rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center mb-4  md:mb-6 group-hover:border-primary group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
+                    <Icon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl font-bold text-foreground mb-3">
+                  <h3 className="text-lg md:text-xl font-bold text-foreground mb-2 md:mb-3">
                     {reason.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                  <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 leading-relaxed">
                     {reason.description}
                   </p>
 
@@ -115,8 +115,8 @@ export default function WhyChooseUsSection() {
                   <ul className="space-y-2">
                     {reason.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground">
+                        <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span className="text-xs md:text-sm text-muted-foreground">
                           {feature}
                         </span>
                       </li>
@@ -134,10 +134,10 @@ export default function WhyChooseUsSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="mt-16 text-center"
+          className="mt-8 md:mt-16 text-center"
         >
-          <div className="inline-block px-8 py-4 rounded-2xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-purple-500/10 border border-primary/20">
-            <p className="text-lg font-medium text-foreground">
+          <div className="inline-block px-6 py-3 md:px-8 md:py-4 rounded-lg md:rounded-2xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-purple-500/10 border border-primary/20">
+            <p className="text-sm md:text-lg font-medium text-foreground">
               Ready to see the difference?{" "}
               <span className="text-primary">Start your free trial today</span>
             </p>
