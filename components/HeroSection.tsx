@@ -80,7 +80,7 @@ export default function HeroSection() {
 
       {/* Hero Content - Left Side */}
       <div
-        className="absolute top-1/2 left-6 md:left-16 lg:left-24 -translate-y-1/2 max-w-2xl z-20"
+        className="absolute top-1/2 left-0 px-4 md:px-0 md:left-16 lg:left-24 -translate-y-1/2 max-w-2xl z-20"
         data-scroll
         data-scroll-speed="0.2"
       >
