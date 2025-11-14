@@ -74,23 +74,23 @@ function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#020618] py-20">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#020618] pb-20">
+      <div className="container mx-auto md:px-0 px-2">
         {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center my-22"
+          className="min-h-screen flex flex-col justify-center items-center"
         >
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-4">
             Get
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
               {" "}
               in Touch
             </span>
           </h1>
-          <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
+          <p className="text-sm md:text-lg text-neutral-600 text-center dark:text-neutral-400 max-w-2xl mx-auto">
             Have questions about our platform? We&apos;re here to help. Send us
             a message and we&apos;ll respond as soon as possible.
           </p>
@@ -104,8 +104,8 @@ function ContactPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="lg:col-span-2"
           >
-            <div className="shadow-input bg-white p-6 md:p-8 rounded-2xl dark:bg-[#0f172b]">
-              <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-200 mb-6">
+            <div className="shadow-input bg-white p-6 md:p-8 rounded-lg md:rounded-2xl dark:bg-[#0f172b]">
+              <h2 className="text-lg md:text-2xl font-bold text-neutral-800 dark:text-neutral-200 mb-6">
                 Send us a Message
               </h2>
 
@@ -227,24 +227,24 @@ function ContactPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="space-y-6"
+            className="space-y-4 md:space-y-6"
           >
             <ContactInfoCard
-              icon={<Mail className="w-6 h-6" />}
+              icon={<Mail className="w-4 h-4 md:w-6 md:h-6" />}
               title="Email"
               content="support@examplatform.com"
               description="We'll respond within 24 hours"
             />
 
             <ContactInfoCard
-              icon={<Phone className="w-6 h-6" />}
+              icon={<Phone className="w-4 h-4 md:w-6 md:h-6" />}
               title="Phone"
               content="+91 XXXXX XXXXX"
               description="Mon-Fri, 10am-8pm IST"
             />
 
             <ContactInfoCard
-              icon={<Clock className="w-6 h-6" />}
+              icon={<Clock className="w-4 h-4 md:w-6 md:h-6" />}
               title="Business Hours"
               content="Monday - Friday"
               description="10:00 AM - 8:00 PM IST"
@@ -291,19 +291,19 @@ const ContactInfoCard = ({
   description: string;
 }) => {
   return (
-    <div className="shadow-input bg-white p-6 rounded-2xl dark:bg-[#0f172b]">
+    <div className="shadow-input bg-white p-4 md:p-6 rounded-lg md:rounded-2xl dark:bg-[#0f172b]">
       <div className="flex items-start space-x-4">
         <div className="mt-1 p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg text-white">
           {icon}
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-1">
+          <h3 className="text-base md:text-lg font-semibold text-neutral-800 dark:text-neutral-200 md:mb-1">
             {title}
           </h3>
-          <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+          <p className="text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300">
             {content}
           </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
+          <p className="text-[10px] md:text-xs text-neutral-500 dark:text-neutral-500 mt-1">
             {description}
           </p>
         </div>
