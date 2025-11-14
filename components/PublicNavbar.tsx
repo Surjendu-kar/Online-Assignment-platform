@@ -128,8 +128,15 @@ export function PublicNavbar() {
             </span>
           </Link>
 
-          {/* Hamburger Toggle */}
-          <MobileNavToggle isOpen={isOpen} onClick={() => setIsOpen(!isOpen)} />
+          {/* Theme Toggle & Hamburger Toggle */}
+          <div className="flex items-center gap-3">
+            <ThemeTogglerButton
+              variant="ghost"
+              size="sm"
+              modes={["light", "dark"]}
+            />
+            <MobileNavToggle isOpen={isOpen} onClick={() => setIsOpen(!isOpen)} />
+          </div>
         </MobileNavHeader>
 
         {/* Mobile Menu */}
@@ -161,13 +168,6 @@ export function PublicNavbar() {
               <span>Login</span>
             </HoverBorderGradient>
           </Link>
-          <div className="flex justify-center mt-2">
-            <ThemeTogglerButton
-              variant="ghost"
-              size="xs"
-              modes={["light", "dark"]}
-            />
-          </div>
         </MobileNavMenu>
       </MobileNav>
     </Navbar>

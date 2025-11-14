@@ -41,17 +41,17 @@ export default function HowItWorksSection() {
 
   return (
     <section
-      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background"
+      className="w-full pt-20 pb-0 md:py-32 bg-gray-50 dark:bg-background"
       data-scroll-section
     >
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="container mx-auto px-6 md:px-4 max-w-7xl">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-8"
+          className="text-center mb-0 md:mb-8"
           data-scroll
           data-scroll-speed="0.1"
         >
@@ -68,7 +68,7 @@ export default function HowItWorksSection() {
 
         {/* Stepper Container */}
         <div data-scroll data-scroll-speed="0.2">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-10">
             {steps.map((step, index) => {
               const Icon = step.icon;
               const isLast = index === steps.length - 1;
@@ -112,22 +112,22 @@ export default function HowItWorksSection() {
                   >
                     <div
                       className={cn(
-                        "relative h-full rounded-2xl p-6 bg-card border border-border transition-all duration-300",
+                        "relative h-full rounded-2xl p-4 md:p-6 bg-card border border-border transition-all duration-300",
                         hoveredIndex === index &&
                           "border-primary/50 shadow-lg shadow-primary/10"
                       )}
                     >
                       {/* Step Number and Icon */}
-                      <div className="flex items-center justify-center mb-4">
+                      <div className="flex items-center justify-center mb-2 md:mb-4">
                         <div className="relative">
                           <div
                             className={cn(
-                              "w-24 h-24 rounded-full bg-primary/10 border-2 border-border flex items-center justify-center transition-all duration-300",
+                              "w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 border-2 border-border flex items-center justify-center transition-all duration-300",
                               hoveredIndex === index &&
                                 "border-primary bg-primary/20 scale-110"
                             )}
                           >
-                            <Icon className="w-8 h-8 text-primary" />
+                            <Icon className="w-6 h-6 md:w-8 md:h-8 text-primary" />
                           </div>
                           {/* <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shadow-lg">
                             {step.number}
@@ -137,10 +137,10 @@ export default function HowItWorksSection() {
 
                       {/* Content */}
                       <div className="text-center">
-                        <h3 className="text-lg font-bold text-foreground mb-2">
+                        <h3 className="text-md md:text-lg font-bold text-foreground mb-2">
                           {step.title}
                         </h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
+                        <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
                           {step.description}
                         </p>
                       </div>

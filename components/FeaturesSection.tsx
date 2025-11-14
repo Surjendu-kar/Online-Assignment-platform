@@ -46,7 +46,7 @@ const features = [
 export default function FeaturesSection() {
   return (
     <section
-      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background"
+      className="w-full pt-0 pb-10 md:py-32 bg-gray-50 dark:bg-background"
       data-scroll-section
     >
       <div className="container mx-auto px-4 max-w-7xl">
@@ -56,7 +56,7 @@ export default function FeaturesSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-2"
+          className="text-center mb-10 md:mb-2"
           data-scroll
           data-scroll-speed="0.1"
         >

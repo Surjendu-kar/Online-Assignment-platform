@@ -54,7 +54,7 @@ export default function TestimonialsSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 pb-1 leading-tight">
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 pb-1 leading-tight">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Loved by
             </span>{" "}
@@ -62,7 +62,7 @@ export default function TestimonialsSection() {
               Educators
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-md md:text-lg  max-w-2xl mx-auto">
             Hear what our users have to say about transforming their exam
             process
           </p>

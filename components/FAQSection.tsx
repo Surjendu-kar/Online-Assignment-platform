@@ -71,7 +71,7 @@ export default function FAQSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight pb-1">
+          <h2 className="text-3xl md:text-5xl  font-bold mb-4 leading-tight pb-1">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Frequently Asked
             </span>{" "}
@@ -79,7 +79,7 @@ export default function FAQSection() {
               Questions
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg md:text-xl">
+          <p className="text-muted-foreground text-sm md:text-lg">
             Everything you need to know about our exam platform
           </p>
         </motion.div>
@@ -104,10 +104,10 @@ export default function FAQSection() {
 
               <motion.button
                 onClick={() => toggleFAQ(index)}
-                className="relative w-full cursor-pointer text-left p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300 group"
+                className="relative w-full cursor-pointer text-left p-4 md:p-6 rounded-lg md:rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300 group"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <motion.h3 className="text-lg font-semibold pr-4 group-hover:text-primary transition-colors">
+                  <motion.h3 className="text-sm md:text-lg font-semibold pr-4 group-hover:text-primary transition-colors">
                     {faq.question}
                   </motion.h3>
                   <motion.div
@@ -120,7 +120,7 @@ export default function FAQSection() {
                     className="flex-shrink-0 mt-1"
                     whileHover={{ scale: 1.1 }}
                   >
-                    <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </motion.div>
                 </div>
 
@@ -137,7 +137,7 @@ export default function FAQSection() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.1, duration: 0.3 }}
-                        className="text-muted-foreground leading-relaxed pt-4 pr-8"
+                        className="text-xs md:text-base text-muted-foreground leading-relaxed pt-4 pr-8"
                       >
                         {faq.answer}
                       </motion.p>
@@ -156,7 +156,7 @@ export default function FAQSection() {
           viewport={{ once: true, amount: 0.5 }}
           transition={{ duration: 0.6, delay: 0.3 }}
           whileHover={{ scale: 1.02 }}
-          className="relative mt-12 text-center p-8 rounded-2xl bg-card border border-border overflow-hidden group"
+          className="relative mt-12 text-center p-6 md:p-8 rounded-lg md:rounded-2xl bg-card border border-border overflow-hidden group"
         >
           {/* Animated gradient background */}
           <motion.div
@@ -173,7 +173,7 @@ export default function FAQSection() {
 
           <div className="relative z-10">
             <motion.h3
-              className="text-xl font-semibold mb-2"
+              className="text-md md:text-xl font-semibold mb-2"
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.4 }}
@@ -181,7 +181,7 @@ export default function FAQSection() {
               Still have questions?
             </motion.h3>
             <motion.p
-              className="text-muted-foreground mb-4"
+              className="text-sm md:text-base text-muted-foreground mb-4"
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.4 }}
@@ -191,7 +191,7 @@ export default function FAQSection() {
             </motion.p>
             <motion.a
               href="mailto:support@example.com"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-lg"
+              className="text-sm md:text-base  inline-flex items-center justify-center px-4 py-2 md:px-6 md:py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-lg"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
               initial={{ opacity: 0, y: 10 }}

@@ -28,7 +28,7 @@ export default function CTASection() {
           data-scroll-speed="0.3"
         >
           {/* Heading */}
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
+          <h2 className="text-3xl md:text-5xl font-bold mb-6">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Ready to Transform Your
             </span>{" "}
@@ -38,7 +38,7 @@ export default function CTASection() {
           </h2>
 
           {/* Subheading */}
-          <p className="text-muted-foreground text-lg md:text-xl mb-10 max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-lg mb-10 max-w-2xl mx-auto">
             Join leading institutions in modernizing education with our
             comprehensive exam management platform
           </p>
@@ -56,7 +56,7 @@ export default function CTASection() {
               <motion.button
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="group px-8 py-4 rounded-lg bg-primary text-primary-foreground font-semibold text-lg hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 min-w-[200px] justify-center"
+                className="group px-4 py-3 md:px-8 md:py-4 rounded-lg bg-primary text-primary-foreground font-semibold text-sm md:text-lg hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 min-w-[200px] justify-center"
               >
                 Get Started Free
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -68,7 +68,7 @@ export default function CTASection() {
               <motion.button
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="group px-8 py-4 rounded-lg bg-card border-2 border-border text-foreground font-semibold text-lg hover:border-primary hover:bg-card/80 transition-all flex items-center gap-2 min-w-[200px] justify-center"
+                className="group px-4 py-3 md:px-10 md:py-4 rounded-lg bg-card border-2 border-border text-foreground font-semibold text-sm md:text-lg hover:border-primary hover:bg-card/80 transition-all flex items-center gap-2 min-w-[200px] justify-center"
               >
                 <Mail className="w-5 h-5" />
                 Contact Sales

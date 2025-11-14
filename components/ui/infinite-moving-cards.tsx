@@ -126,7 +126,7 @@ export const InfiniteMovingCards = ({
 
     return (
       <li
-        className="relative w-[350px] max-w-full shrink-0 rounded-2xl border border-border bg-card px-8 py-6 md:w-[450px] transition-colors overflow-hidden cursor-pointer"
+        className="relative w-[350px] max-w-full shrink-0 rounded-2xl border border-border bg-card px-4 py-3 md:px-8 md:py-6 md:w-[450px] transition-colors overflow-hidden cursor-pointer"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -136,15 +136,15 @@ export const InfiniteMovingCards = ({
             aria-hidden="true"
             className="user-select-none pointer-events-none absolute -top-0.5 -left-0.5 -z-1 h-[calc(100%_+_4px)] w-[calc(100%_+_4px)]"
           ></div>
-          <span className="relative z-10 text-sm leading-[1.6] font-normal text-foreground">
+          <span className="relative z-10 text-xs md:text-sm leading-[1.6] font-normal text-foreground">
             {item.quote}
           </span>
           <div className="relative z-10 mt-6 flex flex-row items-center">
             <span className="flex flex-col gap-1">
-              <span className="text-sm leading-[1.6] font-semibold text-foreground">
+              <span className="text-xs md:text-sm leading-[1.6] font-semibold text-foreground">
                 {item.name}
               </span>
-              <span className="text-sm leading-[1.6] font-normal text-muted-foreground">
+              <span className="text-xs md:text-sm leading-[1.6] font-normal text-muted-foreground">
                 {item.title}
               </span>
             </span>
