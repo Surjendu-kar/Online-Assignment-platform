@@ -50,7 +50,7 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-2">
             <Link href="/" className="inline-block mb-4">
               <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-                ExamPlatform
+                EduExamPortal
               </h3>
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
@@ -151,7 +151,7 @@ export default function Footer() {
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {currentYear} ExamPlatform. All rights reserved.
+              © {currentYear} EduExamPortal. All rights reserved.
             </p>
             <p className="text-sm text-muted-foreground">
               Built with ❤️ for educators worldwide

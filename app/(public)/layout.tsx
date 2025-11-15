@@ -5,36 +5,45 @@ import SmoothScrollProvider from "@/components/SmoothScrollProvider";
 
 export const metadata: Metadata = {
   title: {
-    default: "Online Exam Assignment Platform",
-    template: "%s | Online Exam Assignment Platform",
+    default: "EduExamPortal - Online Exam Management Platform",
+    template: "%s | EduExamPortal",
   },
   description:
-    "Transform how your institution conducts exams with our comprehensive online exam platform. Support for MCQ, Short Answer, and Coding questions with AI-powered proctoring.",
+    "EduExamPortal: Transform how your institution conducts exams with our comprehensive online exam platform. Support for MCQ, Short Answer, and Coding questions with 8+ programming languages, AI-powered proctoring, and instant grading.",
   keywords: [
+    "EduExamPortal",
     "online exams",
     "exam platform",
     "educational technology",
     "proctoring",
-    "mcq",
+    "mcq questions",
     "coding exams",
     "institution management",
+    "online assessment",
+    "exam management system",
+    "monaco editor",
+    "judge0",
+    "auto grading",
+    "exam proctoring",
+    "multi-tenant exam platform",
   ],
-  authors: [{ name: "Online Exam Assignment Platform" }],
-  creator: "Online Exam Assignment Platform",
+  authors: [{ name: "Surjendu kar" }],
+  creator: "EduExamPortal",
+  publisher: "EduExamPortal",
   openGraph: {
     type: "website",
     locale: "en_US",
     url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-    title: "Online Exam Assignment Platform",
+    title: "EduExamPortal - Online Exam Management Platform",
     description:
-      "Transform how your institution conducts exams with our comprehensive online exam platform.",
-    siteName: "Online Exam Assignment Platform",
+      "Transform how your institution conducts exams with EduExamPortal. Comprehensive platform with MCQ, SAQ, and Coding questions, AI-powered proctoring, and 8+ programming languages support.",
+    siteName: "EduExamPortal",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Online Exam Assignment Platform",
+    title: "EduExamPortal - Online Exam Management Platform",
     description:
-      "Transform how your institution conducts exams with our comprehensive online exam platform.",
+      "Transform how your institution conducts exams with EduExamPortal. Support for MCQ, SAQ, Coding questions, AI-powered proctoring, and instant grading.",
   },
   robots: {
     index: true,

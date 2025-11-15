@@ -58,7 +58,7 @@ export function PublicNavbar() {
           className="relative z-20 mr-4 flex items-center font-normal text-black"
         >
           <span className="font-bold text-2xl text-black dark:text-white">
-            ExamPlatform
+            EduExamPortal
           </span>
         </Link>
 
@@ -124,7 +124,7 @@ export function PublicNavbar() {
             className="relative z-20 flex items-center space-x-2 px-0 md:px-2 py-1 text-sm font-normal text-black"
           >
             <span className="font-bold text-xl text-black dark:text-white">
-              ExamPlatform
+              EduExamPortal
             </span>
           </Link>
 
