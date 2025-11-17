@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Github, Twitter, Linkedin, Mail } from "lucide-react";
+import { EduExamPortalLogo } from "@/components/EduExamPortalLogo";
 
 const footerLinks = {
   product: [
@@ -49,9 +50,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-2">
             <Link href="/" className="inline-block mb-4">
-              <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-                EduExamPortal
-              </h3>
+              <EduExamPortalLogo width={210} height={50} />
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
               Transform how your institution conducts exams with our

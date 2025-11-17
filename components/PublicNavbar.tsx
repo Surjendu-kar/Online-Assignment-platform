@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Navbar,
   NavBody,
@@ -15,6 +15,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { EduExamPortalLogo } from "@/components/EduExamPortalLogo";
 
 const navItems = [
   { name: "Home", link: "/" },
@@ -27,7 +28,17 @@ const navItems = [
 export function PublicNavbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     const href = e.currentTarget.getAttribute("href");
@@ -55,11 +66,26 @@ export function PublicNavbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="relative z-20 mr-4 flex items-center font-normal text-black"
+          className="relative z-50 mr-4 flex items-center font-normal"
         >
-          <span className="font-bold text-2xl text-black dark:text-white">
-            EduExamPortal
-          </span>
+          <motion.div
+            initial={{ y: 5 }}
+            animate={{
+              width: isScrolled ? 200 : 210,
+              height: isScrolled ? 45 : 50,
+            }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            style={{ transformOrigin: "left center", overflow: "hidden" }}
+            className="flex items-center"
+          >
+            <div className="w-full h-full">
+              <EduExamPortalLogo
+                width={210}
+                height={50}
+                className="w-full h-full"
+              />
+            </div>
+          </motion.div>
         </Link>
 
         {/* Navigation Items */}
@@ -121,11 +147,28 @@ export function PublicNavbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="relative z-20 flex items-center space-x-2 px-0 md:px-2 py-1 text-sm font-normal text-black"
+            className="relative z-50 flex items-center px-0 md:px-2 py-1"
           >
-            <span className="font-bold text-xl text-black dark:text-white">
-              EduExamPortal
-            </span>
+            <motion.div
+              initial={{
+                y: 5,
+              }}
+              animate={{
+                width: isScrolled ? 180 : 190,
+                height: isScrolled ? 42 : 45,
+              }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              style={{ transformOrigin: "left center", overflow: "hidden" }}
+              className="flex items-center"
+            >
+              <div className="w-full h-full">
+                <EduExamPortalLogo
+                  width={190}
+                  height={45}
+                  className="w-full h-full"
+                />
+              </div>
+            </motion.div>
           </Link>
 
           {/* Theme Toggle & Hamburger Toggle */}
@@ -135,7 +178,10 @@ export function PublicNavbar() {
               size="sm"
               modes={["light", "dark"]}
             />
-            <MobileNavToggle isOpen={isOpen} onClick={() => setIsOpen(!isOpen)} />
+            <MobileNavToggle
+              isOpen={isOpen}
+              onClick={() => setIsOpen(!isOpen)}
+            />
           </div>
         </MobileNavHeader>
 
