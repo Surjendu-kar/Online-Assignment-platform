@@ -13,17 +13,6 @@ export function EduExamPortalLogo({
   height = 50,
   variant = "full",
 }: EduExamPortalLogoProps) {
-  // Load Inter font for consistent weight across devices
-  React.useEffect(() => {
-    if (typeof window !== 'undefined' && !document.getElementById('inter-font')) {
-      const link = document.createElement('link');
-      link.id = 'inter-font';
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@700;800&display=swap';
-      document.head.appendChild(link);
-    }
-  }, []);
-
   if (variant === "icon") {
     return (
       <svg
@@ -232,39 +221,36 @@ export function EduExamPortalLogo({
         <text
           x="0"
           y="22"
-          fontFamily="Inter, system-ui, -apple-system, sans-serif"
+          fontFamily="system-ui, -apple-system, sans-serif"
           fontSize="20"
           fontWeight="800"
           fill="url(#textGradient1)"
           className="fill-[#2369E4] dark:fill-[#8EC5FF]"
-          style={{ fontWeight: 800 }}
         >
           Edu
         </text>
 
         {/* "Exam" in accent color */}
         <text
-          x="39"
+          x="38"
           y="22"
-          fontFamily="Inter, system-ui, -apple-system, sans-serif"
+          fontFamily="system-ui, -apple-system, sans-serif"
           fontSize="20"
           fontWeight="800"
           fill="url(#textGradient2)"
           className="fill-[#ff9d00] dark:fill-[#FCAA24]"
-          style={{ fontWeight: 800 }}
         >
           Exam
         </text>
 
         {/* "Portal" */}
         <text
-          x="94"
+          x="93"
           y="22"
-          fontFamily="Inter, system-ui, -apple-system, sans-serif"
+          fontFamily="system-ui, -apple-system, sans-serif"
           fontSize="20"
           fontWeight="800"
           className="fill-neutral-700 dark:fill-neutral-300"
-          style={{ fontWeight: 800 }}
         >
           Portal
         </text>
@@ -273,12 +259,11 @@ export function EduExamPortalLogo({
         <text
           x="1"
           y="36"
-          fontFamily="Inter, system-ui, -apple-system, sans-serif"
+          fontFamily="system-ui, -apple-system, sans-serif"
           fontSize="9.5"
           fontWeight="700"
           className="fill-neutral-500 dark:fill-neutral-400"
           letterSpacing="0.5"
-          style={{ fontWeight: 700 }}
         >
           Online Assessment Platform
         </text>
