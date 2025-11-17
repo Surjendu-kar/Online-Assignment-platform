@@ -24,15 +24,90 @@ const getIcon = (
 
   if (theme === "system") {
     return (
-      <Monitor className="size-4 text-slate-600 drop-shadow-[0_0_8px_rgba(71,85,105,0.8)] dark:text-slate-300 dark:drop-shadow-[0_0_12px_rgba(203,213,225,0.9)]" />
+      <motion.div
+        className="relative flex items-center justify-center"
+        animate={{
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      >
+        <Monitor className="size-4 text-slate-600 drop-shadow-[0_0_8px_rgba(71,85,105,0.8)] dark:text-slate-300 dark:drop-shadow-[0_0_12px_rgba(203,213,225,0.9)] relative z-10" />
+        <motion.div
+          className="absolute inset-0 rounded-full bg-slate-400 dark:bg-slate-300"
+          animate={{
+            scale: [0.8, 1.2, 0.8],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          style={{ filter: 'blur(8px)' }}
+        />
+      </motion.div>
     );
   } else if (theme === "dark") {
     return (
-      <Moon className="size-4 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] dark:text-blue-300 dark:drop-shadow-[0_0_12px_rgba(147,197,253,0.9)]" />
+      <motion.div
+        className="relative flex items-center justify-center"
+        animate={{
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      >
+        <Moon className="size-4 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] dark:text-blue-300 dark:drop-shadow-[0_0_12px_rgba(147,197,253,0.9)] relative z-10" />
+        <motion.div
+          className="absolute inset-0 rounded-full bg-blue-400 dark:bg-blue-300"
+          animate={{
+            scale: [0.8, 1.2, 0.8],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          style={{ filter: 'blur(8px)' }}
+        />
+      </motion.div>
     );
   } else {
     return (
-      <Sun className="size-4 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] dark:text-yellow-400 dark:drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]" />
+      <motion.div
+        className="relative flex items-center justify-center"
+        animate={{
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      >
+        <Sun className="size-4 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] dark:text-yellow-400 dark:drop-shadow-[0_0_12px_rgba(251,191,36,0.9)] relative z-10" />
+        <motion.div
+          className="absolute inset-0 rounded-full bg-amber-400 dark:bg-yellow-400"
+          animate={{
+            scale: [0.8, 1.2, 0.8],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          style={{ filter: 'blur(8px)' }}
+        />
+      </motion.div>
     );
   }
 };
@@ -77,7 +152,7 @@ function ThemeTogglerButton({
         data-slot="theme-toggler-button"
         className={cn(
           buttonVariants({ variant, size, className }),
-          "relative overflow-hidden hover:bg-accent/50 transition-all duration-300"
+          "relative overflow-visible !bg-transparent hover:!bg-transparent transition-all duration-300 cursor-pointer"
         )}
         disabled
         {...props}
@@ -100,7 +175,7 @@ function ThemeTogglerButton({
           data-slot="theme-toggler-button"
           className={cn(
             buttonVariants({ variant, size, className }),
-            "relative overflow-hidden hover:bg-accent/50 transition-all duration-300"
+            "relative overflow-visible !bg-transparent hover:!bg-transparent transition-all duration-300 cursor-pointer"
           )}
           onClick={(e) => {
             onClick?.(e);
@@ -109,26 +184,6 @@ function ThemeTogglerButton({
           {...props}
         >
           {getIcon(effective, resolved, modes)}
-
-          {/* Glowing background effect */}
-          <motion.div
-            className={`absolute cursor-pointer inset-0 rounded-md opacity-20 blur-sm transition-all duration-500 ${
-              resolved === "dark"
-                ? "bg-blue-400 dark:bg-blue-300"
-                : resolved === "light"
-                ? "bg-amber-400 dark:bg-yellow-400"
-                : "bg-slate-400 dark:bg-slate-300"
-            }`}
-            animate={{
-              scale: [0.8, 1.1, 0.8],
-              opacity: [0.1, 0.3, 0.1],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
         </button>
       )}
     </ThemeTogglerPrimitive>
