@@ -258,7 +258,7 @@ export function EduExamPortalLogo({
 
         {/* "Portal" */}
         <text
-          x="94"
+          x="95 "
           y="22"
           fontFamily="Inter, system-ui, -apple-system, sans-serif"
           fontSize="20"
