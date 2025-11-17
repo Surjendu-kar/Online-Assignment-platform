@@ -19,7 +19,7 @@ export function EduExamPortalLogo({
       const link = document.createElement('link');
       link.id = 'inter-font';
       link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@700;800&display=swap';
+      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@800;900&display=swap';
       document.head.appendChild(link);
     }
   }, []);
@@ -234,10 +234,10 @@ export function EduExamPortalLogo({
           y="22"
           fontFamily="Inter, system-ui, -apple-system, sans-serif"
           fontSize="20"
-          fontWeight="800"
+          fontWeight="900"
           fill="url(#textGradient1)"
           className="fill-[#2369E4] dark:fill-[#8EC5FF]"
-          style={{ fontWeight: 800 }}
+          style={{ fontWeight: 900 }}
         >
           Edu
         </text>
@@ -248,10 +248,10 @@ export function EduExamPortalLogo({
           y="22"
           fontFamily="Inter, system-ui, -apple-system, sans-serif"
           fontSize="20"
-          fontWeight="800"
+          fontWeight="900"
           fill="url(#textGradient2)"
           className="fill-[#ff9d00] dark:fill-[#FCAA24]"
-          style={{ fontWeight: 800 }}
+          style={{ fontWeight: 900 }}
         >
           Exam
         </text>
@@ -262,9 +262,9 @@ export function EduExamPortalLogo({
           y="22"
           fontFamily="Inter, system-ui, -apple-system, sans-serif"
           fontSize="20"
-          fontWeight="800"
+          fontWeight="900"
           className="fill-neutral-700 dark:fill-neutral-300"
-          style={{ fontWeight: 800 }}
+          style={{ fontWeight: 900 }}
         >
           Portal
         </text>
