@@ -30,7 +30,12 @@ const cards = [
 
 export default function MissionVisionSection() {
   return (
-    <section className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background">
+    <section
+      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
+    >
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Section Header */}
         <motion.div
@@ -40,7 +45,7 @@ export default function MissionVisionSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-10 md:mb-16"
         >
-          <h2 className="text-3xl md:text-5xl  font-bold mb-4">
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-4">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Who
             </span>{" "}
@@ -67,7 +72,7 @@ export default function MissionVisionSection() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="group"
               >
-                <div className="h-full rounded-lg md:rounded-2xl p-6 md:p-8 bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10">
+                <div className="h-full rounded-lg md:rounded-2xl p-6 md:p-8 bg-card border border-border hover:border-primary/50 transition-all duration-300 shadow-md dark:shadow-[0_7px_5px_-1px_rgba(255,255,255,0.1),0_2px_4px_-2px_rgba(255,255,255,0.1)] hover:shadow-lg hover:shadow-primary/10 dark:hover:shadow-[0_10px_15px_-3px_rgba(255,255,255,0.15),0_4px_6px_-4px_rgba(255,255,255,0.1)]">
                   {/* Icon */}
                   <div
                     className={`w-12 h-12 md:w-16 md:h-16 rounded-lg md:rounded-2xl bg-gradient-to-br ${card.gradient} p-0.5 mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-300`}

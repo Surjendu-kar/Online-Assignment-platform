@@ -6,7 +6,12 @@ import MagicBento from "../MagicBento";
 
 export default function CoreValuesSection() {
   return (
-    <section className="w-full py-20 md:py-32 bg-gray-50 dark:bg-[#020618]">
+    <section
+      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-[#020618]"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
+    >
       <div className="container mx-auto px-2 md:px-0 max-w-7xl">
         {/* Section Header */}
         <motion.div
@@ -16,7 +21,7 @@ export default function CoreValuesSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-10 md:mb-16"
         >
-          <h2 className="text-3xl md:text-5xl  font-bold mb-4">
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-4">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Our
             </span>{" "}

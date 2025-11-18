@@ -17,48 +17,77 @@ const reasons = [
     title: "Quick Setup & Onboarding",
     description:
       "Get started in minutes with our intuitive setup wizard. Create your first exam within 15 minutes of signing up.",
-    features: ["No technical knowledge required", "Guided tour included", "Ready-made templates"],
+    features: [
+      "No technical knowledge required",
+      "Guided tour included",
+      "Ready-made templates",
+    ],
   },
   {
     icon: Shield,
     title: "Enterprise-Grade Security",
     description:
       "Bank-level encryption, advanced proctoring, and comprehensive audit trails ensure your exams are secure and compliant.",
-    features: ["End-to-end encryption", "ISO 27001 compliant", "Regular security audits"],
+    features: [
+      "End-to-end encryption",
+      "ISO 27001 compliant",
+      "Regular security audits",
+    ],
   },
   {
     icon: TrendingUp,
     title: "Scalable Architecture",
     description:
       "From 10 to 10,000 students, our platform scales seamlessly. Handle concurrent exams without performance degradation.",
-    features: ["Auto-scaling infrastructure", "99.9% uptime SLA", "CDN-powered delivery"],
+    features: [
+      "Auto-scaling infrastructure",
+      "99.9% uptime SLA",
+      "CDN-powered delivery",
+    ],
   },
   {
     icon: HeadphonesIcon,
     title: "24/7 Support",
     description:
       "Our dedicated support team is always available to help. Get assistance via chat, email, or phone whenever you need it.",
-    features: ["Live chat support", "Comprehensive documentation", "Training webinars"],
+    features: [
+      "Live chat support",
+      "Comprehensive documentation",
+      "Training webinars",
+    ],
   },
   {
     icon: Award,
     title: "Proven Track Record",
     description:
       "Trusted by leading universities and institutions worldwide. Join the thousands who've modernized their assessment process.",
-    features: ["98% customer satisfaction", "Award-winning platform", "Case studies available"],
+    features: [
+      "98% customer satisfaction",
+      "Award-winning platform",
+      "Case studies available",
+    ],
   },
   {
     icon: CheckCircle2,
     title: "Continuous Innovation",
     description:
       "We release new features monthly based on user feedback. Stay ahead with AI-powered grading, analytics, and more.",
-    features: ["Regular updates", "Beta program access", "Feature voting system"],
+    features: [
+      "Regular updates",
+      "Beta program access",
+      "Feature voting system",
+    ],
   },
 ];
 
 export default function WhyChooseUsSection() {
   return (
-    <section className="w-full py-20 md:py-32 bg-gray-50 dark:bg-[#020618]">
+    <section
+      className="w-full py-20 md:py-32 bg-gray-50 dark:bg-[#020618]"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
+    >
       <div className="container mx-auto px-2 md:px-0 max-w-7xl">
         {/* Section Header */}
         <motion.div
@@ -68,7 +97,7 @@ export default function WhyChooseUsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-5xl  font-bold mb-4">
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-4">
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Why Choose
             </span>{" "}
@@ -95,7 +124,7 @@ export default function WhyChooseUsSection() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="group"
               >
-                <div className="h-full rounded-lg md:rounded-2xl p-5 md:p-8 bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10">
+                <div className="h-full rounded-lg md:rounded-2xl p-5 md:p-8 bg-card border border-border hover:border-primary/50 transition-all duration-300 shadow-md dark:shadow-[0_10px_10px_-1px_rgba(255,255,255,0.1),0_2px_4px_-2px_rgba(255,255,255,0.1)] hover:shadow-lg hover:shadow-primary/10 dark:hover:shadow-[0_10px_15px_-3px_rgba(255,255,255,0.15),0_4px_6px_-4px_rgba(255,255,255,0.1)]">
                   {/* Icon */}
                   <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg md:rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center mb-4  md:mb-6 group-hover:border-primary group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
                     <Icon className="w-6 h-6 md:w-7 md:h-7 text-primary" />

@@ -5,11 +5,44 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { toast } from "react-hot-toast";
 import { Mail, Phone, Clock, ChevronDown } from "lucide-react";
 
 function ContactPage() {
+  React.useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      !document.getElementById("ubuntu-font-global")
+    ) {
+      // Preconnect to Google Fonts
+      const preconnect1 = document.createElement("link");
+      preconnect1.rel = "preconnect";
+      preconnect1.href = "https://fonts.googleapis.com";
+      if (
+        !document.querySelector('link[href="https://fonts.googleapis.com"]')
+      ) {
+        document.head.appendChild(preconnect1);
+      }
+
+      const preconnect2 = document.createElement("link");
+      preconnect2.rel = "preconnect";
+      preconnect2.href = "https://fonts.gstatic.com";
+      preconnect2.setAttribute("crossorigin", "anonymous");
+      if (!document.querySelector('link[href="https://fonts.gstatic.com"]')) {
+        document.head.appendChild(preconnect2);
+      }
+
+      // Load Ubuntu font
+      const link = document.createElement("link");
+      link.id = "ubuntu-font-global";
+      link.rel = "stylesheet";
+      link.href =
+        "https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap";
+      document.head.appendChild(link);
+    }
+  }, []);
+
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
@@ -74,7 +107,12 @@ function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#020618] pb-20">
+    <div
+      className="min-h-screen bg-gray-50 dark:bg-[#020618] pb-20"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
+    >
       <div className="container mx-auto md:px-0 px-2">
         {/* Header Section */}
         <motion.div
@@ -83,7 +121,7 @@ function ContactPage() {
           transition={{ duration: 0.5 }}
           className="min-h-screen flex flex-col justify-center items-center"
         >
-          <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-4">
+          <h1 className="text-3xl md:text-5xl font-extrabold mb-2 md:mb-4">
             Get
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
               {" "}

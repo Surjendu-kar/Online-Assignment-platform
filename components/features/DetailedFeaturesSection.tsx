@@ -240,7 +240,12 @@ export default function DetailedFeaturesSection() {
   return (
     <div className="w-full h-full">
       {/* Feature Categories */}
-      <section className="w-full py-20 bg-gray-50 dark:bg-background">
+      <section
+        className="w-full py-20 bg-gray-50 dark:bg-background"
+        style={{
+          fontFamily: '"Ubuntu", sans-serif',
+        }}
+      >
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="space-y-12 md:space-y-24">
             {featureCategories.map((category, index) => (
@@ -258,7 +263,12 @@ export default function DetailedFeaturesSection() {
       <UseCasesSection />
 
       {/* Integrations Section */}
-      <section className="w-full py-10 md:py-20 bg-gray-50 dark:bg-[#020618]">
+      <section
+        className="w-full py-10 md:py-20 bg-gray-50 dark:bg-[#020618]"
+        style={{
+          fontFamily: '"Ubuntu", sans-serif',
+        }}
+      >
         <div className="container mx-auto md:px-0 px-4 max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -267,7 +277,7 @@ export default function DetailedFeaturesSection() {
             transition={{ duration: 0.6 }}
             className="text-center mb-10 md:mb-16"
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-2 md:mb-4  leading-tight">
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-2 md:mb-4 leading-tight">
               Powerful
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500 ">
                 {" "}
