@@ -69,7 +69,7 @@ export function PublicNavbar() {
           className="relative z-50 mr-4 flex items-center font-normal"
         >
           <motion.div
-            initial={{ y: 5 }}
+            initial={{ y: 3 }}
             animate={{
               width: isScrolled ? 200 : 210,
               height: isScrolled ? 45 : 50,
@@ -82,6 +82,7 @@ export function PublicNavbar() {
               <EduExamPortalLogo
                 width={210}
                 height={50}
+                scale={isScrolled ? 0.9 : 1}
                 className="w-full h-full"
               />
             </div>
@@ -154,7 +155,7 @@ export function PublicNavbar() {
                 y: 5,
               }}
               animate={{
-                width: isScrolled ? 180 : 190,
+                width: isScrolled ? 190 : 200,
                 height: isScrolled ? 42 : 45,
               }}
               transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -163,8 +164,9 @@ export function PublicNavbar() {
             >
               <div className="w-full h-full">
                 <EduExamPortalLogo
-                  width={190}
+                  width={200}
                   height={45}
+                  scale={isScrolled ? 0.933 : 1}
                   className="w-full h-full"
                 />
               </div>
