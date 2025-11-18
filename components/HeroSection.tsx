@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import CardSwap, { Card } from "./CardSwap";
 import { motion, AnimatePresence } from "motion/react";
@@ -164,12 +165,13 @@ export default function HeroSection() {
             >
               Get Started Free
             </button>
-            <button
+            <Link
+              href="/demo"
               style={{ fontWeight: 500 }}
-              className="cursor-pointer text-sm md:text-md px-4 md:px-8 py-3  md:py-4 rounded-lg border border-border bg-background/50 backdrop-blur-sm hover:bg-card transition-all hover:scale-105"
+              className="cursor-pointer text-sm md:text-md px-6 md:px-10 py-3  md:py-4 rounded-lg border border-border bg-background/50 backdrop-blur-sm hover:bg-card transition-all hover:scale-105 inline-flex items-center justify-center"
             >
               Watch Demo
-            </button>
+            </Link>
           </div>
         </div>
       </div>
