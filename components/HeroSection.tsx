@@ -1,8 +1,9 @@
 "use client";
 import Image from "next/image";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import CardSwap, { Card } from "./CardSwap";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { useTheme } from "next-themes";
 
 const features = [
   "Multi-question type support (MCQ, SAQ, Coding)",
@@ -11,30 +12,34 @@ const features = [
 ];
 
 export default function HeroSection() {
-  // const [rayLength, setRayLength] = useState(1.4);
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  // useEffect(() => {
-  //   const updateRayLength = () => {
-  //     // sm breakpoint is 640px in Tailwind
-  //     if (window.innerWidth < 640) {
-  //       setRayLength(3);
-  //     } else {
-  //       setRayLength(1.4);
-  //     }
-  //   };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  //   // Set initial value
-  //   updateRayLength();
-
-  //   // Update on resize
-  //   window.addEventListener("resize", updateRayLength);
-  //   return () => window.removeEventListener("resize", updateRayLength);
-  // }, []);
+  // Determine image sources based on theme
+  const adminImage =
+    mounted && theme === "light"
+      ? "/Admin_page_light.webp"
+      : "/Admin_page.webp";
+  const studentImage =
+    mounted && theme === "light"
+      ? "/Student_page_light.png"
+      : "/Student_page.webp";
+  const teacherImage =
+    mounted && theme === "light"
+      ? "/Teacher_page_light.webp"
+      : "/Teacher_page.webp";
 
   return (
     <div
-      className="w-full min-h-screen relative bg-background overflow-hidden"
+      className="w-full min-h-screen relative bg-background overflow-hidden  max-w-[1500px] mx-auto"
       data-scroll-section
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
     >
       {/* Background Light Rays */}
       {/* <LightRays
@@ -90,7 +95,11 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-3xl md:text-5xl font-bold text-left relative z-20 mb-6 leading-[1.1]"
+            className="text-3xl md:text-5xl font-extrabold text-left relative z-20 mb-6 leading-[1.1]"
+            style={{
+              fontFamily: '"Ubuntu", sans-serif',
+              fontWeight: 700,
+            }}
             data-scroll
             data-scroll-speed="0.1"
           >
@@ -149,10 +158,16 @@ export default function HeroSection() {
 
           {/* CTA Buttons */}
           <div className="flex gap-4 relative z-20">
-            <button className="cursor-pointer text-sm md:text-md px-4 md:px-8 py-3 md:py-4 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all hover:scale-105 shadow-lg hover:shadow-xl">
+            <button
+              style={{ fontWeight: 500 }}
+              className="cursor-pointer text-sm md:text-md px-4 md:px-8 py-3 md:py-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105 shadow-lg hover:shadow-xl"
+            >
               Get Started Free
             </button>
-            <button className="cursor-pointer text-sm md:text-md px-4 md:px-8 py-3  md:py-4 rounded-lg border border-border bg-background/50 backdrop-blur-sm font-semibold hover:bg-card transition-all hover:scale-105">
+            <button
+              style={{ fontWeight: 500 }}
+              className="cursor-pointer text-sm md:text-md px-4 md:px-8 py-3  md:py-4 rounded-lg border border-border bg-background/50 backdrop-blur-sm hover:bg-card transition-all hover:scale-105"
+            >
               Watch Demo
             </button>
           </div>
@@ -179,7 +194,7 @@ export default function HeroSection() {
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="w-6 h-10 rounded-full border-2 border-border flex items-start justify-center p-1"
+          className="w-6 h-10 rounded-full border-2 border-border flex items-start justify-center p-1 shadow-[0_8px_10px_-6px_rgba(0,0,0,0.25)] dark:shadow-[0_10px_15px_-6px_rgba(255,255,255,0.25)]"
         >
           <motion.div
             animate={{ y: [0, 12, 0] }}
@@ -191,7 +206,7 @@ export default function HeroSection() {
 
       {/* Card Swap - Dashboard Previews - Right Side */}
       <div
-        className="relative hidden md:block h-[450px] pointer-events-none top-30"
+        className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:block h-[450px] w-[700px] pointer-events-none z-10"
         data-scroll
         data-scroll-speed="0.2"
       >
@@ -211,29 +226,51 @@ export default function HeroSection() {
               </h3>
             </div>
             <div className="relative flex-1">
-              <Image
-                src="/Admin_page.webp"
-                alt="Admin Dashboard Preview"
-                fill
-                className="object-cover object-top-left"
-                priority
-              />
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={adminImage}
+                  initial={{ opacity: 0, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, filter: "blur(10px)" }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={adminImage}
+                    alt="Admin Dashboard Preview"
+                    fill
+                    className="object-cover object-top-left"
+                    priority
+                  />
+                </motion.div>
+              </AnimatePresence>
             </div>
           </Card>
           <Card customClass="shadow-2xl border-border overflow-hidden bg-card flex flex-col">
-            <div className="bg-#020618 px-4 py-3 border-b border-border">
+            <div className="bg-card px-4 py-3 border-b border-border">
               <h3 className="text-foreground font-bold text-md">
                 Student Dashboard
               </h3>
             </div>
             <div className="relative flex-1">
-              <Image
-                src="/Student_page.webp"
-                alt="Student Dashboard Preview"
-                fill
-                className="object-cover object-top-left"
-                priority
-              />
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={studentImage}
+                  initial={{ opacity: 0, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, filter: "blur(10px)" }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={studentImage}
+                    alt="Student Dashboard Preview"
+                    fill
+                    className="object-cover object-top-left"
+                    priority
+                  />
+                </motion.div>
+              </AnimatePresence>
             </div>
           </Card>
           <Card customClass="shadow-2xl border-border overflow-hidden bg-card flex flex-col">
@@ -243,13 +280,24 @@ export default function HeroSection() {
               </h3>
             </div>
             <div className="relative flex-1">
-              <Image
-                src="/Teacher_page.webp"
-                alt="Teacher Dashboard Preview"
-                fill
-                className="object-cover object-top-left"
-                priority
-              />
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={teacherImage}
+                  initial={{ opacity: 0, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, filter: "blur(10px)" }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={teacherImage}
+                    alt="Teacher Dashboard Preview"
+                    fill
+                    className="object-cover object-top-left"
+                    priority
+                  />
+                </motion.div>
+              </AnimatePresence>
             </div>
           </Card>
         </CardSwap>

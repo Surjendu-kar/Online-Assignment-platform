@@ -42,6 +42,9 @@ export default function HowItWorksSection() {
   return (
     <section
       className="w-full pt-20 pb-0 md:py-32 bg-gray-50 dark:bg-background"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
       data-scroll-section
     >
       <div className="container mx-auto px-4 md:px-0 max-w-7xl">
@@ -55,7 +58,13 @@ export default function HowItWorksSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+          <h2
+            className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4"
+            style={{
+              fontFamily: '"Ubuntu", sans-serif',
+              fontWeight: 700,
+            }}
+          >
             How
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-500">
               {""} It Works

@@ -58,6 +58,9 @@ export default function FAQSection() {
   return (
     <section
       className="w-full py-20 md:py-32 bg-gray-50 dark:bg-[#020618]"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
       data-scroll-section
     >
       <div className="container mx-auto px-2 md:px-0 max-w-4xl">
@@ -71,7 +74,13 @@ export default function FAQSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-5xl  font-bold mb-4 leading-tight pb-1">
+          <h2
+            className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight pb-1"
+            style={{
+              fontFamily: '"Ubuntu", sans-serif',
+              fontWeight: 700,
+            }}
+          >
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Frequently Asked
             </span>{" "}
@@ -197,6 +206,7 @@ export default function FAQSection() {
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.4 }}
+              style={{ fontWeight: 500 }}
             >
               Contact Support
             </motion.a>

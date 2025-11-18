@@ -43,7 +43,9 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full bg-background border-t border-border">
+    <footer className="w-full bg-background border-t border-border" style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}>
       <div className="container mx-auto px-4 py-12 md:py-16 max-w-7xl">
         {/* Main Footer Content */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-12">

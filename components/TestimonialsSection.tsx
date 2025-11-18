@@ -41,6 +41,9 @@ export default function TestimonialsSection() {
   return (
     <section
       className="w-full py-20 md:py-32 bg-gray-50 dark:bg-background"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
       data-scroll-section
     >
       <div className="container mx-auto px-2 md:px-0 max-w-7xl">
@@ -54,7 +57,13 @@ export default function TestimonialsSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 pb-1 leading-tight">
+          <h2
+            className="text-3xl md:text-5xl font-extrabold mb-4 pb-1 leading-tight"
+            style={{
+              fontFamily: '"Ubuntu", sans-serif',
+              fontWeight: 700,
+            }}
+          >
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Loved by
             </span>{" "}

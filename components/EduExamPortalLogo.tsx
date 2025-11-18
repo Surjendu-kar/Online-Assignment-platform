@@ -15,16 +15,7 @@ export function EduExamPortalLogo({
   variant = "full",
   scale = 1,
 }: EduExamPortalLogoProps) {
-  // Load Inter font with heavy weights for consistent display across devices
-  React.useEffect(() => {
-    if (typeof window !== 'undefined' && !document.getElementById('inter-font-logo')) {
-      const link = document.createElement('link');
-      link.id = 'inter-font-logo';
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@700;900&display=swap';
-      document.head.appendChild(link);
-    }
-  }, []);
+  // Momo Trust Display font is loaded globally in page.tsx
 
   if (variant === "icon") {
     return (
@@ -254,8 +245,8 @@ export function EduExamPortalLogo({
         <div
           className="flex items-baseline font-black whitespace-nowrap text-xl"
           style={{
-            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-            fontWeight: 900,
+            fontFamily: '"Ubuntu", sans-serif',
+            fontWeight: 700,
             lineHeight: 1.1,
           }}
         >
@@ -279,8 +270,8 @@ export function EduExamPortalLogo({
         <p
           className="font-bold text-neutral-500 dark:text-neutral-400 tracking-wide whitespace-nowrap"
           style={{
-            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-            fontWeight: 700,
+            fontFamily: '"Ubuntu", sans-serif',
+            fontWeight: 500,
             fontSize: '9.5px',
             lineHeight: 1.2,
           }}

@@ -47,6 +47,9 @@ export default function FeaturesSection() {
   return (
     <section
       className="w-full pt-0 pb-10 md:py-32 bg-gray-50 dark:bg-background"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
       data-scroll-section
     >
       <div className="container mx-auto px-2 md:px-0 max-w-7xl">
@@ -60,7 +63,13 @@ export default function FeaturesSection() {
           data-scroll
           data-scroll-speed="0.1"
         >
-          <h2 className="text-3xl md:text-5xl  font-bold mb-4">
+          <h2
+            className="text-3xl md:text-5xl font-extrabold mb-4"
+            style={{
+              fontFamily: '"Ubuntu", sans-serif',
+              fontWeight: 700,
+            }}
+          >
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Powerful Features for
             </span>{" "}

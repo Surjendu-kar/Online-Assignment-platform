@@ -115,7 +115,15 @@ export function PublicNavbar() {
                     className="absolute inset-0 h-full w-full rounded-full bg-neutral-200/80 dark:bg-white/10 backdrop-blur-md"
                   />
                 )}
-                <span className="relative z-20 text-[16px]">{item.name}</span>
+                <span
+                  className="relative z-20 text-[15px]"
+                  style={{
+                    fontFamily: '"Ubuntu", sans-serif',
+                    fontWeight: 400,
+                  }}
+                >
+                  {item.name}
+                </span>
               </Link>
             );
           })}
@@ -127,9 +135,9 @@ export function PublicNavbar() {
             <HoverBorderGradient
               containerClassName="rounded-full"
               as="button"
-              className="bg-gradient-to-r from-[#9db2ed] via-[#4d86d0] to-[#325ecc] dark:bg-gradient-to-r dark:from-[#5c6786] dark:via-[#142842] dark:to-[#0c1733] text-white flex items-center space-x-2 cursor-pointer "
+              className="bg-gradient-to-r from-[#9db2ed] via-[#4d86d0] to-[#325ecc] dark:bg-gradient-to-r dark:from-[#3c496c] dark:via-[#142842] dark:to-[#0c1733] text-white flex items-center space-x-2 cursor-pointer "
             >
-              <span>Login</span>
+              <span style={{ fontFamily: '"Ubuntu", sans-serif' }}>Login</span>
             </HoverBorderGradient>
           </Link>
 
@@ -155,7 +163,7 @@ export function PublicNavbar() {
                 y: 5,
               }}
               animate={{
-                width: isScrolled ? 190 : 200,
+                width: isScrolled ? 170 : 180,
                 height: isScrolled ? 42 : 45,
               }}
               transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -166,7 +174,7 @@ export function PublicNavbar() {
                 <EduExamPortalLogo
                   width={200}
                   height={45}
-                  scale={isScrolled ? 0.933 : 1}
+                  scale={isScrolled ? 0.85 : 0.9}
                   className="w-full h-full"
                 />
               </div>
@@ -202,6 +210,9 @@ export function PublicNavbar() {
                     ? "text-[#FCAA24] dark:text-[#8EC5FF] font-semibold"
                     : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-neutral-100"
                 )}
+                style={{
+                  fontFamily: '"Ubuntu", sans-serif',
+                }}
               >
                 {item.name}
               </Link>
@@ -213,7 +224,7 @@ export function PublicNavbar() {
               as="button"
               className="bg-[#0F172B] dark:bg-gradient-to-r dark:from-[#0F172B] dark:via-[#1e3a5f] dark:to-[#0F172B] text-white flex items-center justify-center space-x-2 w-full"
             >
-              <span>Login</span>
+              <span style={{ fontFamily: '"Ubuntu", sans-serif' }}>Login</span>
             </HoverBorderGradient>
           </Link>
         </MobileNavMenu>

@@ -1,6 +1,12 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { MotionValue, motion, useScroll, useTransform } from "motion/react";
+import {
+  MotionValue,
+  motion,
+  useScroll,
+  useTransform,
+  AnimatePresence,
+} from "motion/react";
 import { cn } from "@/lib/utils";
 import {
   IconBrightnessDown,
@@ -52,7 +58,7 @@ export const MacbookScroll = ({
   const scaleX = useTransform(
     scrollYProgress,
     [0, 0.3],
-    [1.2, isMobile ? 1 : 1.5]
+    [1.2, isMobile ? 1.3 : 1.65]
   );
   const scaleY = useTransform(
     scrollYProgress,
@@ -65,19 +71,19 @@ export const MacbookScroll = ({
   const textOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
   return (
-    <div ref={ref} className="flex flex-col items-center">
+    <div ref={ref} className="flex flex-col items-center md:py-10">
       {title && (
         <motion.h2
           style={{
             translateY: textTransform,
             opacity: textOpacity,
           }}
-          className="mb-8 md:mb-20 text-center text-3xl md:text-4xl lg:text-5xl font-bold px-2 md:px-0"
+          className="mb-2 md:mb-20 text-center text-3xl md:text-4xl lg:text-5xl font-bold px-2 md:px-0"
         >
           {title}
         </motion.h2>
       )}
-      <div className="flex min-h-[60vh] md:min-h-[70vh] shrink-0 scale-[0.55] transform flex-col items-center justify-start py-0 [perspective:800px] sm:scale-75 md:scale-90 lg:scale-100 md:pb-20 md:pt-0">
+      <div className="flex min-h-[60vh] md:min-h-[100vh] shrink-0 scale-[0.55] transform flex-col items-center justify-start py-0 [perspective:800px] sm:scale-75 md:scale-90 lg:scale-100 md:pb-20 md:pt-0">
         {/* Lid */}
         <Lid
           src={src}
@@ -161,11 +167,18 @@ export const Lid = ({
         className="absolute inset-0 h-[29rem] w-[32rem] rounded-2xl bg-gray-800 dark:bg-[#010101] p-2"
       >
         <div className="absolute inset-0 rounded-lg bg-gray-400 dark:bg-[#272729]" />
-        <img
-          src={src as string}
-          alt="aceternity logo"
-          className="absolute inset-0 h-full w-full rounded-lg object-cover object-left-top"
-        />
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={src}
+            initial={{ opacity: 0, filter: "blur(10px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, filter: "blur(10px)" }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            src={src as string}
+            alt="aceternity logo"
+            className="absolute inset-0 h-full w-full rounded-lg object-cover object-left-top"
+          />
+        </AnimatePresence>
       </motion.div>
     </div>
   );

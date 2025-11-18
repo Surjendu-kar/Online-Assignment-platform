@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import React, { useEffect, useState, useRef } from "react";
+import { useTheme } from "next-themes";
 
 export const InfiniteMovingCards = ({
   items,
@@ -9,7 +10,7 @@ export const InfiniteMovingCards = ({
   speed = "fast",
   pauseOnHover = true,
   className,
-  glareColor = "#ffffff",
+  glareColor,
   glareOpacity = 0.3,
   glareAngle = -45,
   glareSize = 250,
@@ -32,10 +33,16 @@ export const InfiniteMovingCards = ({
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const scrollerRef = React.useRef<HTMLUListElement>(null);
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   const [start, setStart] = useState(false);
   const [duplicatedItems, setDuplicatedItems] = useState<typeof items>([]);
   const [isCardHovered, setIsCardHovered] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // Duplicate items for infinite scroll effect
@@ -50,8 +57,10 @@ export const InfiniteMovingCards = ({
 
   // Convert hex to rgba for glare effect
   const getGlareRgba = () => {
-    const hex = glareColor.replace("#", "");
-    let rgba = glareColor;
+    // Use theme-aware color: gray for light mode, white for dark mode
+    const effectiveGlareColor = glareColor || (mounted && theme === "light" ? "#666666" : "#ffffff");
+    const hex = effectiveGlareColor.replace("#", "");
+    let rgba = effectiveGlareColor;
     if (/^[\dA-Fa-f]{6}$/.test(hex)) {
       const r = parseInt(hex.slice(0, 2), 16);
       const g = parseInt(hex.slice(2, 4), 16);
