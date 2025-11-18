@@ -127,7 +127,7 @@ export function PublicNavbar() {
             <HoverBorderGradient
               containerClassName="rounded-full"
               as="button"
-              className="bg-gradient-to-r from-[#9db2ed] via-[#4d86d0] to-[#325ecc] dark:bg-gradient-to-r dark:from-[#687494] dark:via-[#1a3354] dark:to-[#0d1731] text-white flex items-center space-x-2 cursor-pointer "
+              className="bg-gradient-to-r from-[#9db2ed] via-[#4d86d0] to-[#325ecc] dark:bg-gradient-to-r dark:from-[#5c6786] dark:via-[#142842] dark:to-[#0c1733] text-white flex items-center space-x-2 cursor-pointer "
             >
               <span>Login</span>
             </HoverBorderGradient>

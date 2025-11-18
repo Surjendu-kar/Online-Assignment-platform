@@ -15,6 +15,17 @@ export function EduExamPortalLogo({
   variant = "full",
   scale = 1,
 }: EduExamPortalLogoProps) {
+  // Load Inter font with heavy weights for consistent display across devices
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && !document.getElementById('inter-font-logo')) {
+      const link = document.createElement('link');
+      link.id = 'inter-font-logo';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@700;900&display=swap';
+      document.head.appendChild(link);
+    }
+  }, []);
+
   if (variant === "icon") {
     return (
       <svg
@@ -123,7 +134,7 @@ export function EduExamPortalLogo({
 
   return (
     <div
-      className={`flex items-center gap-2 ${className}`}
+      className={`flex items-center gap-1 md:gap-1.5 ${className}`}
       style={{
         transform: `scale(${scale})`,
         transformOrigin: 'left center',
@@ -226,14 +237,42 @@ export function EduExamPortalLogo({
 
       {/* Text Part with CSS Gradients */}
       <div className="flex flex-col justify-center">
+        <style jsx>{`
+          @keyframes wave-gradient {
+            0%, 100% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+          }
+          .animated-gradient {
+            background-size: 200% 200%;
+            animation: wave-gradient 6s ease-in-out infinite;
+          }
+        `}</style>
         <div
           className="flex items-baseline font-black whitespace-nowrap text-xl"
           style={{
             fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            fontWeight: 900,
             lineHeight: 1.1,
           }}
         >
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#172E5A] via-[#276BDB] to-[#a855f7] dark:from-[#FFFFFF] dark:via-[#70A7FF] dark:to-[#a855f7]">
+          <span
+            className="animated-gradient bg-clip-text text-transparent"
+            style={{
+              backgroundImage: 'linear-gradient(90deg, #172E5A 0%, #276BDB 25%, #a855f7 50%, #276BDB 75%, #172E5A 100%)',
+            }}
+          >
+            <span className="dark:hidden">EduExamPortal</span>
+          </span>
+          <span
+            className="animated-gradient bg-clip-text text-transparent hidden dark:inline"
+            style={{
+              backgroundImage: 'linear-gradient(90deg, #FFFFFF 0%, #70A7FF 25%, #a855f7 50%, #70A7FF 75%, #FFFFFF 100%)',
+            }}
+          >
             EduExamPortal
           </span>
         </div>
@@ -241,6 +280,7 @@ export function EduExamPortalLogo({
           className="font-bold text-neutral-500 dark:text-neutral-400 tracking-wide whitespace-nowrap"
           style={{
             fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            fontWeight: 700,
             fontSize: '9.5px',
             lineHeight: 1.2,
           }}
