@@ -443,7 +443,7 @@ export const QuestionAccordion = ({
                               })
                             }
                             rows={3}
-                            className="w-full border border-gray-600 p-2 rounded-md placeholder-gray-400 text-gray-100 bg-gray-700 focus:ring-1 focus:ring-blue-500 focus:border-transparent focus:outline-none text-sm font-mono"
+                            className="w-full border border-gray-600 p-2 rounded-md placeholder-gray-400 text-gray-100 bg-gray-700 focus:ring-1 focus:ring-blue-500 focus:border-transparent focus:outline-none text-sm font-sans"
                           />
                           <input
                             type="number"

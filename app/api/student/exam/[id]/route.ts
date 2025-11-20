@@ -1,4 +1,5 @@
 import { createRouteClient } from '@/lib/supabaseRouteClient';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -50,7 +51,27 @@ export async function GET(
       .single();
 
     if (examError || !exam) {
+      console.error('Exam fetch error:', examError);
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
+    }
+
+    // Get teacher information separately using service role to bypass RLS
+    let teacherName = 'Unknown Teacher';
+    if (exam.created_by) {
+      const { data: teacher, error: teacherError } = await supabaseServer
+        .from('user_profiles')
+        .select('first_name, last_name')
+        .eq('id', exam.created_by)
+        .maybeSingle();
+
+      console.log('Teacher lookup with service role:');
+      console.log('- Looking for ID:', exam.created_by);
+      console.log('- Found teacher:', teacher);
+      console.log('- Error:', teacherError);
+
+      if (teacher?.first_name || teacher?.last_name) {
+        teacherName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim();
+      }
     }
 
     // Check if exam is within time window
@@ -122,7 +143,8 @@ export async function GET(
           endTime: exam.end_time,
           requireWebcam: exam.require_webcam,
           maxViolations: exam.max_violations,
-          showResultsImmediately: exam.show_results_immediately
+          showResultsImmediately: exam.show_results_immediately,
+          teacherName
         },
         session: null,
         questions,
@@ -153,7 +175,8 @@ export async function GET(
         endTime: exam.end_time,
         requireWebcam: exam.require_webcam,
         maxViolations: exam.max_violations,
-        showResultsImmediately: exam.show_results_immediately
+        showResultsImmediately: exam.show_results_immediately,
+        teacherName
       },
       session: {
         id: session.id,

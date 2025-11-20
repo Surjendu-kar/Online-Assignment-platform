@@ -123,7 +123,16 @@ export default function ExamStartPage() {
 
         setExamData(data);
         setTimeRemaining(data.session.remainingTime);
-        setAnswers(data.savedAnswers || {});
+
+        // Initialize answers with starter code for coding questions if not already answered
+        const initialAnswers = data.savedAnswers || {};
+        data.questions.forEach((q: Question) => {
+          if (q.type === 'coding' && !initialAnswers[q.id]) {
+            initialAnswers[q.id] = q.starter_code || CODE_TEMPLATES[q.language || 'javascript'];
+          }
+        });
+
+        setAnswers(initialAnswers);
       } else {
         toast.error(data.error || "Failed to load exam");
         router.push(`/student/exam/${examId}`);

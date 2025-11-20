@@ -964,7 +964,7 @@ export const AddExamDialog = ({
                                   }))
                                 }
                                 rows={3}
-                                className="w-full font-mono"
+                                className="w-full font-sans"
                               />
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center">

@@ -3,18 +3,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "motion/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Clock,
-  FileText,
-  Send,
-  AlertCircle,
-  BookOpen,
-} from "lucide-react";
-import { formatDuration } from "@/lib/format-duration";
+import { Send, AlertCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { ExamDetailsSkeleton } from "@/components/ExamDetailsSkeleton";
 
@@ -42,6 +35,7 @@ interface ExamData {
     requireWebcam: boolean;
     maxViolations: number;
     showResultsImmediately: boolean;
+    teacherName: string;
   };
   session: {
     id: string;
@@ -86,13 +80,46 @@ export default function ExamPage() {
   }, [examId, router]);
 
   useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      !document.getElementById("ubuntu-font-global")
+    ) {
+      // Preconnect to Google Fonts
+      const preconnect1 = document.createElement("link");
+      preconnect1.rel = "preconnect";
+      preconnect1.href = "https://fonts.googleapis.com";
+      if (
+        !document.querySelector('link[href="https://fonts.googleapis.com"]')
+      ) {
+        document.head.appendChild(preconnect1);
+      }
+
+      const preconnect2 = document.createElement("link");
+      preconnect2.rel = "preconnect";
+      preconnect2.href = "https://fonts.gstatic.com";
+      preconnect2.setAttribute("crossorigin", "anonymous");
+      if (!document.querySelector('link[href="https://fonts.gstatic.com"]')) {
+        document.head.appendChild(preconnect2);
+      }
+
+      // Load Ubuntu font
+      const link = document.createElement("link");
+      link.id = "ubuntu-font-global";
+      link.rel = "stylesheet";
+      link.href =
+        "https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap";
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  useEffect(() => {
     fetchExamData();
   }, [fetchExamData]);
 
   const handleStartExam = async () => {
     try {
       setNavigating(true);
-      
+
       const response = await fetch(`/api/student/exam/${examId}/start`, {
         method: "POST",
       });
@@ -124,7 +151,9 @@ export default function ExamPage() {
       <div className="flex items-center justify-center min-h-screen">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Failed to load exam. Please try again.</AlertDescription>
+          <AlertDescription>
+            Failed to load exam. Please try again.
+          </AlertDescription>
         </Alert>
       </div>
     );
@@ -153,170 +182,232 @@ export default function ExamPage() {
   const getQuestionTypeIcon = (type: string) => {
     switch (type) {
       case "mcq":
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">MCQ</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-blue-500/10 text-blue-500 border-blue-500/20"
+          >
+            MCQ
+          </Badge>
+        );
       case "saq":
-        return <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">SAQ</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-500/10 text-green-500 border-green-500/20"
+          >
+            SAQ
+          </Badge>
+        );
       case "coding":
-        return <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20">Coding</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-purple-500/10 text-purple-500 border-purple-500/20"
+          >
+            Coding
+          </Badge>
+        );
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{
-        opacity: navigating ? 0 : 1,
-        y: navigating ? 20 : 0,
-        filter: navigating ? "blur(8px)" : "blur(0px)",
-        scale: navigating ? 0.95 : 1,
+    <div
+      className="relative min-h-screen overflow-hidden"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
       }}
-      transition={{ duration: 0.6, ease: "easeInOut" }}
-      className="container mx-auto p-6"
     >
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <BookOpen className="h-5 w-5" />
-                  <CardTitle>Exam Overview</CardTitle>
-                </div>
-                <CardDescription>{examData.exam.title}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                    <Clock className="h-8 w-8 text-blue-500" />
-                    <div>
-                      <p className="font-semibold">{formatDuration(examData.exam.duration)}</p>
-                      <p className="text-sm text-muted-foreground">Time Limit</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                    <FileText className="h-8 w-8 text-green-500" />
-                    <div>
-                      <p className="font-semibold">{examData.questions.length}</p>
-                      <p className="text-sm text-muted-foreground">Questions</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                    <BookOpen className="h-8 w-8 text-purple-500" />
-                    <div>
-                      <p className="font-semibold">{totalMarks}</p>
-                      <p className="text-sm text-muted-foreground">Total Points</p>
-                    </div>
-                  </div>
-                </div>
+      {/* Decorative Floating Orbs Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            y: [0, -30, 0],
+            x: [0, 20, 0],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-20 left-[10%] w-72 h-72 bg-primary/10 dark:bg-primary/5 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            y: [0, 30, 0],
+            x: [0, -20, 0],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute bottom-20 right-[15%] w-96 h-96 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            y: [0, -20, 0],
+            x: [0, 15, 0],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-1/2 left-1/2 w-80 h-80 bg-purple-500/10 dark:bg-purple-500/5 rounded-full blur-3xl"
+        />
+      </div>
 
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <h3 className="font-semibold">Instructions:</h3>
+      <motion.div
+        animate={{
+          opacity: navigating ? 0 : 1,
+          filter: navigating ? "blur(8px)" : "blur(0px)",
+          scale: navigating ? 0.95 : 1,
+        }}
+        transition={{ duration: 0.6, ease: "easeInOut" }}
+        className="container mx-auto relative z-10"
+      >
+        <div className="grid gap-6 lg:grid-cols-3 p-6">
+          <div className="lg:col-span-2 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <Card className="shadow-none backdrop-blur-sm bg-background/80 border-primary/20 hover:border-primary/40 transition-all duration-300">
+                <CardHeader>
+                  <div className="flex items-center gap-2 mb-1">
+                    <CardTitle className="text-lg font-bold capitalize">
+                      {examData.exam.title}
+                    </CardTitle>
+                    <Badge variant="outline" className="text-xs bg-muted">
+                      by {examData.exam.teacherName}
+                    </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                    {examData.exam.description}
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {examData.exam.description ||
+                      "Read all questions carefully before answering. Ensure you have a stable internet connection throughout the exam. Good luck!"}
                   </p>
-                  <div className="py-3 px-3 bg-muted/50 rounded-lg">
-                    <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li>Once started, the timer cannot be paused</li>
-                      <li>Your answers are auto-saved every 30 seconds</li>
-                      <li>You can navigate between questions freely</li>
-                      <li>Make sure to submit before time runs out</li>
-                      {examData.exam.requireWebcam && (
-                        <li>Webcam monitoring is enabled for this exam</li>
-                      )}
-                    </ul>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-sm">Instructions:</h3>
+                    </div>
+                    <div className="py-3 px-3 bg-muted/50 rounded-lg">
+                      <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
+                        <li>Once started, the timer cannot be paused</li>
+                        <li>Your answers are auto-saved every 30 seconds</li>
+                        <li>You can navigate between questions freely</li>
+                        <li>Make sure to submit before time runs out</li>
+                        {examData.exam.requireWebcam && (
+                          <li>Webcam monitoring is enabled for this exam</li>
+                        )}
+                      </ul>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <h3 className="font-semibold mb-3">Question Types:</h3>
-                  <div className="space-y-2">
-                    {Object.entries(questionTypeCounts).map(([type, count]) => (
-                      <div
-                        key={type}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          {getQuestionTypeIcon(type)}
-                          <span className="text-sm font-medium">
-                            {type === "mcq"
-                              ? "Multiple Choice"
-                              : type === "saq"
-                              ? "Short Answer"
-                              : type === "coding"
-                              ? "Coding"
-                              : type}
-                          </span>
-                        </div>
-                        <Badge variant="secondary">{count} questions</Badge>
-                      </div>
-                    ))}
+                  <div>
+                    <h3 className="font-semibold mb-3 text-sm">
+                      Question Types:
+                    </h3>
+                    <div className="flex flex-wrap gap-3">
+                      {Object.entries(questionTypeCounts).map(
+                        ([type, count]) => (
+                          <motion.div
+                            key={type}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg flex-1 min-w-[150px] hover:scale-105 transition-transform duration-200"
+                          >
+                            {getQuestionTypeIcon(type)}
+                            <Badge variant="secondary">{count}</Badge>
+                          </motion.div>
+                        )
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
           <div className="space-y-6">
-            <Card className="gap-2">
-              <CardHeader>
-                <CardTitle className="text-sm">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Duration:</span>
-                  <span className="font-medium">{formatFullDuration(examData.exam.duration)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Questions:</span>
-                  <span className="font-medium">{examData.questions.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Points:</span>
-                  <span className="font-medium">{totalMarks}</span>
-                </div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card className="gap-1 shadow-none backdrop-blur-sm bg-background/80 border-primary/20 hover:border-primary/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="text-sm">Quick Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-[13px]">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Duration:</span>
+                    <span className="font-medium">
+                      {formatFullDuration(examData.exam.duration)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Questions:</span>
+                    <span className="font-medium">
+                      {examData.questions.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Points:</span>
+                    <span className="font-medium">{totalMarks}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-              </CardContent>
-            </Card>
-
-            <Card className="gap-3">
-              <CardHeader>
-                <CardTitle className="text-sm">Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  size="lg"
-                  className="w-full cursor-pointer"
-                  onClick={handleStartExam}
-                  disabled={navigating}
-                >
-                  {navigating ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Starting Exam...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      Start Exam
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full cursor-pointer"
-                  onClick={() => router.push("/student/exams")}
-                  disabled={navigating}
-                >
-                  Back to Dashboard
-                </Button>
-              </CardContent>
-            </Card>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <Card className="gap-3 shadow-none backdrop-blur-sm bg-background/80 border-primary/20 hover:border-primary/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="text-sm">Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button
+                    size="lg"
+                    className="w-full cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+                    onClick={handleStartExam}
+                    disabled={navigating}
+                  >
+                    {navigating ? (
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Starting Exam...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Send className="h-4 w-4" />
+                        Start Exam
+                      </div>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+                    onClick={() => router.push("/student/exams")}
+                    disabled={navigating}
+                  >
+                    Back to Dashboard
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </div>
       </motion.div>
-    );
+    </div>
+  );
 }

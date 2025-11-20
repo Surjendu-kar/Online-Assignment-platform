@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Card,
   CardContent,
@@ -18,6 +18,7 @@ import {
   FileText,
   Play,
   Trophy,
+  Sparkles,
 } from "lucide-react";
 import { formatDuration } from "@/lib/format-duration";
 import { ExamsListSkeleton } from "@/components/ExamsListSkeleton";
@@ -43,6 +44,33 @@ export default function ExamsPage() {
   const [filter, setFilter] = useState<
     "all" | "pending" | "completed" | "expired"
   >("all");
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !document.getElementById('ubuntu-font-global')) {
+      // Preconnect to Google Fonts
+      const preconnect1 = document.createElement('link');
+      preconnect1.rel = 'preconnect';
+      preconnect1.href = 'https://fonts.googleapis.com';
+      if (!document.querySelector('link[href="https://fonts.googleapis.com"]')) {
+        document.head.appendChild(preconnect1);
+      }
+
+      const preconnect2 = document.createElement('link');
+      preconnect2.rel = 'preconnect';
+      preconnect2.href = 'https://fonts.gstatic.com';
+      preconnect2.setAttribute('crossorigin', 'anonymous');
+      if (!document.querySelector('link[href="https://fonts.gstatic.com"]')) {
+        document.head.appendChild(preconnect2);
+      }
+
+      // Load Ubuntu font
+      const link = document.createElement('link');
+      link.id = 'ubuntu-font-global';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap';
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     fetchExams();
@@ -102,182 +130,405 @@ export default function ExamsPage() {
   });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex flex-col gap-6 p-6"
+    <div
+      className="relative h-full overflow-hidden"
+      style={{
+        fontFamily: '"Ubuntu", sans-serif',
+      }}
     >
-      <div>
-        <h1 className="text-3xl font-bold">Exams</h1>
-        <p className="text-muted-foreground">
-          View your upcoming and past exams
-        </p>
+      {/* Decorative Floating Orbs Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            y: [0, -30, 0],
+            x: [0, 20, 0],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-20 left-[10%] w-72 h-72 bg-primary/10 dark:bg-primary/5 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            y: [0, 30, 0],
+            x: [0, -20, 0],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute bottom-20 right-[15%] w-96 h-96 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            y: [0, -20, 0],
+            x: [0, 15, 0],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-1/2 left-1/2 w-80 h-80 bg-purple-500/10 dark:bg-purple-500/5 rounded-full blur-3xl"
+        />
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        <Button
-          variant={filter === "all" ? "default" : "outline"}
-          onClick={() => setFilter("all")}
-          size="sm"
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 flex flex-col gap-6 p-6 h-full"
+      >
+        {/* Enhanced Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="relative"
         >
-          All ({exams.length})
-        </Button>
-        <Button
-          variant={filter === "pending" ? "default" : "outline"}
-          onClick={() => setFilter("pending")}
-          size="sm"
-        >
-          Pending (
-          {
-            exams.filter(
-              (e) => e.status === "pending" || e.status === "upcoming"
-            ).length
-          }
-          )
-        </Button>
-        <Button
-          variant={filter === "completed" ? "default" : "outline"}
-          onClick={() => setFilter("completed")}
-          size="sm"
-        >
-          Completed ({exams.filter((e) => e.status === "completed").length})
-        </Button>
-        <Button
-          variant={filter === "expired" ? "default" : "outline"}
-          onClick={() => setFilter("expired")}
-          size="sm"
-        >
-          Expired ({exams.filter((e) => e.status === "expired").length})
-        </Button>
-      </div>
+          <div className="flex items-center gap-3 mb-2">
+            <motion.div
+              animate={{
+                rotate: [0, 10, -10, 0],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <Sparkles className="h-8 w-8 text-primary" />
+            </motion.div>
+            <h1
+              className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-600 to-purple-600 dark:from-primary dark:via-blue-400 dark:to-purple-400"
+              style={{
+                fontFamily: '"Ubuntu", sans-serif',
+                fontWeight: 700,
+              }}
+            >
+              Your Exams
+            </h1>
+          </div>
+          <p
+            className="text-muted-foreground text-base"
+            style={{
+              fontFamily: '"Ubuntu", sans-serif',
+              fontWeight: 400,
+            }}
+          >
+            View your upcoming and past exams
+          </p>
+        </motion.div>
 
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader className="gap-0">
-            <CardDescription>
-              All your assigned exams and assessments
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <ExamsListSkeleton />
-            ) : filteredExams.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No exams found</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredExams.map((exam) => (
+        {/* Enhanced Filter Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex gap-2 flex-wrap"
+        >
+          {[
+            { key: "all", label: "All", count: exams.length },
+            {
+              key: "pending",
+              label: "Pending",
+              count: exams.filter(
+                (e) => e.status === "pending" || e.status === "upcoming"
+              ).length,
+            },
+            {
+              key: "completed",
+              label: "Completed",
+              count: exams.filter((e) => e.status === "completed").length,
+            },
+            {
+              key: "expired",
+              label: "Expired",
+              count: exams.filter((e) => e.status === "expired").length,
+            },
+          ].map((tab, index) => (
+            <motion.div
+              key={tab.key}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                variant={filter === tab.key ? "default" : "outline"}
+                onClick={() => setFilter(tab.key as any)}
+                size="sm"
+                className="relative overflow-hidden"
+                style={{
+                  fontFamily: '"Ubuntu", sans-serif',
+                  fontWeight: 500,
+                }}
+              >
+                {filter === tab.key && (
                   <motion.div
-                    key={exam.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex items-center justify-between rounded-lg border p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center  gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">{exam.title}</h3>
-                        <Badge className={getStatusColor(exam.status)}>
-                          {getStatusLabel(exam.status)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {exam.department}
-                      </p>
-                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{formatDuration(exam.duration)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <FileText className="h-4 w-4" />
-                          <span>{exam.totalQuestions} questions</span>
-                        </div>
-                        {exam.endTime && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              Due: {new Date(exam.endTime).toLocaleDateString()}
-                            </span>
-                          </div>
-                        )}
-                        {exam.score !== null && exam.score !== undefined && (
-                          <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-                            <Trophy className="h-4 w-4" />
-                            <span className="font-semibold">{exam.score}%</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      {exam.status === "upcoming" && (
-                        <Button
-                          onClick={() => startExam(exam.id)}
-                          disabled
-                          className="cursor-pointer"
-                        >
-                          <Play className="h-4 w-4" />
-                          Not Started
-                        </Button>
-                      )}
-                      {exam.status === "pending" && (
-                        <Button
-                          onClick={() => startExam(exam.id)}
-                          className="cursor-pointer"
-                          disabled={navigatingExamId === exam.id}
-                        >
-                          {navigatingExamId === exam.id ? (
-                            <>
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4" />
-                              View Details
-                            </>
-                          )}
-                        </Button>
-                      )}
-                      {exam.status === "in-progress" && (
-                        <Button
-                          onClick={() => {
-                            setNavigatingExamId(exam.id);
-                            router.push(`/student/exam/${exam.id}/start`);
-                          }}
-                          disabled={navigatingExamId === exam.id}
-                        >
-                          {navigatingExamId === exam.id ? (
-                            <>
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4" />
-                              Continue
-                            </>
-                          )}
-                        </Button>
-                      )}
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-primary"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10 text-[13px]">
+                  {tab.label} ({tab.count})
+                </span>
+              </Button>
+            </motion.div>
+          ))}
+        </motion.div>
 
-                      {exam.status === "expired" && (
-                        <Button disabled variant="outline">
-                          Expired
-                        </Button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="grid gap-6 flex-1"
+        >
+          {loading ? (
+            <Card className="border-none p-0 backdrop-blur-sm bg-background/80 border-primary/20 shadow-none">
+              <CardContent className="border-none p-0">
+                <ExamsListSkeleton />
+              </CardContent>
+            </Card>
+          ) : filteredExams.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="text-center text-muted-foreground"
+              >
+                <motion.div
+                  animate={{
+                    y: [0, -10, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                </motion.div>
+                <p
+                  className="text-lg"
+                  style={{
+                    fontFamily: '"Ubuntu", sans-serif',
+                    fontWeight: 400,
+                  }}
+                >
+                  No exams found
+                </p>
+              </motion.div>
+            </div>
+          ) : (
+            <Card className="border-none p-0 shadow-none bg-transition">
+              <CardContent className="border-none p-0">
+                <div className="space-y-4">
+                  <AnimatePresence mode="popLayout">
+                    {filteredExams.map((exam, index) => (
+                      <motion.div
+                        key={exam.id}
+                        layout
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{
+                          duration: 0.4,
+                          delay: index * 0.05,
+                          layout: { duration: 0.3 },
+                        }}
+                        className="flex items-center justify-between rounded-lg border border-primary/20 p-5 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm hover:border-primary/40 hover:shadow-lg dark:hover:shadow-[0_10px_20px_-5px_rgba(255,255,255,0.1)] hover:scale-[1.02] transition-all duration-300"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3
+                              className="font-semibold text-base capitalize"
+                              style={{
+                                fontFamily: '"Ubuntu", sans-serif',
+                                fontWeight: 500,
+                              }}
+                            >
+                              {exam.title}
+                            </h3>
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{
+                                delay: 0.2 + index * 0.05,
+                                type: "spring",
+                                stiffness: 200,
+                              }}
+                            >
+                              <Badge className={getStatusColor(exam.status) } >
+                                {getStatusLabel(exam.status)}
+                              </Badge>
+                            </motion.div>
+                          </div>
+                          <p
+                            className="text-xs text-muted-foreground mb-3"
+                            style={{
+                              fontFamily: '"Ubuntu", sans-serif',
+                              fontWeight: 400,
+                            }}
+                          >
+                            {exam.department}
+                          </p>
+                          <div className="flex items-center gap-6 text-xs text-muted-foreground flex-wrap">
+                            <motion.div
+                              className="flex items-center gap-1"
+                              whileHover={{ scale: 1.05 }}
+                            >
+                              <Clock className="h-3 w-3" />
+                              <span>{formatDuration(exam.duration)}</span>
+                            </motion.div>
+                            <motion.div
+                              className="flex items-center gap-1"
+                              whileHover={{ scale: 1.05 }}
+                            >
+                              <FileText className="h-3 w-3" />
+                              <span>{exam.totalQuestions} questions</span>
+                            </motion.div>
+                            {exam.endTime && (
+                              <motion.div
+                                className="flex items-center gap-1"
+                                whileHover={{ scale: 1.05 }}
+                              >
+                                <Calendar className="h-3 w-3" />
+                                <span>
+                                  Due:{" "}
+                                  {new Date(exam.endTime).toLocaleDateString()}
+                                </span>
+                              </motion.div>
+                            )}
+                            {exam.score !== null &&
+                              exam.score !== undefined && (
+                                <motion.div
+                                  className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400"
+                                  whileHover={{ scale: 1.1 }}
+                                  animate={{
+                                    y: [0, -3, 0],
+                                  }}
+                                  transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeInOut",
+                                  }}
+                                >
+                                  <Trophy className="h-3 w-3" />
+                                  <span className="font-semibold">
+                                    {exam.score}%
+                                  </span>
+                                </motion.div>
+                              )}
+                          </div>
+                        </div>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 + index * 0.05 }}
+                        >
+                          {exam.status === "upcoming" && (
+                            <Button
+                              onClick={() => startExam(exam.id)}
+                              disabled
+                              className="cursor-pointer text-xs"
+                              style={{
+                                fontFamily: '"Ubuntu", sans-serif',
+                                fontWeight: 400,
+                              }}
+                            >
+                              <Play className="h-4 w-4" />
+                              Not Started
+                            </Button>
+                          )}
+                          {exam.status === "pending" && (
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Button
+                                onClick={() => startExam(exam.id)}
+                                className="cursor-pointer relative overflow-hidden text-xs"
+                                disabled={navigatingExamId === exam.id}
+                                style={{
+                                  fontFamily: '"Ubuntu", sans-serif',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {navigatingExamId === exam.id ? (
+                                  <>
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    Loading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="h-4 w-4" />
+                                    View Details
+                                  </>
+                                )}
+                              </Button>
+                            </motion.div>
+                          )}
+                          {exam.status === "in-progress" && (
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Button
+                                onClick={() => {
+                                  setNavigatingExamId(exam.id);
+                                  router.push(`/student/exam/${exam.id}/start`);
+                                }}
+                                disabled={navigatingExamId === exam.id}
+                                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                                style={{
+                                  fontFamily: '"Ubuntu", sans-serif',
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {navigatingExamId === exam.id ? (
+                                  <>
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    Loading...
+                                  </>
+                                ) : (
+                                  <div className="flex items-center gap-1 text-white">
+                                    <Play className="h-4 w-4" />
+                                    Continue
+                                  </div>
+                                )}
+                              </Button>
+                            </motion.div>
+                          )}
+
+                          {exam.status === "expired" && (
+                            <Button
+                              disabled
+                              variant="outline"
+                              style={{
+                                fontFamily: '"Ubuntu", sans-serif',
+                                fontWeight: 500,
+                              }}
+                            >
+                              Expired
+                            </Button>
+                          )}
+                        </motion.div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </motion.div>
+      </motion.div>
+    </div>
   );
 }
