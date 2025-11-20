@@ -115,8 +115,8 @@ export default function NotFound() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="text-muted-foreground text-base md:text-lg mb-8 max-w-xl mx-auto leading-relaxed"
         >
-          Oops! The page you're looking for seems to have vanished into the
-          digital void. Let's get you back on track.
+          Oops! The page you&apos;re looking for seems to have vanished into the
+          digital void. Let&apos;s get you back on track.
         </motion.p>
 
         {/* Auto-redirect Countdown */}

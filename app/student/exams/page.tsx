@@ -260,7 +260,7 @@ export default function ExamsPage() {
             >
               <Button
                 variant={filter === tab.key ? "default" : "outline"}
-                onClick={() => setFilter(tab.key as any)}
+                onClick={() => setFilter(tab.key as "all" | "pending" | "completed" | "expired")}
                 size="sm"
                 className="relative overflow-hidden"
                 style={{
