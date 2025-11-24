@@ -1772,7 +1772,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                     size="lg"
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   >
-                    <Avatar className="h-8 w-8 rounded-lg">
+                    <Avatar className="h-8 w-8 rounded-lg uppercase">
                       <AvatarImage
                         src={userData?.user_metadata?.avatar_url || ""}
                         alt={userData?.first_name || "User"}
@@ -1783,7 +1783,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">
+                      <span className="truncate font-semibold capitalize">
                         {userData?.first_name} {userData?.last_name}
                       </span>
                       <span className="truncate text-xs">
@@ -1801,7 +1801,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                 >
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                      <Avatar className="h-8 w-8 rounded-lg">
+                      <Avatar className="h-8 w-8 rounded-lg uppercase">
                         <AvatarImage
                           src={userData?.user_metadata?.avatar_url || ""}
                           alt={userData?.first_name || "User"}
@@ -1812,7 +1812,7 @@ export function AnimatedSidebar({ children }: { children: React.ReactNode }) {
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-semibold">
+                        <span className="truncate font-semibold capitalize">
                           {userData?.first_name} {userData?.last_name}
                         </span>
                         <span className="truncate text-xs">

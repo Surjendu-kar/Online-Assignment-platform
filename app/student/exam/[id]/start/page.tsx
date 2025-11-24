@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import Editor from '@monaco-editor/react';
+import Editor from "@monaco-editor/react";
 import {
   Select,
   SelectContent,
@@ -49,8 +49,25 @@ import {
   Moon,
   Code2,
 } from "lucide-react";
-import { CODE_TEMPLATES, LANGUAGE_CONFIG } from "@/data/codeTemplates";
+import {
+  CODE_TEMPLATES,
+  LANGUAGE_CONFIG,
+  EXAM_TEMPLATES,
+} from "@/data/codeTemplates";
 import { toast } from "react-hot-toast";
+
+interface TestCase {
+  input: string;
+  output: string;
+}
+
+interface TestResult {
+  passed: boolean;
+  input: string;
+  expectedOutput: string;
+  actualOutput: string;
+  error?: string;
+}
 
 interface Question {
   id: string;
@@ -62,6 +79,7 @@ interface Question {
   question_order: number;
   starter_code?: string;
   language?: string;
+  test_cases?: TestCase[];
 }
 
 interface ExamData {
@@ -95,14 +113,31 @@ export default function ExamStartPage() {
   const [showWarning, setShowWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const [codeOutput, setCodeOutput] = useState<{ [key: string]: { language: string; output: string; error: boolean } }>({});
-  const [selectedLanguage, setSelectedLanguage] = useState<{ [key: string]: string }>({});
+  const [codeOutput, setCodeOutput] = useState<{
+    [key: string]: {
+      language: string;
+      output: string;
+      error: boolean;
+      testResults?: TestResult[];
+      passedCount?: number;
+      totalTests?: number;
+    };
+  }>({});
+  const [selectedLanguage, setSelectedLanguage] = useState<{
+    [key: string]: string;
+  }>({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<{ [key: string]: "code" | "output" }>({});
-  
+  const [activeTab, setActiveTab] = useState<{
+    [key: string]: "code" | "output";
+  }>({});
+
   const [fontSize, setFontSize] = useState(14);
-  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'vs-light'>('vs-dark');
-  const [isFullscreen, setIsFullscreen] = useState<{ [key: string]: boolean }>({});
+  const [editorTheme, setEditorTheme] = useState<"vs-dark" | "vs-light">(
+    "vs-dark"
+  );
+  const [isFullscreen, setIsFullscreen] = useState<{ [key: string]: boolean }>(
+    {}
+  );
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);
@@ -115,7 +150,7 @@ export default function ExamStartPage() {
       const data = await response.json();
 
       if (response.ok) {
-        if (!data.session || data.session.status !== 'in_progress') {
+        if (!data.session || data.session.status !== "in_progress") {
           toast.error("Exam session not found or not started");
           router.push(`/student/exam/${examId}`);
           return;
@@ -127,8 +162,18 @@ export default function ExamStartPage() {
         // Initialize answers with starter code for coding questions if not already answered
         const initialAnswers = data.savedAnswers || {};
         data.questions.forEach((q: Question) => {
-          if (q.type === 'coding' && !initialAnswers[q.id]) {
-            initialAnswers[q.id] = q.starter_code || CODE_TEMPLATES[q.language || 'javascript'];
+          if (q.type === "coding" && !initialAnswers[q.id]) {
+            const lang = q.language?.toLowerCase() || "javascript";
+            // Use teacher's starter code if provided, otherwise use default template
+            if (q.starter_code) {
+              initialAnswers[q.id] = q.starter_code;
+            } else if (EXAM_TEMPLATES[lang]) {
+              // Use exam template (editable part only)
+              initialAnswers[q.id] = EXAM_TEMPLATES[lang].editable;
+            } else {
+              initialAnswers[q.id] =
+                CODE_TEMPLATES[lang] || CODE_TEMPLATES["javascript"];
+            }
           }
         });
 
@@ -202,13 +247,16 @@ export default function ExamStartPage() {
     await submitExam();
   }, [submitExam]);
 
-  const runCodeWithShortcut = useCallback((questionId: string) => {
-    const code = (answers[questionId] as string) || '';
-    const language = selectedLanguage[questionId] || 'javascript';
-    if (code.trim()) {
-      runCode(questionId, code, language);
-    }
-  }, [answers, selectedLanguage]);
+  const runCodeWithShortcut = useCallback(
+    (questionId: string) => {
+      const code = (answers[questionId] as string) || "";
+      const language = selectedLanguage[questionId] || "javascript";
+      if (code.trim()) {
+        runCode(questionId, code, language);
+      }
+    },
+    [answers, selectedLanguage]
+  );
 
   useEffect(() => {
     fetchExamData();
@@ -241,10 +289,10 @@ export default function ExamStartPage() {
 
   // Sync editor theme with system theme
   useEffect(() => {
-    if (theme === 'dark') {
-      setEditorTheme('vs-dark');
-    } else if (theme === 'light') {
-      setEditorTheme('vs-light');
+    if (theme === "dark") {
+      setEditorTheme("vs-dark");
+    } else if (theme === "light") {
+      setEditorTheme("vs-light");
     }
   }, [theme]);
 
@@ -263,39 +311,41 @@ export default function ExamStartPage() {
       [questionId]: answer,
     }));
   };
-  
+
   const handleLanguageChange = (questionId: string, newLanguage: string) => {
     setSelectedLanguage((prev) => ({
       ...prev,
       [questionId]: newLanguage,
     }));
-    
+
     // Always update template when language changes to ensure consistency
     handleAnswerChange(questionId, CODE_TEMPLATES[newLanguage]);
   };
-  
+
   const formatCode = () => {
     if (editorRef.current) {
-      const action = editorRef.current.getAction('editor.action.formatDocument');
+      const action = editorRef.current.getAction(
+        "editor.action.formatDocument"
+      );
       if (action) {
         action.run();
       }
     }
   };
-  
+
   const toggleFullscreen = (questionId: string) => {
-    setIsFullscreen(prev => ({
+    setIsFullscreen((prev) => ({
       ...prev,
-      [questionId]: !prev[questionId]
+      [questionId]: !prev[questionId],
     }));
   };
-  
+
   const adjustFontSize = (delta: number) => {
-    setFontSize(prev => Math.max(10, Math.min(24, prev + delta)));
+    setFontSize((prev) => Math.max(10, Math.min(24, prev + delta)));
   };
-  
+
   const toggleEditorTheme = () => {
-    setEditorTheme(prev => prev === 'vs-dark' ? 'vs-light' : 'vs-dark');
+    setEditorTheme((prev) => (prev === "vs-dark" ? "vs-light" : "vs-dark"));
   };
 
   const getAnsweredQuestions = () => {
@@ -314,12 +364,24 @@ export default function ExamStartPage() {
     await submitExam();
   };
 
-  const runCode = async (questionId: string, code: string, language: string) => {
+  const runCode = async (
+    questionId: string,
+    code: string,
+    language: string
+  ) => {
+    const question = examData?.questions.find((q) => q.id === questionId);
+    const testCases = question?.test_cases;
+
     setCodeOutput((prev) => ({
       ...prev,
       [questionId]: {
         language,
-        output: "⚡ Executing code...\n📝 Running on Judge0 compiler",
+        output:
+          testCases && testCases.length > 0
+            ? `⚡ Running ${testCases.length} test case${
+                testCases.length > 1 ? "s" : ""
+              }...\n📝 Testing your solution on Judge0 compiler\n⏳ Please wait...`
+            : "⚡ Executing code...\n📝 Running on Judge0 compiler",
         error: false,
       },
     }));
@@ -330,30 +392,49 @@ export default function ExamStartPage() {
     }));
 
     try {
-      const response = await fetch('/api/execute', {
-        method: 'POST',
+      const response = await fetch("/api/execute", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ code, language }),
+        body: JSON.stringify({ code, language, testCases }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Execution failed');
+        throw new Error(result.error || "Execution failed");
       }
 
       let output = "";
       let error = false;
 
+      // Handle test case results
+      if (result.testResults) {
+        const { testResults, passedCount, totalTests } = result;
+
+        setCodeOutput((prev) => ({
+          ...prev,
+          [questionId]: {
+            language,
+            output: "", // Will be displayed in custom UI
+            error: passedCount < totalTests,
+            testResults,
+            passedCount,
+            totalTests,
+          },
+        }));
+        return;
+      }
+
+      // Handle simple execution (no test cases)
       if (result.success) {
         output = `🟢 Execution completed successfully
 
 ${result.output.trim()}
 
 ✨ Program finished with exit code 0
-⏱️  Time: ${result.time || '0'}s | Memory: ${result.memory || '0'}KB`;
+⏱️  Time: ${result.time || "0"}s | Memory: ${result.memory || "0"}KB`;
       } else {
         error = true;
         output = `🔴 Execution failed
@@ -503,480 +584,966 @@ ${result.output.trim()}
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-7xl mx-auto mt-7 mb-2"
+      className="max-w-8xl mx-auto mt-5 mb-2"
     >
-      <div className="grid gap-6 lg:grid-cols-4">
-        {/* Question Content */}
-        <div className="lg:col-span-3">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentQuestion}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="gap-3">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Question {currentQuestion + 1}</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary">
-                        {currentQ.marks} marks
-                      </Badge>
+      {/* Conditional layout based on question type */}
+      {currentQ.type === "coding" ? (
+        /* 3-column layout for coding questions */
+        <div className="flex gap-6">
+          {/* Left Column - Question Details Card (3 cols = 25%) */}
+          <div className="lg:w-[22%]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentQuestion}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="gap-3">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">
+                        Question {currentQuestion + 1}
+                      </CardTitle>
+                      <Badge variant="secondary">{currentQ.marks} marks</Badge>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <p className="text-md">{currentQ.question_text}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4 max-h-[700px] overflow-y-auto">
+                    {/* Question Text */}
 
-                  {currentQ.type === "mcq" && currentQ.options && (
-                    <RadioGroup
-                      value={answers[currentQ.id]?.toString() || ""}
-                      onValueChange={(value) =>
-                        handleAnswerChange(currentQ.id, parseInt(value))
-                      }
-                    >
-                      {currentQ.options.map((option, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-2"
-                        >
-                          <RadioGroupItem
-                            value={index.toString()}
-                            id={`${currentQ.id}-${index}`}
-                          />
-                          <Label
-                            htmlFor={`${currentQ.id}-${index}`}
-                            className="flex-1 cursor-pointer"
-                          >
-                            {option}
-                          </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {currentQ.question_text}
+                    </p>
+
+                    {/* Example */}
+                    {currentQ.test_cases && currentQ.test_cases.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">
+                            Example:
+                          </span>
                         </div>
-                      ))}
-                    </RadioGroup>
-                  )}
-
-                  {currentQ.type === "saq" && (
-                    <Textarea
-                      placeholder="Type your answer here..."
-                      value={answers[currentQ.id] || ""}
-                      onChange={(e) =>
-                        handleAnswerChange(currentQ.id, e.target.value)
-                      }
-                      className="min-h-32"
-                    />
-                  )}
-
-                  {currentQ.type === "coding" && (
-                    <div className="space-y-4">
-                      {/* Enhanced Toolbar */}
-                      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={formatCode}
-                            className="text-xs"
-                          >
-                            <Code2 className="h-3 w-3 mr-1" />
-                            Format
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowKeyboardShortcuts(true)}
-                            className="text-xs"
-                          >
-                            <Type className="h-3 w-3 mr-1" />
-                            Shortcuts
-                          </Button>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => adjustFontSize(-1)}
-                              disabled={fontSize <= 10}
-                            >
-                              <ZoomOut className="h-3 w-3" />
-                            </Button>
-                            <span className="text-xs px-2 py-1 bg-muted rounded">{fontSize}px</span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => adjustFontSize(1)}
-                              disabled={fontSize >= 24}
-                            >
-                              <ZoomIn className="h-3 w-3" />
-                            </Button>
+                        <div className="space-y-1 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">
+                              Input:{" "}
+                            </span>
+                            <code className="font-mono text-amber-600 dark:text-amber-400">
+                              {currentQ.test_cases[0].input || "(empty)"}
+                            </code>
                           </div>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={toggleEditorTheme}
-                          >
-                            {editorTheme === 'vs-dark' ? (
-                              <Sun className="h-3 w-3" />
-                            ) : (
-                              <Moon className="h-3 w-3" />
-                            )}
-                          </Button>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleFullscreen(currentQ.id)}
-                          >
-                            {isFullscreen[currentQ.id] ? (
-                              <Minimize2 className="h-3 w-3" />
-                            ) : (
-                              <Maximize2 className="h-3 w-3" />
-                            )}
-                          </Button>
+                          <div>
+                            <span className="text-muted-foreground">
+                              Output:{" "}
+                            </span>
+                            <code className="font-mono text-green-600 dark:text-green-400">
+                              {currentQ.test_cases[0].output}
+                            </code>
+                          </div>
                         </div>
                       </div>
-                      
-                      {/* Auto-save indicator - Hidden as requested */}
-                      <div className={`border border-[#3C3C3C] rounded-lg overflow-hidden transition-all duration-300 ${
-                        isFullscreen[currentQ.id] 
-                          ? 'fixed inset-0 z-50 bg-background' 
-                          : editorTheme === 'vs-dark' ? 'bg-[#1E1E1E]' : 'bg-white'
-                      }`}>
-                        {/* Monaco-style Tab Bar with Language Selector */}
-                        <div className={`border-b transition-colors ${
-                          editorTheme === 'vs-dark' 
-                            ? 'bg-[#2D2D30] border-[#3C3C3C]' 
-                            : 'bg-[#F3F3F3] border-[#CCCCCC]'
-                        }`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex">
-                              <button
-                                className={`px-4 py-2 text-sm font-medium border-r transition-all ${
-                                  editorTheme === 'vs-dark'
-                                    ? 'border-[#3C3C3C]'
-                                    : 'border-[#CCCCCC]'
-                                } ${
-                                  (activeTab[currentQ.id] || "code") === "code"
-                                    ? editorTheme === 'vs-dark'
-                                      ? "bg-[#1E1E1E] text-[#CCCCCC] border-b-2 border-b-[#007ACC]"
-                                      : "bg-white text-[#333333] border-b-2 border-b-[#007ACC]"
-                                    : editorTheme === 'vs-dark'
-                                      ? "text-[#CCCCCC]/70 hover:text-[#CCCCCC] hover:bg-[#252526]"
-                                      : "text-[#666666] hover:text-[#333333] hover:bg-[#F0F0F0]"
-                                }`}
-                                onClick={() => setActiveTab((prev) => ({ ...prev, [currentQ.id]: "code" }))}
-                              >
-                                <span className="flex items-center space-x-2 cursor-pointer">
-                                  <span className="w-2 h-2 rounded-full bg-[#007ACC]"></span>
-                                  <span>Code</span>
-                                </span>
-                              </button>
-                              <button
-                                className={`px-4 py-2 text-sm font-medium transition-all ${
-                                  (activeTab[currentQ.id] || "code") === "output"
-                                    ? editorTheme === 'vs-dark'
-                                      ? "bg-[#1E1E1E] text-[#CCCCCC] border-b-2 border-b-[#007ACC] cursor-default"
-                                      : "bg-white text-[#333333] border-b-2 border-b-[#007ACC] cursor-default"
-                                    : editorTheme === 'vs-dark'
-                                      ? "text-[#CCCCCC]/70 hover:text-[#CCCCCC] hover:bg-[#252526] cursor-pointer"
-                                      : "text-[#666666] hover:text-[#333333] hover:bg-[#F0F0F0] cursor-pointer"
-                                }`}
-                                onClick={() => {
-                                  if ((activeTab[currentQ.id] || "code") !== "output") {
-                                    setActiveTab((prev) => ({ ...prev, [currentQ.id]: "output" }));
-                                    runCode(currentQ.id, (answers[currentQ.id] as string) || "", selectedLanguage[currentQ.id] || "javascript");
-                                  }
-                                }}
-                                disabled={(activeTab[currentQ.id] || "code") === "output"}
-                              >
-                                <span className="flex items-center space-x-2 cursor-pointer">
-                                  <span className="w-2 h-2 rounded-full bg-[#4EC9B0]"></span>
-                                  <span>Output</span>
-                                </span>
-                              </button>
-                            </div>
-                            
-                            {/* Language Selector on the right */}
-                              <Select
-                                value={selectedLanguage[currentQ.id] || "javascript"}
-                                onValueChange={(value) => handleLanguageChange(currentQ.id, value)}
-                              >
-                                <SelectTrigger className={`w-[150px] h-full border-0 rounded-none rounded-tr-lg transition-colors ${
-                                  editorTheme === 'vs-dark'
-                                    ? 'bg-[#2D2D30] border-[#3C3C3C] text-[#CCCCCC] hover:bg-[#252526]'
-                                    : 'bg-[#F3F3F3] border-[#CCCCCC] text-[#333333] hover:bg-[#E8E8E8]'
-                                }`}>
-                                  <SelectValue placeholder="Language" />
-                                </SelectTrigger>
-                                <SelectContent className={editorTheme === 'vs-dark' ? 'bg-[#2D2D30] border-[#3C3C3C]' : 'bg-white border-[#CCCCCC]'}>
-                                  {Object.entries(LANGUAGE_CONFIG).map(([key, config]) => (
-                                    <SelectItem key={key} value={key} className={editorTheme === 'vs-dark' ? 'text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]' : 'text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]'}>
-                                      <span className="flex items-center space-x-2">
-                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }}></span>
-                                        <span>{config.name}</span>
-                                      </span>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                          </div>
-                        </div>
-                        
-                        {(activeTab[currentQ.id] || "code") === "code" ? (
-                          <Editor
-                            height={isFullscreen[currentQ.id] ? "calc(100vh - 100px)" : "400px"}
-                            language={selectedLanguage[currentQ.id] || "javascript"}
-                            value={(answers[currentQ.id] as string) || ""}
-                            onChange={(value) =>
-                              handleAnswerChange(currentQ.id, value || "")
-                            }
-                            theme={editorTheme}
-                            onMount={(editor) => {
-                              editorRef.current = editor;
-                              
-                              // Add keyboard shortcuts
-                              editor.addCommand(
-                                window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.Enter,
-                                () => runCodeWithShortcut(currentQ.id)
-                              );
-                              
-                              // Add syntax validation
-                              editor.onDidChangeModelContent(() => {
-                                const model = editor.getModel();
-                                if (model) {
-                                  window.monaco.editor.setModelMarkers(model, 'syntax', []);
-                                }
-                              });
-                            }}
-                            options={{
-                              minimap: { enabled: !isFullscreen[currentQ.id] ? false : true },
-                              fontSize: fontSize,
-                              fontFamily: "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace",
-                              lineNumbers: "on",
-                              wordWrap: "on",
-                              automaticLayout: true,
-                              scrollBeyondLastLine: false,
-                              renderLineHighlight: "line",
-                              selectOnLineNumbers: true,
-                              roundedSelection: false,
-                              readOnly: false,
-                              cursorStyle: "line",
-                              contextmenu: true,
-                              mouseWheelZoom: true,
-                              smoothScrolling: true,
-                              cursorBlinking: "blink",
-                              renderWhitespace: "selection",
-                              bracketPairColorization: { enabled: true },
-                              guides: {
-                                bracketPairs: true,
-                                indentation: true,
-                              },
-                              padding: {
-                                top: 16,
-                                bottom: 16,
-                              },
-                              lineNumbersMinChars: 3,
-                              glyphMargin: false,
-                              overviewRulerBorder: false,
-                              hideCursorInOverviewRuler: true,
-                              renderValidationDecorations: "on",
-                              tabSize: 2,
-                              insertSpaces: true,
-                              detectIndentation: true,
-                              formatOnPaste: true,
-                              formatOnType: true,
-                              suggestOnTriggerCharacters: true,
-                              acceptSuggestionOnEnter: "on",
-                              acceptSuggestionOnCommitCharacter: true,
-                              quickSuggestions: true,
-                              parameterHints: { enabled: true },
-                              autoIndent: "full",
-                              folding: true,
-                              foldingStrategy: "auto",
-                              showFoldingControls: "mouseover",
-                              matchBrackets: "always",
-                              colorDecorators: true,
-                            }}
-                          />
-                        ) : (
-                          /* Monaco-style Output Panel */
-                          <div className={`overflow-y-auto transition-colors ${
-                            isFullscreen[currentQ.id] ? "h-[calc(100vh-100px)]" : "h-[400px]"
-                          } ${
-                            editorTheme === 'vs-dark' ? 'bg-[#1E1E1E]' : 'bg-white'
-                          }`}>
-                            {codeOutput[currentQ.id] ? (
-                              <div className="h-full p-4">
-                                <div
-                                  className={`font-mono text-sm whitespace-pre-wrap leading-6 ${
-                                    codeOutput[currentQ.id].error
-                                      ? editorTheme === 'vs-dark' ? "text-[#F48771]" : "text-[#E53E3E]"
-                                      : editorTheme === 'vs-dark' ? "text-[#4EC9B0]" : "text-[#38A169]"
-                                  }`}
-                                  style={{
-                                    fontFamily: "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace",
-                                    fontSize: `${fontSize}px`
-                                  }}
-                                >
-                                  {codeOutput[currentQ.id].output}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className={`flex items-center justify-center h-full transition-colors ${
-                                editorTheme === 'vs-dark' ? 'text-[#858585]' : 'text-[#666666]'
-                              }`}>
-                                <div className="text-center">
-                                  <Play className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                  <p className="font-mono text-sm" style={{ fontSize: `${fontSize}px` }}>Run your code to see the output here</p>
-                                  <p className="font-mono text-xs mt-2 opacity-70">Press Ctrl+Enter or click Output tab to execute</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Fullscreen close button */}
-                        {isFullscreen[currentQ.id] && (
-                          <div className="absolute top-2 right-2 z-10">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleFullscreen(currentQ.id)}
-                              className="bg-background/80 backdrop-blur-sm"
-                            >
-                              <Minimize2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        setCurrentQuestion(Math.max(0, currentQuestion - 1))
-                      }
-                      disabled={currentQuestion === 0}
-                      className="cursor-pointer"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-
-                    {currentQuestion < examData.questions.length - 1 && (
-                      <Button
-                        onClick={() =>
-                          setCurrentQuestion(
-                            Math.min(
-                              examData.questions.length - 1,
-                              currentQuestion + 1
-                            )
-                          )
-                        }
-                        className="cursor-pointer"
-                      >
-                        Next
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </AnimatePresence>
-        </div>
 
-        {/*Right Sidebar */}
-        <div className="space-y-6">
-          {/* Question Navigator */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Question Navigator</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-5 gap-2">
-                {examData.questions.map((_, index) => {
-                  const questionId = examData.questions[index].id;
-                  const isAnswered =
-                    answers[questionId] !== undefined &&
-                    answers[questionId] !== null &&
-                    answers[questionId] !== "";
-                  const isCurrent = index === currentQuestion;
+                    {/* Important Rules */}
+                    {currentQ.test_cases && currentQ.test_cases.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-blue-600 dark:text-blue-400 text-sm font-semibold">
+                            ⚠️ Important Rules:
+                          </span>
+                        </div>
+                        <ul className="text-xs space-y-1 ml-4 list-disc text-blue-700 dark:text-blue-300">
+                          <li>
+                            Your function must be named{" "}
+                            <code className="bg-muted px-1 rounded font-bold">
+                              solution
+                            </code>
+                          </li>
+                          <li>
+                            <strong>
+                              Write your code INSIDE the solution function
+                            </strong>{" "}
+                            and return the result
+                          </li>
+                          <li>
+                            <strong>Do NOT call</strong>{" "}
+                            <code className="bg-muted px-1 rounded">
+                              solution()
+                            </code>{" "}
+                            manually in your code
+                          </li>
+                          <li>
+                            <strong>Do NOT use</strong>{" "}
+                            <code className="bg-muted px-1 rounded">
+                              console.log()
+                            </code>{" "}
+                            or similar output statements
+                          </li>
+                          <li>
+                            The test wrapper will automatically read input and
+                            call your function
+                          </li>
+                          <li>
+                            Your code will be tested against{" "}
+                            {currentQ.test_cases.length} test case
+                            {currentQ.test_cases.length > 1 ? "s" : ""}
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-                  let buttonClass = "";
-                  if (isCurrent) {
-                    buttonClass =
-                      "!bg-blue-500 hover:!bg-blue-600 !text-white !border-blue-500";
-                  } else if (isAnswered) {
-                    buttonClass =
-                      "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500";
-                  } else {
-                    buttonClass = "!bg-muted hover:!bg-muted/80";
-                  }
-
-                  return (
+          {/* Center Column - Code Editor Card (6.5 cols = 54.17%) */}
+          <div className="lg:w-[60%] flex-1">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentQuestion}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
+                {/* Enhanced Toolbar */}
+                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+                  <div className="flex items-center space-x-2">
                     <Button
-                      key={index}
                       variant="outline"
                       size="sm"
-                      className={buttonClass}
-                      onClick={() => setCurrentQuestion(index)}
+                      onClick={formatCode}
+                      className="text-xs"
                     >
-                      {index + 1}
+                      <Code2 className="h-3 w-3 mr-1" />
+                      Format
                     </Button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowKeyboardShortcuts(true)}
+                      className="text-xs"
+                    >
+                      <Type className="h-3 w-3 mr-1" />
+                      Shortcuts
+                    </Button>
+                  </div>
 
-          {/* Exam Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Exam Progress</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Answered:</span>
-                  <span className="font-medium">
-                    {getAnsweredQuestions()}/{examData.questions.length}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Time Remaining:</span>
-                  <span className="font-medium">
-                    {formatTime(timeRemaining)}
-                  </span>
-                </div>
-              </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => adjustFontSize(-1)}
+                        disabled={fontSize <= 10}
+                      >
+                        <ZoomOut className="h-3 w-3" />
+                      </Button>
+                      <span className="text-xs px-2 py-1 bg-muted rounded">
+                        {fontSize}px
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => adjustFontSize(1)}
+                        disabled={fontSize >= 24}
+                      >
+                        <ZoomIn className="h-3 w-3" />
+                      </Button>
+                    </div>
 
-              <Button
-                variant="destructive"
-                className="w-full hover:bg-red-600 hover:scale-105 transition-all duration-200"
-                onClick={handleSubmitExam}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Exam"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleEditorTheme}
+                    >
+                      {editorTheme === "vs-dark" ? (
+                        <Sun className="h-3 w-3" />
+                      ) : (
+                        <Moon className="h-3 w-3" />
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleFullscreen(currentQ.id)}
+                    >
+                      {isFullscreen[currentQ.id] ? (
+                        <Minimize2 className="h-3 w-3" />
+                      ) : (
+                        <Maximize2 className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Code Editor Container */}
+                <div
+                  className={`border border-[#3C3C3C] rounded-lg overflow-hidden transition-all duration-300 ${
+                    isFullscreen[currentQ.id]
+                      ? "fixed inset-0 z-50 bg-background"
+                      : editorTheme === "vs-dark"
+                      ? "bg-[#1E1E1E]"
+                      : "bg-white"
+                  }`}
+                >
+                  {/* Monaco-style Tab Bar with Language Selector */}
+                  <div
+                    className={`border-b transition-colors ${
+                      editorTheme === "vs-dark"
+                        ? "bg-[#2D2D30] border-[#3C3C3C]"
+                        : "bg-[#F3F3F3] border-[#CCCCCC]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex">
+                        <button
+                          className={`px-4 py-2 text-sm font-medium border-r transition-all ${
+                            editorTheme === "vs-dark"
+                              ? "border-[#3C3C3C]"
+                              : "border-[#CCCCCC]"
+                          } ${
+                            (activeTab[currentQ.id] || "code") === "code"
+                              ? editorTheme === "vs-dark"
+                                ? "bg-[#1E1E1E] text-[#CCCCCC] border-b-2 border-b-[#007ACC]"
+                                : "bg-white text-[#333333] border-b-2 border-b-[#007ACC]"
+                              : editorTheme === "vs-dark"
+                              ? "text-[#CCCCCC]/70 hover:text-[#CCCCCC] hover:bg-[#252526]"
+                              : "text-[#666666] hover:text-[#333333] hover:bg-[#F0F0F0]"
+                          }`}
+                          onClick={() =>
+                            setActiveTab((prev) => ({
+                              ...prev,
+                              [currentQ.id]: "code",
+                            }))
+                          }
+                        >
+                          <span className="flex items-center space-x-2 cursor-pointer">
+                            <span className="w-2 h-2 rounded-full bg-[#007ACC]"></span>
+                            <span>Code</span>
+                          </span>
+                        </button>
+                        <button
+                          className={`px-4 py-2 text-sm font-medium transition-all ${
+                            (activeTab[currentQ.id] || "code") === "output"
+                              ? editorTheme === "vs-dark"
+                                ? "bg-[#1E1E1E] text-[#CCCCCC] border-b-2 border-b-[#007ACC] cursor-default"
+                                : "bg-white text-[#333333] border-b-2 border-b-[#007ACC] cursor-default"
+                              : editorTheme === "vs-dark"
+                              ? "text-[#CCCCCC]/70 hover:text-[#CCCCCC] hover:bg-[#252526] cursor-pointer"
+                              : "text-[#666666] hover:text-[#333333] hover:bg-[#F0F0F0] cursor-pointer"
+                          }`}
+                          onClick={() => {
+                            if (
+                              (activeTab[currentQ.id] || "code") !== "output"
+                            ) {
+                              setActiveTab((prev) => ({
+                                ...prev,
+                                [currentQ.id]: "output",
+                              }));
+                              runCode(
+                                currentQ.id,
+                                (answers[currentQ.id] as string) || "",
+                                selectedLanguage[currentQ.id] || "javascript"
+                              );
+                            }
+                          }}
+                          disabled={
+                            (activeTab[currentQ.id] || "code") === "output"
+                          }
+                        >
+                          <span className="flex items-center space-x-2 cursor-pointer">
+                            <Play className="w-3 h-3 text-green-500" />
+                            <span>Run Tests</span>
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* Language Selector on the right */}
+                      <Select
+                        value={selectedLanguage[currentQ.id] || "javascript"}
+                        onValueChange={(value) =>
+                          handleLanguageChange(currentQ.id, value)
+                        }
+                      >
+                        <SelectTrigger
+                          className={`w-[150px] h-full border-0 rounded-none rounded-tr-lg transition-colors ${
+                            editorTheme === "vs-dark"
+                              ? "bg-[#2D2D30] border-[#3C3C3C] text-[#CCCCCC] hover:bg-[#252526]"
+                              : "bg-[#F3F3F3] border-[#CCCCCC] text-[#333333] hover:bg-[#E8E8E8]"
+                          }`}
+                        >
+                          <SelectValue placeholder="Language" />
+                        </SelectTrigger>
+                        <SelectContent
+                          className={
+                            editorTheme === "vs-dark"
+                              ? "bg-[#2D2D30] border-[#3C3C3C]"
+                              : "bg-white border-[#CCCCCC]"
+                          }
+                        >
+                          {Object.entries(LANGUAGE_CONFIG).map(
+                            ([key, config]) => (
+                              <SelectItem
+                                key={key}
+                                value={key}
+                                className={
+                                  editorTheme === "vs-dark"
+                                    ? "text-[#CCCCCC] hover:bg-[#252526] focus:bg-[#252526]"
+                                    : "text-[#333333] hover:bg-[#F0F0F0] focus:bg-[#F0F0F0]"
+                                }
+                              >
+                                <span className="flex items-center space-x-2">
+                                  <span
+                                    className="w-2 h-2 rounded-full"
+                                    style={{
+                                      backgroundColor: config.color,
+                                    }}
+                                  ></span>
+                                  <span>{config.name}</span>
+                                </span>
+                              </SelectItem>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {(activeTab[currentQ.id] || "code") === "code" ? (
+                    <Editor
+                      height={
+                        isFullscreen[currentQ.id]
+                          ? "calc(100vh)"
+                          : "400px"
+                      }
+                      language={selectedLanguage[currentQ.id] || "javascript"}
+                      value={(answers[currentQ.id] as string) || ""}
+                      onChange={(value) =>
+                        handleAnswerChange(currentQ.id, value || "")
+                      }
+                      theme={editorTheme}
+                      onMount={(editor) => {
+                        editorRef.current = editor;
+
+                        // Add keyboard shortcuts
+                        editor.addCommand(
+                          window.monaco.KeyMod.CtrlCmd |
+                            window.monaco.KeyCode.Enter,
+                          () => runCodeWithShortcut(currentQ.id)
+                        );
+
+                        // Add syntax validation
+                        editor.onDidChangeModelContent(() => {
+                          const model = editor.getModel();
+                          if (model) {
+                            window.monaco.editor.setModelMarkers(
+                              model,
+                              "syntax",
+                              []
+                            );
+                          }
+                        });
+                      }}
+                      options={{
+                        minimap: {
+                          enabled: !isFullscreen[currentQ.id] ? false : true,
+                        },
+                        fontSize: fontSize,
+                        fontFamily:
+                          "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace",
+                        lineNumbers: "on",
+                        wordWrap: "on",
+                        automaticLayout: true,
+                        scrollBeyondLastLine: false,
+                        renderLineHighlight: "line",
+                        selectOnLineNumbers: true,
+                        roundedSelection: false,
+                        readOnly: false,
+                        cursorStyle: "line",
+                        contextmenu: true,
+                        mouseWheelZoom: true,
+                        smoothScrolling: true,
+                        cursorBlinking: "blink",
+                        renderWhitespace: "selection",
+                        bracketPairColorization: { enabled: true },
+                        guides: {
+                          bracketPairs: true,
+                          indentation: true,
+                        },
+                        padding: {
+                          top: 16,
+                          bottom: 16,
+                        },
+                        lineNumbersMinChars: 3,
+                        glyphMargin: false,
+                        overviewRulerBorder: false,
+                        hideCursorInOverviewRuler: true,
+                        renderValidationDecorations: "on",
+                        tabSize: 2,
+                        insertSpaces: true,
+                        detectIndentation: true,
+                        formatOnPaste: true,
+                        formatOnType: true,
+                        suggestOnTriggerCharacters: true,
+                        acceptSuggestionOnEnter: "on",
+                        acceptSuggestionOnCommitCharacter: true,
+                        quickSuggestions: true,
+                        parameterHints: { enabled: true },
+                        autoIndent: "full",
+                        folding: true,
+                        foldingStrategy: "auto",
+                        showFoldingControls: "mouseover",
+                        matchBrackets: "always",
+                        colorDecorators: true,
+                      }}
+                    />
+                  ) : (
+                    /* Monaco-style Output Panel */
+                    <div
+                      className={`overflow-y-auto transition-colors ${
+                        isFullscreen[currentQ.id]
+                          ? "h-[calc(100vh-100px)]"
+                          : "h-[500px]"
+                      } ${
+                        editorTheme === "vs-dark" ? "bg-[#1E1E1E]" : "bg-white"
+                      }`}
+                    >
+                      {codeOutput[currentQ.id] ? (
+                        <div className="h-full p-4">
+                          {/* Test Case Results */}
+                          {codeOutput[currentQ.id].testResults ? (
+                            <div className="space-y-4">
+                              {/* Summary Header */}
+                              <div
+                                className={`p-3 rounded-lg border ${
+                                  codeOutput[currentQ.id].passedCount ===
+                                  codeOutput[currentQ.id].totalTests
+                                    ? "bg-green-500/10 border-green-500/30"
+                                    : "bg-red-500/10 border-red-500/30"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span
+                                    className={`font-semibold ${
+                                      codeOutput[currentQ.id].passedCount ===
+                                      codeOutput[currentQ.id].totalTests
+                                        ? editorTheme === "vs-dark"
+                                          ? "text-green-400"
+                                          : "text-green-600"
+                                        : editorTheme === "vs-dark"
+                                        ? "text-red-400"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {codeOutput[currentQ.id].passedCount ===
+                                    codeOutput[currentQ.id].totalTests
+                                      ? "✅ All Tests Passed!"
+                                      : "❌ Some Tests Failed"}
+                                  </span>
+                                  <Badge variant="secondary">
+                                    {codeOutput[currentQ.id].passedCount}/
+                                    {codeOutput[currentQ.id].totalTests} Passed
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              {/* Individual Test Results */}
+                              {codeOutput[currentQ.id].testResults?.map(
+                                (testResult, index) => (
+                                  <div
+                                    key={index}
+                                    className={`rounded-lg border p-3 ${
+                                      testResult.passed
+                                        ? "bg-green-500/5 border-green-500/20"
+                                        : "bg-red-500/5 border-red-500/20"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span
+                                        className={`font-semibold text-sm ${
+                                          editorTheme === "vs-dark"
+                                            ? "text-[#CCCCCC]"
+                                            : "text-[#333333]"
+                                        }`}
+                                      >
+                                        Test Case {index + 1}
+                                      </span>
+                                      <Badge
+                                        variant={
+                                          testResult.passed
+                                            ? "default"
+                                            : "destructive"
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {testResult.passed
+                                          ? "✓ Passed"
+                                          : "✗ Failed"}
+                                      </Badge>
+                                    </div>
+
+                                    <div className="space-y-2 text-sm">
+                                      <div>
+                                        <span
+                                          className={`font-medium ${
+                                            editorTheme === "vs-dark"
+                                              ? "text-[#858585]"
+                                              : "text-[#666666]"
+                                          }`}
+                                        >
+                                          Input:{" "}
+                                        </span>
+                                        <code
+                                          className={`font-mono ${
+                                            editorTheme === "vs-dark"
+                                              ? "text-[#CE9178]"
+                                              : "text-[#A31515]"
+                                          }`}
+                                        >
+                                          {testResult.input || "(empty)"}
+                                        </code>
+                                      </div>
+
+                                      <div>
+                                        <span
+                                          className={`font-medium ${
+                                            editorTheme === "vs-dark"
+                                              ? "text-[#858585]"
+                                              : "text-[#666666]"
+                                          }`}
+                                        >
+                                          Expected Output:{" "}
+                                        </span>
+                                        <code
+                                          className={`font-mono ${
+                                            editorTheme === "vs-dark"
+                                              ? "text-[#4EC9B0]"
+                                              : "text-[#38A169]"
+                                          }`}
+                                        >
+                                          {testResult.expectedOutput}
+                                        </code>
+                                      </div>
+
+                                      <div>
+                                        <span
+                                          className={`font-medium ${
+                                            editorTheme === "vs-dark"
+                                              ? "text-[#858585]"
+                                              : "text-[#666666]"
+                                          }`}
+                                        >
+                                          Your Output:{" "}
+                                        </span>
+                                        <code
+                                          className={`font-mono ${
+                                            testResult.passed
+                                              ? editorTheme === "vs-dark"
+                                                ? "text-[#4EC9B0]"
+                                                : "text-[#38A169]"
+                                              : editorTheme === "vs-dark"
+                                              ? "text-[#F48771]"
+                                              : "text-[#E53E3E]"
+                                          }`}
+                                        >
+                                          {testResult.actualOutput ||
+                                            "(no output)"}
+                                        </code>
+                                      </div>
+
+                                      {testResult.error && (
+                                        <div className="mt-2 p-2 rounded bg-red-500/10">
+                                          <span
+                                            className={`font-medium text-xs ${
+                                              editorTheme === "vs-dark"
+                                                ? "text-[#F48771]"
+                                                : "text-[#E53E3E]"
+                                            }`}
+                                          >
+                                            Error: {testResult.error}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          ) : (
+                            /* Simple Output (no test cases) */
+                            <div
+                              className={`font-mono text-sm whitespace-pre-wrap leading-6 ${
+                                codeOutput[currentQ.id].error
+                                  ? editorTheme === "vs-dark"
+                                    ? "text-[#F48771]"
+                                    : "text-[#E53E3E]"
+                                  : editorTheme === "vs-dark"
+                                  ? "text-[#4EC9B0]"
+                                  : "text-[#38A169]"
+                              }`}
+                              style={{
+                                fontFamily:
+                                  "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace",
+                                fontSize: `${fontSize}px`,
+                              }}
+                            >
+                              {codeOutput[currentQ.id].output}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          className={`flex items-center justify-center h-full transition-colors ${
+                            editorTheme === "vs-dark"
+                              ? "text-[#858585]"
+                              : "text-[#666666]"
+                          }`}
+                        >
+                          <div className="text-center">
+                            <Play className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p
+                              className="font-mono text-sm"
+                              style={{ fontSize: `${fontSize}px` }}
+                            >
+                              Click "Run Tests" to test your code
+                            </p>
+                            <p className="font-mono text-xs mt-2 opacity-70">
+                              Press Ctrl+Enter or click "Run Tests" tab
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Fullscreen close button */}
+                  {isFullscreen[currentQ.id] && (
+                    <div className="absolute top-2 right-2 z-10">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleFullscreen(currentQ.id)}
+                        className="bg-background/80 backdrop-blur-sm"
+                      >
+                        <Minimize2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Navigation Buttons for Coding Questions */}
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      setCurrentQuestion(Math.max(0, currentQuestion - 1))
+                    }
+                    disabled={currentQuestion === 0}
+                    className="cursor-pointer"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+
+                  {currentQuestion < examData.questions.length - 1 && (
+                    <Button
+                      onClick={() =>
+                        setCurrentQuestion(
+                          Math.min(
+                            examData.questions.length - 1,
+                            currentQuestion + 1
+                          )
+                        )
+                      }
+                      className="cursor-pointer"
+                    >
+                      Next
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Right Column - Question Navigator & Progress (2.5 cols = 20.83%) */}
+          <div className="lg:w-[18%] space-y-6">
+            {/* Question Navigator */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Question Navigator</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-5 gap-2">
+                  {examData.questions.map((_, index) => {
+                    const questionId = examData.questions[index].id;
+                    const isAnswered =
+                      answers[questionId] !== undefined &&
+                      answers[questionId] !== null &&
+                      answers[questionId] !== "";
+                    const isCurrent = index === currentQuestion;
+
+                    let buttonClass = "";
+                    if (isCurrent) {
+                      buttonClass =
+                        "!bg-blue-500 hover:!bg-blue-600 !text-white !border-blue-500";
+                    } else if (isAnswered) {
+                      buttonClass =
+                        "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500";
+                    } else {
+                      buttonClass = "!bg-muted hover:!bg-muted/80";
+                    }
+
+                    return (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        className={buttonClass}
+                        onClick={() => setCurrentQuestion(index)}
+                      >
+                        {index + 1}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Exam Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Exam Progress</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Answered:</span>
+                    <span className="font-medium">
+                      {getAnsweredQuestions()}/{examData.questions.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Time Remaining:</span>
+                    <span className="font-medium">
+                      {formatTime(timeRemaining)}
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="destructive"
+                  className="w-full hover:bg-red-600 hover:scale-105 transition-all duration-200"
+                  onClick={handleSubmitExam}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Exam"
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* 2-column layout for MCQ and SAQ */
+        <div className="grid gap-6 lg:grid-cols-4">
+          {/* Question Content */}
+          <div className="lg:col-span-3">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentQuestion}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="gap-3">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Question {currentQuestion + 1}</CardTitle>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary">
+                          {currentQ.marks} marks
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <>
+                      <p className="text-md">{currentQ.question_text}</p>
+
+                      {currentQ.type === "mcq" && currentQ.options && (
+                        <RadioGroup
+                          value={answers[currentQ.id]?.toString() || ""}
+                          onValueChange={(value) =>
+                            handleAnswerChange(currentQ.id, parseInt(value))
+                          }
+                        >
+                          {currentQ.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center space-x-2"
+                            >
+                              <RadioGroupItem
+                                value={index.toString()}
+                                id={`${currentQ.id}-${index}`}
+                              />
+                              <Label
+                                htmlFor={`${currentQ.id}-${index}`}
+                                className="flex-1 cursor-pointer"
+                              >
+                                {option}
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      )}
+
+                      {currentQ.type === "saq" && (
+                        <Textarea
+                          placeholder="Type your answer here..."
+                          value={answers[currentQ.id] || ""}
+                          onChange={(e) =>
+                            handleAnswerChange(currentQ.id, e.target.value)
+                          }
+                          className="min-h-32"
+                        />
+                      )}
+                    </>
+
+                    {/* Navigation Buttons for MCQ/SAQ */}
+                    <div className="flex items-center justify-between">
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setCurrentQuestion(Math.max(0, currentQuestion - 1))
+                        }
+                        disabled={currentQuestion === 0}
+                        className="cursor-pointer"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Previous
+                      </Button>
+
+                      {currentQuestion < examData.questions.length - 1 && (
+                        <Button
+                          onClick={() =>
+                            setCurrentQuestion(
+                              Math.min(
+                                examData.questions.length - 1,
+                                currentQuestion + 1
+                              )
+                            )
+                          }
+                          className="cursor-pointer"
+                        >
+                          Next
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/*Right Sidebar */}
+          <div className="space-y-6">
+            {/* Question Navigator */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Question Navigator</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-5 gap-2">
+                  {examData.questions.map((_, index) => {
+                    const questionId = examData.questions[index].id;
+                    const isAnswered =
+                      answers[questionId] !== undefined &&
+                      answers[questionId] !== null &&
+                      answers[questionId] !== "";
+                    const isCurrent = index === currentQuestion;
+
+                    let buttonClass = "";
+                    if (isCurrent) {
+                      buttonClass =
+                        "!bg-blue-500 hover:!bg-blue-600 !text-white !border-blue-500";
+                    } else if (isAnswered) {
+                      buttonClass =
+                        "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500";
+                    } else {
+                      buttonClass = "!bg-muted hover:!bg-muted/80";
+                    }
+
+                    return (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        className={buttonClass}
+                        onClick={() => setCurrentQuestion(index)}
+                      >
+                        {index + 1}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Exam Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Exam Progress</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Answered:</span>
+                    <span className="font-medium">
+                      {getAnsweredQuestions()}/{examData.questions.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Time Remaining:</span>
+                    <span className="font-medium">
+                      {formatTime(timeRemaining)}
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="destructive"
+                  className="w-full hover:bg-red-600 hover:scale-105 transition-all duration-200"
+                  onClick={handleSubmitExam}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Exam"
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* Warning Dialog */}
       <Dialog open={showWarning} onOpenChange={setShowWarning}>
@@ -997,7 +1564,11 @@ ${result.output.trim()}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowWarning(false)} disabled={isSubmitting}>
+            <Button
+              variant="outline"
+              onClick={() => setShowWarning(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button
@@ -1018,9 +1589,12 @@ ${result.output.trim()}
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Keyboard Shortcuts Dialog */}
-      <Dialog open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
+      <Dialog
+        open={showKeyboardShortcuts}
+        onOpenChange={setShowKeyboardShortcuts}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
@@ -1034,41 +1608,58 @@ ${result.output.trim()}
           <div className="space-y-4">
             <div className="grid gap-3">
               <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium">Run Code</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">Ctrl + Enter</kbd>
+                <span className="font-medium">Run Tests</span>
+                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                  Ctrl + Enter
+                </kbd>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium">Format Code</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">Shift + Alt + F</kbd>
+                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                  Shift + Alt + F
+                </kbd>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium">Find/Replace</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">Ctrl + F</kbd>
+                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                  Ctrl + F
+                </kbd>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium">Comment Line</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">Ctrl + /</kbd>
+                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                  Ctrl + /
+                </kbd>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium">Undo</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">Ctrl + Z</kbd>
+                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                  Ctrl + Z
+                </kbd>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium">Redo</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">Ctrl + Y</kbd>
+                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                  Ctrl + Y
+                </kbd>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium">Select All</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">Ctrl + A</kbd>
+                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                  Ctrl + A
+                </kbd>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="font-medium">Duplicate Line</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">Shift + Alt + ↓</kbd>
+                <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                  Shift + Alt + ↓
+                </kbd>
               </div>
             </div>
             <div className="bg-muted/50 p-3 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                💡 <strong>Pro Tip:</strong> Use Ctrl+Enter to quickly test your code without switching tabs!
+                💡 <strong>Pro Tip:</strong> Use Ctrl+Enter to quickly run all
+                test cases without switching tabs!
               </p>
             </div>
           </div>

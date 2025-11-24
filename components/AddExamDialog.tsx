@@ -174,7 +174,7 @@ export const AddExamDialog = ({
         setDepartments(filteredDepts);
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
     } finally {
       setLoadingDepartments(false);
     }
@@ -324,6 +324,35 @@ export const AddExamDialog = ({
   };
 
   const handleAddQuestion = () => {
+    // Validation for coding questions
+    if (currentQuestionType === "coding") {
+      if (!currentQuestion.programmingLanguage) {
+        alert("Please select a programming language");
+        return;
+      }
+      if (!currentQuestion.codeTemplate?.trim()) {
+        alert("Please provide starter code for students");
+        return;
+      }
+      if (
+        !currentQuestion.testCases ||
+        currentQuestion.testCases.length === 0
+      ) {
+        alert(
+          "⚠️ Test cases are required for coding questions!\n\nStudents need test cases to validate their solutions. Please add at least one test case."
+        );
+        return;
+      }
+      // Validate test cases have both input and output
+      const invalidTestCase = currentQuestion.testCases.find(
+        (tc) => !tc.input.trim() || !tc.output.trim()
+      );
+      if (invalidTestCase) {
+        alert("All test cases must have both input and expected output");
+        return;
+      }
+    }
+
     const questionData: Question = {
       id: editingQuestionId || Date.now().toString(),
       type: currentQuestionType,
@@ -463,6 +492,10 @@ export const AddExamDialog = ({
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
+    if (!open) {
+      // Reset accordion state when dialog closes
+      setOpenAccordionId(null);
+    }
     if (open && !isEditing) {
       setStep1Data({
         name: "",
@@ -534,7 +567,8 @@ export const AddExamDialog = ({
               {currentStep === 1 && (
                 <div className="grid gap-4 py-4">
                   {/* Conditional Layout Based on Department Field Visibility */}
-                  {userRole === "admin" && (isEditMode || activeDepartmentId === "all") ? (
+                  {userRole === "admin" &&
+                  (isEditMode || activeDepartmentId === "all") ? (
                     // Show Department Field - Use 3-column layout
                     <>
                       {/* First row: Exam Name (full width) */}
@@ -599,7 +633,8 @@ export const AddExamDialog = ({
                               />
                             </SelectTrigger>
                             <SelectContent>
-                              {departments.length === 0 && !loadingDepartments ? (
+                              {departments.length === 0 &&
+                              !loadingDepartments ? (
                                 <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                   No departments available
                                 </div>
@@ -607,7 +642,8 @@ export const AddExamDialog = ({
                                 departments.map((dept) => (
                                   <SelectItem key={dept.id} value={dept.id}>
                                     {dept.name}{" "}
-                                    {dept.description && `(${dept.description})`}
+                                    {dept.description &&
+                                      `(${dept.description})`}
                                   </SelectItem>
                                 ))
                               )}
@@ -934,12 +970,54 @@ export const AddExamDialog = ({
                                 value={
                                   currentQuestion.programmingLanguage || ""
                                 }
-                                onValueChange={(value) =>
+                                onValueChange={(value) => {
+                                  // Auto-fill starter code when language is selected
+                                  let starterCode = "";
+                                  switch (value) {
+                                    case "JavaScript":
+                                      starterCode =
+                                        "function solution(n) {\n    // Write your code here\n    return n;\n}";
+                                      break;
+                                    case "Python":
+                                      starterCode =
+                                        "def solution(n):\n    # Write your code here\n    return n";
+                                      break;
+                                    case "Java":
+                                      starterCode =
+                                        "public class Solution {\n    public static int solution(int n) {\n        // Write your code here\n        return n;\n    }";
+                                      break;
+                                    case "C++":
+                                      starterCode =
+                                        "#include <iostream>\nusing namespace std;\n\nint solution(int n) {\n    // Write your code here\n    return n;\n}";
+                                      break;
+                                    case "C":
+                                      starterCode =
+                                        "#include <stdio.h>\n\nint solution(int n) {\n    // Write your code here\n    return n;\n}";
+                                      break;
+                                    case "Ruby":
+                                      starterCode =
+                                        "def solution(n)\n    # Write your code here\n    return n\nend";
+                                      break;
+                                    case "Go":
+                                      starterCode =
+                                        'package main\n\nimport "fmt"\n\nfunc solution(n int) int {\n    // Write your code here\n    return n\n}';
+                                      break;
+                                    case "Rust":
+                                      starterCode =
+                                        "fn solution(n: i32) -> i32 {\n    // Write your code here\n    n\n}";
+                                      break;
+                                    default:
+                                      starterCode =
+                                        "function solution(n) {\n    // Write your code here\n    return n;\n}";
+                                  }
+
                                   setCurrentQuestion((prev) => ({
                                     ...prev,
                                     programmingLanguage: value,
-                                  }))
-                                }
+                                    // Always update the starter code when language changes
+                                    codeTemplate: starterCode,
+                                  }));
+                                }}
                               >
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select programming language" />
@@ -952,46 +1030,92 @@ export const AddExamDialog = ({
                                   ))}
                                 </SelectContent>
                               </Select>
-                              <Textarea
-                                placeholder="Starter code (optional)..."
-                                value={currentQuestion.codeTemplate || ""}
-                                onChange={(
-                                  e: React.ChangeEvent<HTMLTextAreaElement>
-                                ) =>
-                                  setCurrentQuestion((prev) => ({
-                                    ...prev,
-                                    codeTemplate: e.target.value,
-                                  }))
-                                }
-                                rows={3}
-                                className="w-full font-sans"
-                              />
+
+                              <div className="space-y-2">
+                                <div className="space-y-2">
+                                  <p className="text-xs text-muted-foreground bg-blue-500/10 p-2 rounded border border-blue-500/20">
+                                    ⚠️ <strong>Important Rules:</strong>
+                                  </p>
+                                  <ul className="text-xs space-y-1 ml-4 list-disc text-muted-foreground">
+                                    <li>
+                                      The function must be named{" "}
+                                      <code className="bg-muted px-1 rounded font-bold">
+                                        solution
+                                      </code>
+                                    </li>
+                                    <li>
+                                      <strong>Do not call</strong>{" "}
+                                      <code className="bg-muted px-1 rounded">
+                                        solution()
+                                      </code>{" "}
+                                      manually or use{" "}
+                                      <code className="bg-muted px-1 rounded">
+                                        console.log()
+                                      </code>
+                                    </li>
+                                    <li>
+                                      The test wrapper will automatically read
+                                      input and call your{" "}
+                                      <code className="bg-muted px-1 rounded">
+                                        solution
+                                      </code>{" "}
+                                      function
+                                    </li>
+                                  </ul>
+                                </div>
+                                <Textarea
+                                  placeholder="Select a programming language to see the starter code template..."
+                                  value={currentQuestion.codeTemplate || ""}
+                                  onChange={(
+                                    e: React.ChangeEvent<HTMLTextAreaElement>
+                                  ) =>
+                                    setCurrentQuestion((prev) => ({
+                                      ...prev,
+                                      codeTemplate: e.target.value,
+                                    }))
+                                  }
+                                  rows={8}
+                                  className="w-full font-mono text-sm"
+                                />
+                              </div>
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                  <Label>Test Cases</Label>
+                                  <div className="flex items-center gap-2">
+                                    <Label>Test Cases *</Label>
+                                    <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                                      (Required)
+                                    </span>
+                                  </div>
                                   <Button
                                     type="button"
                                     onClick={handleAddTestCase}
                                     size="sm"
                                     variant="outline"
+                                    className="border-amber-500/30 hover:bg-amber-500/10"
                                   >
                                     <Plus className="h-4 w-4" />
                                     Add Test Case
                                   </Button>
                                 </div>
+                                {(!currentQuestion.testCases ||
+                                  currentQuestion.testCases.length === 0) && (
+                                  <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2 rounded border border-amber-500/30">
+                                    ⚠️ At least one test case is required.
+                                    Students will see the input/output to
+                                    validate their solution.
+                                  </p>
+                                )}
                                 {currentQuestion.testCases?.map(
                                   (testCase, index) => (
                                     <div
                                       key={index}
-                                      className="grid grid-cols-2 gap-2 p-2 border rounded"
+                                      className="grid grid-cols-2 gap-4 p-2 border rounded"
                                     >
                                       <div className="grid gap-1">
                                         <Label className="text-xs">Input</Label>
-                                        <Textarea
+                                        <Input
                                           value={testCase.input}
-                                          onChange={(
-                                            e: React.ChangeEvent<HTMLTextAreaElement>
-                                          ) =>
+                                          onChange={(e) =>
                                             handleTestCaseChange(
                                               index,
                                               "input",
@@ -999,7 +1123,6 @@ export const AddExamDialog = ({
                                             )
                                           }
                                           placeholder="Input data..."
-                                          rows={2}
                                         />
                                       </div>
                                       <div className="grid gap-1">
@@ -1007,11 +1130,9 @@ export const AddExamDialog = ({
                                           Expected Output
                                         </Label>
                                         <div className="flex gap-1">
-                                          <Textarea
+                                          <Input
                                             value={testCase.output}
-                                            onChange={(
-                                              e: React.ChangeEvent<HTMLTextAreaElement>
-                                            ) =>
+                                            onChange={(e) =>
                                               handleTestCaseChange(
                                                 index,
                                                 "output",
@@ -1019,7 +1140,6 @@ export const AddExamDialog = ({
                                               )
                                             }
                                             placeholder="Expected output..."
-                                            rows={2}
                                             className="flex-1"
                                           />
                                           <Button
@@ -1059,12 +1179,24 @@ export const AddExamDialog = ({
                           <Button
                             onClick={handleAddQuestion}
                             className="w-full"
-                            disabled={!currentQuestion.question?.trim()}
+                            disabled={
+                              !currentQuestion.question?.trim() ||
+                              (currentQuestionType === "coding" &&
+                                (!currentQuestion.testCases ||
+                                  currentQuestion.testCases.length === 0))
+                            }
                           >
                             {editingQuestionId
                               ? "Update Question"
                               : `Add ${currentQuestionType.toUpperCase()} Question`}
                           </Button>
+                          {currentQuestionType === "coding" &&
+                            (!currentQuestion.testCases ||
+                              currentQuestion.testCases.length === 0) && (
+                              <p className="text-xs text-center text-amber-600 dark:text-amber-400">
+                                Please add at least one test case to continue
+                              </p>
+                            )}
                           {editingQuestionId && (
                             <Button
                               type="button"

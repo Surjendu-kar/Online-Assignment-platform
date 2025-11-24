@@ -269,7 +269,7 @@ export default function ExamPage() {
         transition={{ duration: 0.6, ease: "easeInOut" }}
         className="container mx-auto relative z-10"
       >
-        <div className="grid gap-6 lg:grid-cols-3 p-6">
+        <div className="grid gap-6 lg:grid-cols-3 py-6">
           <div className="lg:col-span-2 space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -335,7 +335,7 @@ export default function ExamPage() {
             </motion.div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}

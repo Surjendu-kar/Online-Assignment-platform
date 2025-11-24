@@ -847,7 +847,7 @@ export default function ExamsPage() {
                                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
                                   <BookOpen className="h-4 w-4 text-primary" />
                                 </div>
-                                <span className="font-medium">
+                                <span className="font-medium capitalize">
                                   {exam.title}
                                 </span>
                               </div>

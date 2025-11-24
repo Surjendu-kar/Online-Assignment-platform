@@ -58,7 +58,7 @@ export function ExamDetailsSkeleton() {
         transition={{ duration: 0.5 }}
         className="container mx-auto relative z-10"
       >
-        <div className="grid gap-6 lg:grid-cols-3 p-6">
+        <div className="grid gap-6 lg:grid-cols-3 py-6">
           {/* Main Content Skeleton */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="shadow-none backdrop-blur-sm bg-background/80 border-primary/20">
@@ -95,7 +95,7 @@ export function ExamDetailsSkeleton() {
           </div>
 
           {/* Sidebar Skeleton */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Quick Stats Skeleton */}
             <Card className="shadow-none backdrop-blur-sm bg-background/80 border-primary/20">
               <CardHeader>

@@ -3,12 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,28 +41,34 @@ export default function ExamsPage() {
   >("all");
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !document.getElementById('ubuntu-font-global')) {
+    if (
+      typeof window !== "undefined" &&
+      !document.getElementById("ubuntu-font-global")
+    ) {
       // Preconnect to Google Fonts
-      const preconnect1 = document.createElement('link');
-      preconnect1.rel = 'preconnect';
-      preconnect1.href = 'https://fonts.googleapis.com';
-      if (!document.querySelector('link[href="https://fonts.googleapis.com"]')) {
+      const preconnect1 = document.createElement("link");
+      preconnect1.rel = "preconnect";
+      preconnect1.href = "https://fonts.googleapis.com";
+      if (
+        !document.querySelector('link[href="https://fonts.googleapis.com"]')
+      ) {
         document.head.appendChild(preconnect1);
       }
 
-      const preconnect2 = document.createElement('link');
-      preconnect2.rel = 'preconnect';
-      preconnect2.href = 'https://fonts.gstatic.com';
-      preconnect2.setAttribute('crossorigin', 'anonymous');
+      const preconnect2 = document.createElement("link");
+      preconnect2.rel = "preconnect";
+      preconnect2.href = "https://fonts.gstatic.com";
+      preconnect2.setAttribute("crossorigin", "anonymous");
       if (!document.querySelector('link[href="https://fonts.gstatic.com"]')) {
         document.head.appendChild(preconnect2);
       }
 
       // Load Ubuntu font
-      const link = document.createElement('link');
-      link.id = 'ubuntu-font-global';
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap';
+      const link = document.createElement("link");
+      link.id = "ubuntu-font-global";
+      link.rel = "stylesheet";
+      link.href =
+        "https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap";
       document.head.appendChild(link);
     }
   }, []);
@@ -260,7 +261,11 @@ export default function ExamsPage() {
             >
               <Button
                 variant={filter === tab.key ? "default" : "outline"}
-                onClick={() => setFilter(tab.key as "all" | "pending" | "completed" | "expired")}
+                onClick={() =>
+                  setFilter(
+                    tab.key as "all" | "pending" | "completed" | "expired"
+                  )
+                }
                 size="sm"
                 className="relative overflow-hidden"
                 style={{
@@ -365,7 +370,7 @@ export default function ExamsPage() {
                                 stiffness: 200,
                               }}
                             >
-                              <Badge className={getStatusColor(exam.status) } >
+                              <Badge className={getStatusColor(exam.status)}>
                                 {getStatusLabel(exam.status)}
                               </Badge>
                             </motion.div>
