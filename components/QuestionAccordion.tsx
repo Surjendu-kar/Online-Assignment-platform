@@ -56,6 +56,22 @@ export const QuestionAccordion = ({
     number | null
   >(null);
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+
+  // Helper function to map language names to template keys
+  const getLanguageKey = (language: string): string => {
+    const mapping: Record<string, string> = {
+      javascript: "javascript",
+      python: "python",
+      java: "java",
+      "c++": "cpp",
+      c: "c",
+      "c#": "c#",
+      go: "go",
+      rust: "rust",
+      typescript: "typescript",
+    };
+    return mapping[language.toLowerCase()] || language.toLowerCase();
+  };
   const handleDragStart = (index: number) => {
     setDraggedQuestionIndex(index);
   };
@@ -421,39 +437,14 @@ export const QuestionAccordion = ({
                               const newLanguage = e.target.value;
                               let starterCode = question.codeTemplate || "";
 
-                              // Auto-fill starter code when language is selected
+                              // Auto-fill complete code template when language is selected
                               if (newLanguage) {
-                                const langKey = newLanguage.toLowerCase();
-                                if (EXAM_TEMPLATES[langKey]) {
-                                  starterCode = EXAM_TEMPLATES[langKey].editable;
-                                } else {
-                                  // Fallback templates for languages not in EXAM_TEMPLATES
-                                  switch (newLanguage) {
-                                    case "JavaScript":
-                                      starterCode = "function solution(n) {\n    // Write your code here\n    return n;\n}";
-                                      break;
-                                    case "Python":
-                                      starterCode = "def solution(n):\n    # Write your code here\n    return n";
-                                      break;
-                                    case "Java":
-                                      starterCode = "public class Solution {\n    public static int solution(int n) {\n        // Write your code here\n        return n;\n    }";
-                                      break;
-                                    case "C++":
-                                      starterCode = "#include <iostream>\nusing namespace std;\n\nint solution(int n) {\n    // Write your code here\n    return n;\n}";
-                                      break;
-                                    case "C":
-                                      starterCode = "#include <stdio.h>\n\nint solution(int n) {\n    // Write your code here\n    return n;\n}";
-                                      break;
-                                    case "Go":
-                                      starterCode = 'package main\n\nimport "fmt"\n\nfunc solution(n int) int {\n    // Write your code here\n    return n\n}';
-                                      break;
-                                    case "Rust":
-                                      starterCode = "fn solution(n: i32) -> i32 {\n    // Write your code here\n    n\n}";
-                                      break;
-                                    default:
-                                      starterCode = "function solution(n) {\n    // Write your code here\n    return n;\n}";
-                                  }
-                                }
+                                const langKey = getLanguageKey(newLanguage);
+                                // Use complete template if available, fallback to editable, then default
+                                starterCode =
+                                  EXAM_TEMPLATES[langKey]?.complete ||
+                                  EXAM_TEMPLATES[langKey]?.editable ||
+                                  "function solution(n) {\n    // Write your code here\n    return n;\n}";
                               }
 
                               onEditQuestion({
@@ -478,35 +469,26 @@ export const QuestionAccordion = ({
                             <option value="TypeScript">TypeScript</option>
                           </select>
 
-                          {/* Important Rules Info */}
+                          {/* Coding Template Info */}
                           <div className="space-y-2">
                             <p className="text-xs text-muted-foreground bg-blue-500/10 p-2 rounded border border-blue-500/20">
-                              ⚠️ <strong>Important Rules:</strong>
+                              💡 <strong>Coding Template Info:</strong>
                             </p>
                             <ul className="text-xs space-y-1 ml-4 list-disc text-muted-foreground">
                               <li>
-                                The function must be named{" "}
+                                Students write code in the{" "}
                                 <code className="bg-muted px-1 rounded font-bold">
-                                  solution
-                                </code>
-                              </li>
-                              <li>
-                                <strong>Do not call</strong>{" "}
-                                <code className="bg-muted px-1 rounded">
                                   solution()
                                 </code>{" "}
-                                manually or use{" "}
-                                <code className="bg-muted px-1 rounded">
-                                  console.log()
-                                </code>
+                                function
                               </li>
                               <li>
-                                The test wrapper will automatically read
-                                input and call your{" "}
-                                <code className="bg-muted px-1 rounded">
-                                  solution
-                                </code>{" "}
-                                function
+                                Students <strong>CAN use console.log()</strong>{" "}
+                                or print statements for debugging
+                              </li>
+                              <li>
+                                Input reading and output sections are
+                                pre-written - students shouldn't modify them
                               </li>
                             </ul>
                           </div>
@@ -528,9 +510,11 @@ export const QuestionAccordion = ({
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
-                                <Label className="text-gray-200">Test Cases *</Label>
-                                <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
-                                  (Required)
+                                <Label className="text-gray-200">
+                                  Test Cases
+                                </Label>
+                                <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                                  (Optional)
                                 </span>
                               </div>
                               <Button
@@ -539,23 +523,28 @@ export const QuestionAccordion = ({
                                   const testCases = question.testCases || [];
                                   onEditQuestion({
                                     ...question,
-                                    testCases: [...testCases, { input: "", output: "" }],
+                                    testCases: [
+                                      ...testCases,
+                                      { input: "", output: "" },
+                                    ],
                                   });
                                 }}
                                 size="sm"
                                 variant="outline"
-                                className="border-amber-500/30 hover:bg-amber-500/10 text-xs h-7"
+                                className="border-blue-500/30 hover:bg-blue-500/10 text-xs h-7"
                               >
                                 <Plus className="h-3 w-3 mr-1" />
                                 Add Test Case
                               </Button>
                             </div>
 
-                            {(!question.testCases || question.testCases.length === 0) && (
-                              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2 rounded border border-amber-500/30">
-                                ⚠️ At least one test case is required.
-                                Students will see the input/output to
-                                validate their solution.
+                            {(!question.testCases ||
+                              question.testCases.length === 0) && (
+                              <p className="text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 p-2 rounded border border-blue-500/30">
+                                💡 Add test cases to automatically validate
+                                student solutions. Without test cases, students
+                                can still debug with console.log() and submit
+                                their code.
                               </p>
                             )}
 
@@ -565,12 +554,16 @@ export const QuestionAccordion = ({
                                 className="grid grid-cols-2 gap-4 p-2 border border-gray-600 rounded bg-gray-800"
                               >
                                 <div className="grid gap-1">
-                                  <Label className="text-xs text-gray-300">Input</Label>
+                                  <Label className="text-xs text-gray-300">
+                                    Input
+                                  </Label>
                                   <input
                                     type="text"
                                     value={testCase.input}
                                     onChange={(e) => {
-                                      const newTestCases = [...(question.testCases || [])];
+                                      const newTestCases = [
+                                        ...(question.testCases || []),
+                                      ];
                                       newTestCases[index] = {
                                         ...newTestCases[index],
                                         input: e.target.value,
@@ -593,7 +586,9 @@ export const QuestionAccordion = ({
                                       type="text"
                                       value={testCase.output}
                                       onChange={(e) => {
-                                        const newTestCases = [...(question.testCases || [])];
+                                        const newTestCases = [
+                                          ...(question.testCases || []),
+                                        ];
                                         newTestCases[index] = {
                                           ...newTestCases[index],
                                           output: e.target.value,
@@ -609,9 +604,10 @@ export const QuestionAccordion = ({
                                     <Button
                                       type="button"
                                       onClick={() => {
-                                        const newTestCases = question.testCases?.filter(
-                                          (_, i) => i !== index
-                                        ) || [];
+                                        const newTestCases =
+                                          question.testCases?.filter(
+                                            (_, i) => i !== index
+                                          ) || [];
                                         onEditQuestion({
                                           ...question,
                                           testCases: newTestCases,

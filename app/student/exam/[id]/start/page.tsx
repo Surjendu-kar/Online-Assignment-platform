@@ -128,7 +128,10 @@ export default function ExamStartPage() {
   }>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<{
-    [key: string]: "code" | "output";
+    [key: string]: "code" | "output" | "testcases";
+  }>({});
+  const [customInput, setCustomInput] = useState<{
+    [key: string]: string;
   }>({});
 
   const [fontSize, setFontSize] = useState(14);
@@ -164,12 +167,12 @@ export default function ExamStartPage() {
         data.questions.forEach((q: Question) => {
           if (q.type === "coding" && !initialAnswers[q.id]) {
             const lang = q.language?.toLowerCase() || "javascript";
-            // Use teacher's starter code if provided, otherwise use default template
+            // Use teacher's starter code if provided, otherwise use complete template
             if (q.starter_code) {
               initialAnswers[q.id] = q.starter_code;
             } else if (EXAM_TEMPLATES[lang]) {
-              // Use exam template (editable part only)
-              initialAnswers[q.id] = EXAM_TEMPLATES[lang].editable;
+              // Use complete template with input/output logic
+              initialAnswers[q.id] = EXAM_TEMPLATES[lang].complete;
             } else {
               initialAnswers[q.id] =
                 CODE_TEMPLATES[lang] || CODE_TEMPLATES["javascript"];
@@ -251,11 +254,17 @@ export default function ExamStartPage() {
     (questionId: string) => {
       const code = (answers[questionId] as string) || "";
       const language = selectedLanguage[questionId] || "javascript";
+      const currentTab = activeTab[questionId] || "code";
+
       if (code.trim()) {
-        runCode(questionId, code, language);
+        if (currentTab === "output") {
+          runCodeWithCustomInput(questionId, code, language);
+        } else if (currentTab === "testcases") {
+          runTestCases(questionId, code, language);
+        }
       }
     },
-    [answers, selectedLanguage]
+    [answers, selectedLanguage, activeTab]
   );
 
   useEffect(() => {
@@ -319,17 +328,39 @@ export default function ExamStartPage() {
     }));
 
     // Always update template when language changes to ensure consistency
-    handleAnswerChange(questionId, CODE_TEMPLATES[newLanguage]);
+    const langKey = newLanguage.toLowerCase();
+    const template =
+      EXAM_TEMPLATES[langKey]?.complete || CODE_TEMPLATES[newLanguage];
+    handleAnswerChange(questionId, template);
   };
 
-  const formatCode = () => {
+  const formatCode = async () => {
     if (editorRef.current) {
-      const action = editorRef.current.getAction(
-        "editor.action.formatDocument"
-      );
-      if (action) {
-        action.run();
+      try {
+        // Try to format the document
+        await editorRef.current.getAction("editor.action.formatDocument")?.run();
+
+        // Show success feedback
+        toast.success("Code formatted successfully!", {
+          duration: 2000,
+          position: "bottom-right",
+        });
+      } catch (error) {
+        console.error("Format error:", error);
+        // Show helpful message
+        toast.error(
+          "Formatting not available for this language. Use Shift+Alt+F to try manual format.",
+          {
+            duration: 3000,
+            position: "bottom-right",
+          }
+        );
       }
+    } else {
+      toast.error("Editor not ready. Please try again.", {
+        duration: 2000,
+        position: "bottom-right",
+      });
     }
   };
 
@@ -364,24 +395,19 @@ export default function ExamStartPage() {
     await submitExam();
   };
 
-  const runCode = async (
+  const runCodeWithCustomInput = async (
     questionId: string,
     code: string,
     language: string
   ) => {
-    const question = examData?.questions.find((q) => q.id === questionId);
-    const testCases = question?.test_cases;
+    const input = customInput[questionId] || "";
 
     setCodeOutput((prev) => ({
       ...prev,
       [questionId]: {
         language,
         output:
-          testCases && testCases.length > 0
-            ? `⚡ Running ${testCases.length} test case${
-                testCases.length > 1 ? "s" : ""
-              }...\n📝 Testing your solution on Judge0 compiler\n⏳ Please wait...`
-            : "⚡ Executing code...\n📝 Running on Judge0 compiler",
+          "⚡ Executing code with custom input...\n📝 Running on Judge0 compiler\n⏳ Please wait...",
         error: false,
       },
     }));
@@ -389,6 +415,95 @@ export default function ExamStartPage() {
     setActiveTab((prev) => ({
       ...prev,
       [questionId]: "output",
+    }));
+
+    try {
+      const response = await fetch("/api/execute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code, language, customInput: input }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Execution failed");
+      }
+
+      let output = "";
+      let error = false;
+
+      if (result.success) {
+        output = `🟢 Execution completed successfully
+
+${result.output.trim()}
+
+✨ Program finished with exit code 0
+⏱️  Time: ${result.time || "0"}s | Memory: ${result.memory || "0"}KB`;
+      } else {
+        error = true;
+        output = `🔴 Execution failed
+
+❌ ${result.status}
+
+${result.output.trim()}
+
+💡 Check your code and try again`;
+      }
+
+      setCodeOutput((prev) => ({
+        ...prev,
+        [questionId]: {
+          language,
+          output,
+          error,
+        },
+      }));
+    } catch (err) {
+      setCodeOutput((prev) => ({
+        ...prev,
+        [questionId]: {
+          language,
+          output: `🔴 Network Error
+
+❌ ${(err as Error).message}
+
+💡 Check your internet connection and try again`,
+          error: true,
+        },
+      }));
+    }
+  };
+
+  const runTestCases = async (
+    questionId: string,
+    code: string,
+    language: string
+  ) => {
+    const question = examData?.questions.find((q) => q.id === questionId);
+    const testCases = question?.test_cases;
+
+    if (!testCases || testCases.length === 0) {
+      toast.error("No test cases available for this question");
+      return;
+    }
+
+    setCodeOutput((prev) => ({
+      ...prev,
+      [questionId]: {
+        language,
+        output: `⚡ Running ${testCases.length} test case${
+          testCases.length > 1 ? "s" : ""
+        }...\n📝 Testing your solution on Judge0 compiler\n⏳ Please wait...`,
+        error: false,
+      },
+    }));
+
+    setActiveTab((prev) => ({
+      ...prev,
+      [questionId]: "testcases",
     }));
 
     try {
@@ -472,8 +587,8 @@ ${result.output.trim()}
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-96">
+      <div className="flex items-center justify-center h-[89vh]">
+        <Card className="w-96 gap-2">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -584,7 +699,9 @@ ${result.output.trim()}
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-8xl mx-auto mt-5 mb-2"
+      className={`max-w-8xl mt-5 mb-2 ${
+        currentQ.type === "coding" ? "" : "mx-auto"
+      }`}
     >
       {/* Conditional layout based on question type */}
       {currentQ.type === "coding" ? (
@@ -646,52 +763,51 @@ ${result.output.trim()}
                     )}
 
                     {/* Important Rules */}
-                    {currentQ.test_cases && currentQ.test_cases.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-blue-600 dark:text-blue-400 text-sm font-semibold">
-                            ⚠️ Important Rules:
-                          </span>
-                        </div>
-                        <ul className="text-xs space-y-1 ml-4 list-disc text-blue-700 dark:text-blue-300">
-                          <li>
-                            Your function must be named{" "}
-                            <code className="bg-muted px-1 rounded font-bold">
-                              solution
-                            </code>
-                          </li>
-                          <li>
-                            <strong>
-                              Write your code INSIDE the solution function
-                            </strong>{" "}
-                            and return the result
-                          </li>
-                          <li>
-                            <strong>Do NOT call</strong>{" "}
-                            <code className="bg-muted px-1 rounded">
-                              solution()
-                            </code>{" "}
-                            manually in your code
-                          </li>
-                          <li>
-                            <strong>Do NOT use</strong>{" "}
-                            <code className="bg-muted px-1 rounded">
-                              console.log()
-                            </code>{" "}
-                            or similar output statements
-                          </li>
-                          <li>
-                            The test wrapper will automatically read input and
-                            call your function
-                          </li>
-                          <li>
-                            Your code will be tested against{" "}
-                            {currentQ.test_cases.length} test case
-                            {currentQ.test_cases.length > 1 ? "s" : ""}
-                          </li>
-                        </ul>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 text-sm font-semibold">
+                          💡 Coding Guidelines:
+                        </span>
                       </div>
-                    )}
+                      <ul className="text-xs space-y-1 ml-4 list-disc text-blue-700 dark:text-blue-300">
+                        <li>
+                          Write your code INSIDE the{" "}
+                          <code className="bg-muted px-1 rounded font-bold">
+                            solution()
+                          </code>{" "}
+                          function
+                        </li>
+                        <li>
+                          <strong>Do NOT modify</strong> the input reading or
+                          output sections
+                        </li>
+                      </ul>
+
+                      <div className="flex items-center gap-2 mt-3">
+                        <span className="text-green-600 dark:text-green-400 text-sm font-semibold">
+                          🛠️ Testing & Debugging:
+                        </span>
+                      </div>
+                      <ul className="text-xs space-y-1 ml-4 list-disc text-green-700 dark:text-green-300">
+                        <li>
+                          <strong>Code Tab:</strong> Write your solution here
+                        </li>
+                        <li>
+                          <strong>Output Tab:</strong> Test with custom input
+                          and use console.log() for debugging
+                        </li>
+                        <li>
+                          <strong>Test Cases Tab:</strong>{" "}
+                          {currentQ.test_cases && currentQ.test_cases.length > 0
+                            ? `Run ${
+                                currentQ.test_cases.length
+                              } official test case${
+                                currentQ.test_cases.length > 1 ? "s" : ""
+                              }`
+                            : "No test cases available"}
+                        </li>
+                      </ul>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -716,7 +832,7 @@ ${result.output.trim()}
                       variant="outline"
                       size="sm"
                       onClick={formatCode}
-                      className="text-xs"
+                      className="cursor-pointer text-xs hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 ease-in-out hover:scale-105"
                     >
                       <Code2 className="h-3 w-3 mr-1" />
                       Format
@@ -725,7 +841,7 @@ ${result.output.trim()}
                       variant="outline"
                       size="sm"
                       onClick={() => setShowKeyboardShortcuts(true)}
-                      className="text-xs"
+                      className="cursor-pointer text-xs hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-300 ease-in-out hover:scale-105"
                     >
                       <Type className="h-3 w-3 mr-1" />
                       Shortcuts
@@ -739,10 +855,11 @@ ${result.output.trim()}
                         size="sm"
                         onClick={() => adjustFontSize(-1)}
                         disabled={fontSize <= 10}
+                        className="cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-400 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 ease-in-out hover:scale-110 disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-muted-foreground"
                       >
                         <ZoomOut className="h-3 w-3" />
                       </Button>
-                      <span className="text-xs px-2 py-1 bg-muted rounded">
+                      <span className="text-xs px-2 py-1 bg-muted rounded font-medium">
                         {fontSize}px
                       </span>
                       <Button
@@ -750,6 +867,7 @@ ${result.output.trim()}
                         size="sm"
                         onClick={() => adjustFontSize(1)}
                         disabled={fontSize >= 24}
+                        className="cursor-pointer hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-400 hover:text-green-600 dark:hover:text-green-400 transition-all duration-300 ease-in-out hover:scale-110 disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-muted-foreground"
                       >
                         <ZoomIn className="h-3 w-3" />
                       </Button>
@@ -759,11 +877,12 @@ ${result.output.trim()}
                       variant="outline"
                       size="sm"
                       onClick={toggleEditorTheme}
+                      className="cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400 transition-all duration-300 ease-in-out hover:scale-105"
                     >
                       {editorTheme === "vs-dark" ? (
-                        <Sun className="h-3 w-3" />
+                        <Sun className="h-3 w-3 transition-transform duration-300" />
                       ) : (
-                        <Moon className="h-3 w-3" />
+                        <Moon className="h-3 w-3 transition-transform duration-300" />
                       )}
                     </Button>
 
@@ -771,6 +890,7 @@ ${result.output.trim()}
                       variant="outline"
                       size="sm"
                       onClick={() => toggleFullscreen(currentQ.id)}
+                      className="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 ease-in-out hover:scale-105"
                     >
                       {isFullscreen[currentQ.id] ? (
                         <Minimize2 className="h-3 w-3" />
@@ -828,37 +948,66 @@ ${result.output.trim()}
                           </span>
                         </button>
                         <button
-                          className={`px-4 py-2 text-sm font-medium transition-all ${
+                          className={`px-4 py-2 text-sm font-medium border-r transition-all ${
+                            editorTheme === "vs-dark"
+                              ? "border-[#3C3C3C]"
+                              : "border-[#CCCCCC]"
+                          } ${
                             (activeTab[currentQ.id] || "code") === "output"
                               ? editorTheme === "vs-dark"
-                                ? "bg-[#1E1E1E] text-[#CCCCCC] border-b-2 border-b-[#007ACC] cursor-default"
-                                : "bg-white text-[#333333] border-b-2 border-b-[#007ACC] cursor-default"
+                                ? "bg-[#1E1E1E] text-[#CCCCCC] border-b-2 border-b-[#007ACC]"
+                                : "bg-white text-[#333333] border-b-2 border-b-[#007ACC]"
                               : editorTheme === "vs-dark"
-                              ? "text-[#CCCCCC]/70 hover:text-[#CCCCCC] hover:bg-[#252526] cursor-pointer"
-                              : "text-[#666666] hover:text-[#333333] hover:bg-[#F0F0F0] cursor-pointer"
+                              ? "text-[#CCCCCC]/70 hover:text-[#CCCCCC] hover:bg-[#252526]"
+                              : "text-[#666666] hover:text-[#333333] hover:bg-[#F0F0F0]"
                           }`}
-                          onClick={() => {
-                            if (
-                              (activeTab[currentQ.id] || "code") !== "output"
-                            ) {
-                              setActiveTab((prev) => ({
-                                ...prev,
-                                [currentQ.id]: "output",
-                              }));
-                              runCode(
-                                currentQ.id,
-                                (answers[currentQ.id] as string) || "",
-                                selectedLanguage[currentQ.id] || "javascript"
-                              );
-                            }
-                          }}
-                          disabled={
-                            (activeTab[currentQ.id] || "code") === "output"
+                          onClick={() =>
+                            setActiveTab((prev) => ({
+                              ...prev,
+                              [currentQ.id]: "output",
+                            }))
                           }
                         >
                           <span className="flex items-center space-x-2 cursor-pointer">
-                            <Play className="w-3 h-3 text-green-500" />
-                            <span>Run Tests</span>
+                            <Play className="w-3 h-3 text-blue-500" />
+                            <span>Output</span>
+                          </span>
+                        </button>
+                        <button
+                          className={`px-4 py-2 text-sm font-medium transition-all ${
+                            (activeTab[currentQ.id] || "code") === "testcases"
+                              ? editorTheme === "vs-dark"
+                                ? "bg-[#1E1E1E] text-[#CCCCCC] border-b-2 border-b-[#007ACC]"
+                                : "bg-white text-[#333333] border-b-2 border-b-[#007ACC]"
+                              : editorTheme === "vs-dark"
+                              ? "text-[#CCCCCC]/70 hover:text-[#CCCCCC] hover:bg-[#252526]"
+                              : "text-[#666666] hover:text-[#333333] hover:bg-[#F0F0F0]"
+                          }`}
+                          onClick={() => {
+                            if (
+                              (activeTab[currentQ.id] || "code") !== "testcases"
+                            ) {
+                              setActiveTab((prev) => ({
+                                ...prev,
+                                [currentQ.id]: "testcases",
+                              }));
+                              // Automatically run test cases when switching to this tab
+                              if (
+                                currentQ.test_cases &&
+                                currentQ.test_cases.length > 0
+                              ) {
+                                runTestCases(
+                                  currentQ.id,
+                                  (answers[currentQ.id] as string) || "",
+                                  selectedLanguage[currentQ.id] || "javascript"
+                                );
+                              }
+                            }
+                          }}
+                        >
+                          <span className="flex items-center space-x-2 cursor-pointer">
+                            <CheckCircle className="w-3 h-3 text-green-500" />
+                            <span>Test Cases</span>
                           </span>
                         </button>
                       </div>
@@ -915,11 +1064,10 @@ ${result.output.trim()}
                   </div>
 
                   {(activeTab[currentQ.id] || "code") === "code" ? (
+                    /* Code Editor Tab */
                     <Editor
                       height={
-                        isFullscreen[currentQ.id]
-                          ? "calc(100vh)"
-                          : "400px"
+                        isFullscreen[currentQ.id] ? "calc(100vh)" : "400px"
                       }
                       language={selectedLanguage[currentQ.id] || "javascript"}
                       value={(answers[currentQ.id] as string) || ""}
@@ -1002,21 +1150,125 @@ ${result.output.trim()}
                         colorDecorators: true,
                       }}
                     />
-                  ) : (
-                    /* Monaco-style Output Panel */
+                  ) : (activeTab[currentQ.id] || "code") === "output" ? (
+                    /* Custom Output Tab */
                     <div
                       className={`overflow-y-auto transition-colors ${
                         isFullscreen[currentQ.id]
-                          ? "h-[calc(100vh-100px)]"
-                          : "h-[500px]"
+                          ? "h-[calc(100vh)]"
+                          : "h-[400px]"
                       } ${
                         editorTheme === "vs-dark" ? "bg-[#1E1E1E]" : "bg-white"
                       }`}
                     >
-                      {codeOutput[currentQ.id] ? (
+                      <div className="h-full p-4 space-y-4">
+                        {/* Custom Input Section */}
+                        <div className="space-y-2">
+                          <Label
+                            className={
+                              editorTheme === "vs-dark"
+                                ? "text-[#CCCCCC]"
+                                : "text-[#333333]"
+                            }
+                          >
+                            Custom Input (Optional)
+                          </Label>
+                          <Textarea
+                            value={customInput[currentQ.id] || ""}
+                            onChange={(e) =>
+                              setCustomInput((prev) => ({
+                                ...prev,
+                                [currentQ.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter custom input for testing (e.g., 5)..."
+                            className={`font-mono text-sm min-h-[80px] ${
+                              editorTheme === "vs-dark"
+                                ? "bg-[#1E1E1E] text-[#CCCCCC] border-[#3C3C3C]"
+                                : "bg-white text-[#333333]"
+                            }`}
+                          />
+                          <Button
+                            onClick={() =>
+                              runCodeWithCustomInput(
+                                currentQ.id,
+                                (answers[currentQ.id] as string) || "",
+                                selectedLanguage[currentQ.id] || "javascript"
+                              )
+                            }
+                            size="sm"
+                            className="w-full"
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Run with Custom Input
+                          </Button>
+                        </div>
+
+                        {/* Output Display */}
+                        {codeOutput[currentQ.id] &&
+                        !codeOutput[currentQ.id].testResults ? (
+                          <div className="space-y-2">
+                           
+                            <div
+                              className={`font-mono text-sm whitespace-pre-wrap leading-6 p-4 rounded border ${
+                                codeOutput[currentQ.id].error
+                                  ? editorTheme === "vs-dark"
+                                    ? "text-[#F48771] border-red-500/30 bg-red-500/5"
+                                    : "text-[#E53E3E] border-red-500/30 bg-red-500/5"
+                                  : editorTheme === "vs-dark"
+                                  ? "text-[#4EC9B0] border-green-500/30 bg-green-500/5"
+                                  : "text-[#38A169] border-green-500/30 bg-green-500/5"
+                              }`}
+                              style={{
+                                fontFamily:
+                                  "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace",
+                                fontSize: `${fontSize}px`,
+                              }}
+                            >
+                              {codeOutput[currentQ.id].output}
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className={`flex items-center justify-center flex-1 transition-colors ${
+                              editorTheme === "vs-dark"
+                                ? "text-[#858585]"
+                                : "text-[#666666]"
+                            }`}
+                          >
+                            <div className="text-center">
+                              <Play className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p
+                                className="font-mono text-sm"
+                                style={{ fontSize: `${fontSize}px` }}
+                              >
+                                Enter custom input and click "Run with Custom
+                                Input"
+                              </p>
+                              <p className="font-mono text-xs mt-2 opacity-70">
+                                Use console.log() to debug your code
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Test Cases Tab */
+                    <div
+                      className={`overflow-y-auto transition-colors ${
+                        isFullscreen[currentQ.id]
+                          ? "h-[calc(100vh)]"
+                          : "h-[400px]"
+                      } ${
+                        editorTheme === "vs-dark" ? "bg-[#1E1E1E]" : "bg-white"
+                      }`}
+                    >
+                      {codeOutput[currentQ.id] &&
+                      codeOutput[currentQ.id].testResults ? (
                         <div className="h-full p-4">
                           {/* Test Case Results */}
-                          {codeOutput[currentQ.id].testResults ? (
+                          {codeOutput[currentQ.id].testResults && (
                             <div className="space-y-4">
                               {/* Summary Header */}
                               <div
@@ -1174,47 +1426,46 @@ ${result.output.trim()}
                                 )
                               )}
                             </div>
-                          ) : (
-                            /* Simple Output (no test cases) */
-                            <div
-                              className={`font-mono text-sm whitespace-pre-wrap leading-6 ${
-                                codeOutput[currentQ.id].error
-                                  ? editorTheme === "vs-dark"
-                                    ? "text-[#F48771]"
-                                    : "text-[#E53E3E]"
-                                  : editorTheme === "vs-dark"
-                                  ? "text-[#4EC9B0]"
-                                  : "text-[#38A169]"
-                              }`}
-                              style={{
-                                fontFamily:
-                                  "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace",
-                                fontSize: `${fontSize}px`,
-                              }}
-                            >
-                              {codeOutput[currentQ.id].output}
-                            </div>
                           )}
                         </div>
                       ) : (
                         <div
-                          className={`flex items-center justify-center h-full transition-colors ${
+                          className={`flex flex-col items-center justify-center h-full transition-colors p-4 ${
                             editorTheme === "vs-dark"
                               ? "text-[#858585]"
                               : "text-[#666666]"
                           }`}
                         >
-                          <div className="text-center">
-                            <Play className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p
-                              className="font-mono text-sm"
-                              style={{ fontSize: `${fontSize}px` }}
-                            >
-                              Click "Run Tests" to test your code
-                            </p>
-                            <p className="font-mono text-xs mt-2 opacity-70">
-                              Press Ctrl+Enter or click "Run Tests" tab
-                            </p>
+                          <div className="text-center space-y-4">
+                            {currentQ.test_cases &&
+                            currentQ.test_cases.length > 0 ? (
+                              <>
+                                <Loader2 className="h-12 w-12 mx-auto opacity-50 animate-spin" />
+                                <p
+                                  className="font-mono text-sm"
+                                  style={{ fontSize: `${fontSize}px` }}
+                                >
+                                  Loading test results...
+                                </p>
+                                <p className="font-mono text-xs opacity-70">
+                                  Running {currentQ.test_cases.length} test case
+                                  {currentQ.test_cases.length > 1 ? "s" : ""}
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="h-12 w-12 mx-auto opacity-50" />
+                                <p
+                                  className="font-mono text-sm"
+                                  style={{ fontSize: `${fontSize}px` }}
+                                >
+                                  No test cases available
+                                </p>
+                                <p className="font-mono text-xs opacity-70">
+                                  Use the Output tab to test with custom input
+                                </p>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1381,7 +1632,9 @@ ${result.output.trim()}
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <>
-                      <p className="text-md">{currentQ.question_text}</p>
+                      <p className="text-lg font-medium leading-relaxed capitalize">
+                        {currentQ.question_text}
+                      </p>
 
                       {currentQ.type === "mcq" && currentQ.options && (
                         <RadioGroup
@@ -1389,36 +1642,95 @@ ${result.output.trim()}
                           onValueChange={(value) =>
                             handleAnswerChange(currentQ.id, parseInt(value))
                           }
+                          className="space-y-1"
                         >
-                          {currentQ.options.map((option, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center space-x-2"
-                            >
-                              <RadioGroupItem
-                                value={index.toString()}
-                                id={`${currentQ.id}-${index}`}
-                              />
+                          {currentQ.options.map((option, index) => {
+                            const optionLabels = ["A", "B", "C", "D", "E", "F"];
+                            const isSelected =
+                              answers[currentQ.id]?.toString() ===
+                              index.toString();
+
+                            return (
                               <Label
+                                key={index}
                                 htmlFor={`${currentQ.id}-${index}`}
-                                className="flex-1 cursor-pointer"
+                                className={`group flex items-start space-x-2 p-2 rounded-lg border-2 cursor-pointer transition-all duration-300 ease-in-out ${
+                                  isSelected
+                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-md scale-[1.01]"
+                                    : "border-border hover:border-blue-300 hover:bg-accent/50 hover:shadow-sm hover:scale-[1.01]"
+                                }`}
                               >
-                                {option}
+                                <div className="flex items-center space-x-3 flex-1">
+                                  <div
+                                    className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm transition-all duration-300 ease-in-out ${
+                                      isSelected
+                                        ? "bg-blue-500 text-white scale-105"
+                                        : "bg-muted text-muted-foreground group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:scale-105"
+                                    }`}
+                                  >
+                                    {optionLabels[index]}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p
+                                      className={`capitalize text-sm leading-relaxed transition-colors duration-300 ease-in-out ${
+                                        isSelected
+                                          ? "font-medium text-foreground"
+                                          : "text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                      }`}
+                                    >
+                                      {option}
+                                    </p>
+                                  </div>
+                                  <RadioGroupItem
+                                    value={index.toString()}
+                                    id={`${currentQ.id}-${index}`}
+                                    className={`transition-all duration-300 ease-in-out ${
+                                      isSelected
+                                        ? "border-blue-500"
+                                        : "group-hover:border-blue-400"
+                                    }`}
+                                  />
+                                </div>
                               </Label>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </RadioGroup>
                       )}
 
                       {currentQ.type === "saq" && (
-                        <Textarea
-                          placeholder="Type your answer here..."
-                          value={answers[currentQ.id] || ""}
-                          onChange={(e) =>
-                            handleAnswerChange(currentQ.id, e.target.value)
-                          }
-                          className="min-h-32"
-                        />
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <Textarea
+                              placeholder="Type your answer here..."
+                              value={answers[currentQ.id] || ""}
+                              onChange={(e) =>
+                                handleAnswerChange(currentQ.id, e.target.value)
+                              }
+                              className="min-h-48 resize-none border-2 transition-all duration-300 ease-in-out focus:shadow-md p-4 text-sm leading-relaxed"
+                            />
+
+                            {/* Character Counter */}
+                            <div className="absolute bottom-3 right-3 flex items-center gap-3">
+                              <div className="bg-background/80 backdrop-blur-sm px-3 py-1 rounded-md border shadow-sm">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {(answers[currentQ.id] as string)?.length ||
+                                    0}{" "}
+                                  characters
+                                </span>
+                              </div>
+                              <div className="bg-background/80 backdrop-blur-sm px-3 py-1 rounded-md border shadow-sm">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {(answers[currentQ.id] as string)
+                                    ?.trim()
+                                    .split(/\s+/)
+                                    .filter((word) => word.length > 0).length ||
+                                    0}{" "}
+                                  words
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </>
 
@@ -1608,7 +1920,7 @@ ${result.output.trim()}
           <div className="space-y-4">
             <div className="grid gap-3">
               <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium">Run Tests</span>
+                <span className="font-medium">Run Code (Context-Aware)</span>
                 <kbd className="px-2 py-1 bg-muted rounded text-sm font-mono">
                   Ctrl + Enter
                 </kbd>
@@ -1656,11 +1968,19 @@ ${result.output.trim()}
                 </kbd>
               </div>
             </div>
-            <div className="bg-muted/50 p-3 rounded-lg">
+            <div className="bg-muted/50 p-3 rounded-lg space-y-2">
               <p className="text-sm text-muted-foreground">
-                💡 <strong>Pro Tip:</strong> Use Ctrl+Enter to quickly run all
-                test cases without switching tabs!
+                💡 <strong>Pro Tip:</strong> Ctrl+Enter is context-aware! It
+                will:
               </p>
+              <ul className="text-xs text-muted-foreground ml-6 list-disc space-y-1">
+                <li>
+                  Run with custom input when in <strong>Output tab</strong>
+                </li>
+                <li>
+                  Run test cases when in <strong>Test Cases tab</strong>
+                </li>
+              </ul>
             </div>
           </div>
           <DialogFooter>

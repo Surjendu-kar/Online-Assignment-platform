@@ -121,41 +121,71 @@ fn main() {
 }`
 };
 
-// Exam question templates with editable and test wrapper sections
-export const EXAM_TEMPLATES: Record<string, { editable: string; wrapper: string }> = {
+// Exam question templates with complete input/output structure
+export const EXAM_TEMPLATES: Record<string, { editable: string; complete: string }> = {
   javascript: {
     editable: `function solution(n) {
     // Write your code here
+    // You can use console.log() for debugging
     return n;
 }`,
-    wrapper: `
-// ⚠️ DO NOT MODIFY BELOW THIS LINE - Test Wrapper
+    complete: `// READ INPUT
 const fs = require('fs');
-const input = fs.readFileSync('/dev/stdin', 'utf8').trim();
-console.log(solution(parseInt(input)));`
+const input = fs.readFileSync(0, 'utf-8').trim();
+const n = parseInt(input);
+
+// SOLUTION FUNCTION - Write your code here
+function solution(n) {
+    // You can use console.log() for debugging
+    return n;
+}
+
+// ⚠️ DO NOT MODIFY BELOW THIS LINE - Output logic
+const result = solution(n);
+console.log(result);`
   },
   python: {
     editable: `def solution(n):
     # Write your code here
+    # You can use print() for debugging
     return n`,
-    wrapper: `
-# ⚠️ DO NOT MODIFY BELOW THIS LINE - Test Wrapper
+    complete: `# READ INPUT
 import sys
 input_data = sys.stdin.read().strip()
-print(solution(int(input_data)))`
+n = int(input_data)
+
+# SOLUTION FUNCTION - Write your code here
+def solution(n):
+    # You can use print() for debugging
+    return n
+
+# ⚠️ DO NOT MODIFY BELOW THIS LINE - Output logic
+result = solution(n)
+print(result)`
   },
   java: {
     editable: `public class Solution {
     public static int solution(int n) {
         // Write your code here
+        // You can use System.out.println() for debugging
         return n;
-    }`,
-    wrapper: `
-    // ⚠️ DO NOT MODIFY BELOW THIS LINE - Test Wrapper
+    }
+}`,
+    complete: `import java.util.Scanner;
+
+public class Solution {
+    // SOLUTION FUNCTION - Write your code here
+    public static int solution(int n) {
+        // You can use System.out.println() for debugging
+        return n;
+    }
+
+    // ⚠️ DO NOT MODIFY BELOW THIS LINE - Input/Output logic
     public static void main(String[] args) {
-        java.util.Scanner scanner = new java.util.Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
         int input = scanner.nextInt();
-        System.out.println(solution(input));
+        int result = solution(input);
+        System.out.println(result);
         scanner.close();
     }
 }`
@@ -166,14 +196,24 @@ using namespace std;
 
 int solution(int n) {
     // Write your code here
+    // You can use cout for debugging
     return n;
 }`,
-    wrapper: `
-// ⚠️ DO NOT MODIFY BELOW THIS LINE - Test Wrapper
+    complete: `#include <iostream>
+using namespace std;
+
+// SOLUTION FUNCTION - Write your code here
+int solution(int n) {
+    // You can use cout for debugging
+    return n;
+}
+
+// ⚠️ DO NOT MODIFY BELOW THIS LINE - Input/Output logic
 int main() {
     int input;
     cin >> input;
-    cout << solution(input) << endl;
+    int result = solution(input);
+    cout << result << endl;
     return 0;
 }`
   },
@@ -182,26 +222,44 @@ int main() {
 
 int solution(int n) {
     // Write your code here
+    // You can use printf() for debugging
     return n;
 }`,
-    wrapper: `
-// ⚠️ DO NOT MODIFY BELOW THIS LINE - Test Wrapper
+    complete: `#include <stdio.h>
+
+// SOLUTION FUNCTION - Write your code here
+int solution(int n) {
+    // You can use printf() for debugging
+    return n;
+}
+
+// ⚠️ DO NOT MODIFY BELOW THIS LINE - Input/Output logic
 int main() {
     int input;
     scanf("%d", &input);
-    printf("%d\\n", solution(input));
+    int result = solution(input);
+    printf("%d\\n", result);
     return 0;
 }`
   },
   ruby: {
     editable: `def solution(n)
     # Write your code here
+    # You can use puts for debugging
     return n
 end`,
-    wrapper: `
-# ⚠️ DO NOT MODIFY BELOW THIS LINE - Test Wrapper
+    complete: `# READ INPUT
 input = gets.to_i
-puts solution(input)`
+
+# SOLUTION FUNCTION - Write your code here
+def solution(n)
+    # You can use puts for debugging
+    return n
+end
+
+# ⚠️ DO NOT MODIFY BELOW THIS LINE - Output logic
+result = solution(input)
+puts result`
   },
   go: {
     editable: `package main
@@ -210,28 +268,95 @@ import "fmt"
 
 func solution(n int) int {
     // Write your code here
+    // You can use fmt.Println() for debugging
     return n
 }`,
-    wrapper: `
-// ⚠️ DO NOT MODIFY BELOW THIS LINE - Test Wrapper
+    complete: `package main
+
+import "fmt"
+
+// SOLUTION FUNCTION - Write your code here
+func solution(n int) int {
+    // You can use fmt.Println() for debugging
+    return n
+}
+
+// ⚠️ DO NOT MODIFY BELOW THIS LINE - Input/Output logic
 func main() {
     var input int
     fmt.Scan(&input)
-    fmt.Println(solution(input))
+    result := solution(input)
+    fmt.Println(result)
 }`
   },
   rust: {
     editable: `fn solution(n: i32) -> i32 {
     // Write your code here
+    // You can use println!() for debugging
     n
 }`,
-    wrapper: `
-// ⚠️ DO NOT MODIFY BELOW THIS LINE - Test Wrapper
+    complete: `use std::io::{self, BufRead};
+
+// SOLUTION FUNCTION - Write your code here
+fn solution(n: i32) -> i32 {
+    // You can use println!() for debugging
+    n
+}
+
+// ⚠️ DO NOT MODIFY BELOW THIS LINE - Input/Output logic
 fn main() {
-    use std::io::{self, BufRead};
     let stdin = io::stdin();
     let input: i32 = stdin.lock().lines().next().unwrap().unwrap().trim().parse().unwrap();
-    println!("{}", solution(input));
+    let result = solution(input);
+    println!("{}", result);
+}`
+  },
+  typescript: {
+    editable: `function solution(n: number): number {
+    // Write your code here
+    // You can use console.log() for debugging
+    return n;
+}`,
+    complete: `// READ INPUT
+const fs = require('fs');
+const input = fs.readFileSync(0, 'utf-8').trim();
+const n = parseInt(input);
+
+// SOLUTION FUNCTION - Write your code here
+function solution(n: number): number {
+    // You can use console.log() for debugging
+    return n;
+}
+
+// ⚠️ DO NOT MODIFY BELOW THIS LINE - Output logic
+const result = solution(n);
+console.log(result);`
+  },
+  "c#": {
+    editable: `using System;
+
+public class Solution {
+    public static int solution(int n) {
+        // Write your code here
+        // You can use Console.WriteLine() for debugging
+        return n;
+    }
+}`,
+    complete: `using System;
+
+public class Solution {
+    // SOLUTION FUNCTION - Write your code here
+    public static int solution(int n) {
+        // You can use Console.WriteLine() for debugging
+        return n;
+    }
+
+    // ⚠️ DO NOT MODIFY BELOW THIS LINE - Input/Output logic
+    public static void Main(string[] args) {
+        int input = int.Parse(Console.ReadLine());
+        int result = solution(input);
+        Console.WriteLine(result);
+    }
 }`
   }
 };

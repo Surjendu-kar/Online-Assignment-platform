@@ -149,7 +149,7 @@ fn main() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { code, language, testCases } = await request.json();
+    const { code, language, testCases, customInput } = await request.json();
 
     if (!code || !language) {
       return NextResponse.json(
@@ -175,7 +175,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If no test cases provided, just run the code once without input
+    // If customInput is provided (from Output tab), run with custom input
+    if (customInput !== undefined && !testCases) {
+      const result = await executeCodeWithInput(finalCode, languageId, customInput);
+      return NextResponse.json({
+        success: result.success,
+        output: result.output,
+        status: result.status,
+        time: result.time,
+        memory: result.memory,
+      });
+    }
+
+    // If no test cases provided and no custom input, just run the code once without input
     if (!testCases || testCases.length === 0) {
       const result = await executeCodeWithInput(finalCode, languageId, '');
       return NextResponse.json({

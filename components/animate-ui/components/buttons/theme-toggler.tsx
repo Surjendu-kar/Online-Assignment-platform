@@ -22,6 +22,8 @@ const getIcon = (
 ) => {
   const theme = modes.includes("system") ? effective : resolved;
 
+  // Show the NEXT ACTION icon (Industry Standard - Option A)
+  // Icon represents what will happen when you click, not current state
   if (theme === "system") {
     return (
       <motion.div
@@ -52,35 +54,7 @@ const getIcon = (
       </motion.div>
     );
   } else if (theme === "dark") {
-    return (
-      <motion.div
-        className="relative flex items-center justify-center"
-        animate={{
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      >
-        <Moon className="size-4 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] dark:text-blue-300 dark:drop-shadow-[0_0_12px_rgba(147,197,253,0.9)] relative z-10" />
-        <motion.div
-          className="absolute inset-0 rounded-full bg-blue-400 dark:bg-blue-300"
-          animate={{
-            scale: [0.8, 1.2, 0.8],
-            opacity: [0.2, 0.4, 0.2],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          style={{ filter: 'blur(8px)' }}
-        />
-      </motion.div>
-    );
-  } else {
+    // Dark mode active → Show SUN (click to go to light mode)
     return (
       <motion.div
         className="relative flex items-center justify-center"
@@ -96,6 +70,36 @@ const getIcon = (
         <Sun className="size-4 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] dark:text-yellow-400 dark:drop-shadow-[0_0_12px_rgba(251,191,36,0.9)] relative z-10" />
         <motion.div
           className="absolute inset-0 rounded-full bg-amber-400 dark:bg-yellow-400"
+          animate={{
+            scale: [0.8, 1.2, 0.8],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          style={{ filter: 'blur(8px)' }}
+        />
+      </motion.div>
+    );
+  } else {
+    // Light mode active → Show MOON (click to go to dark mode)
+    return (
+      <motion.div
+        className="relative flex items-center justify-center"
+        animate={{
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      >
+        <Moon className="size-4 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] dark:text-blue-300 dark:drop-shadow-[0_0_12px_rgba(147,197,253,0.9)] relative z-10" />
+        <motion.div
+          className="absolute inset-0 rounded-full bg-blue-400 dark:bg-blue-300"
           animate={{
             scale: [0.8, 1.2, 0.8],
             opacity: [0.2, 0.4, 0.2],
