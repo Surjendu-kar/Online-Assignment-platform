@@ -24,7 +24,6 @@ interface StudentInvitation {
   id: string;
   exam_id: string;
   status: string;
-  duration: number;
   created_at: string;
   department_id: string;
   exams: Exam;
@@ -73,7 +72,6 @@ export async function GET() {
         id,
         exam_id,
         status,
-        duration,
         created_at,
         department_id,
         exams (
@@ -180,7 +178,7 @@ export async function GET() {
           department: department?.name || "No Department",
           startTime: exam.start_time,
           endTime: exam.end_time,
-          duration: invitation.duration || exam.duration,
+          duration: exam.duration,
           uniqueCode: exam.unique_code,
           totalQuestions,
           status: examStatus,

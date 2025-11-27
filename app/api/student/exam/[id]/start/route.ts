@@ -16,7 +16,7 @@ export async function POST(
 
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role')
+      .select('role, email')
       .eq('id', user.id)
       .single();
 
@@ -26,9 +26,9 @@ export async function POST(
 
     const { data: invitation, error: invitationError } = await supabase
       .from('student_invitations')
-      .select('id, status, duration, exam_id')
-      .eq('student_id', user.id)
+      .select('id, status, exam_id')
       .eq('exam_id', examId)
+      .or(`student_id.eq.${user.id},student_email.eq.${profile.email}`)
       .single();
 
     if (invitationError || !invitation) {

@@ -215,7 +215,7 @@ export default function ExamPage() {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden"
+      className="relative min-h-[89vh] overflow-hidden"
       style={{
         fontFamily: '"Ubuntu", sans-serif',
       }}

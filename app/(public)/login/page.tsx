@@ -71,7 +71,7 @@ function Login() {
           { scale: 1, opacity: 1 }
         }
         transition={{ duration: 0.3 }}
-        className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-[#0f172b]"
+        className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-[#0f172b] shadow-lg border border-gray-100 dark:shadow-sm dark:border-none dark:border-gray-800"
       >
         <h2 className="text-xl text-center font-bold text-neutral-800 dark:text-neutral-200">
           Welcome Back

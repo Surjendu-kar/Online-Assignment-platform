@@ -19,7 +19,7 @@ export async function GET(
     // Verify user is a student
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role')
+      .select('role, email')
       .eq('id', user.id)
       .single();
 
@@ -28,11 +28,12 @@ export async function GET(
     }
 
     // Check if student has access to this exam via invitation
+    // Check by BOTH student_id AND student_email to cover all cases
     const { data: invitation, error: invitationError } = await supabase
       .from('student_invitations')
-      .select('id, status, duration, exam_id')
-      .eq('student_id', user.id)
+      .select('id, status, exam_id')
       .eq('exam_id', examId)
+      .or(`student_id.eq.${user.id},student_email.eq.${profile.email}`)
       .single();
 
     if (invitationError || !invitation) {
@@ -130,7 +131,7 @@ export async function GET(
       ...(codingQuestions || []).map(q => ({ ...q, type: 'coding' }))
     ].sort((a, b) => (a.question_order || 0) - (b.question_order || 0));
 
-    const examDuration = invitation.duration || exam.duration || 60;
+    const examDuration = exam.duration || 60;
 
     if (!session) {
       return NextResponse.json({
@@ -160,10 +161,28 @@ export async function GET(
       .eq('student_id', user.id)
       .single();
 
-    // Calculate remaining time
+    // Calculate remaining time based on server time
     const sessionStartTime = new Date(session.start_time);
-    const examEndTime = new Date(sessionStartTime.getTime() + examDuration * 60000);
-    const remainingTime = Math.max(0, Math.floor((examEndTime.getTime() - now.getTime()) / 1000));
+    const examDurationMs = examDuration * 60 * 1000; // Convert minutes to milliseconds
+    const elapsedMs = now.getTime() - sessionStartTime.getTime();
+    const remainingMs = examDurationMs - elapsedMs;
+    const remainingTime = Math.max(0, Math.floor(remainingMs / 1000)); // Convert to seconds
+
+    // Auto-submit if time has expired and session is still in progress
+    let currentStatus = session.status;
+    if (remainingTime === 0 && session.status === 'in_progress') {
+      const { error: updateError } = await supabase
+        .from('exam_sessions')
+        .update({
+          status: 'completed',
+          end_time: now.toISOString()
+        })
+        .eq('id', session.id);
+
+      if (!updateError) {
+        currentStatus = 'completed';
+      }
+    }
 
     return NextResponse.json({
       exam: {
@@ -180,7 +199,7 @@ export async function GET(
       },
       session: {
         id: session.id,
-        status: session.status,
+        status: currentStatus,
         startTime: session.start_time,
         remainingTime,
         violationsCount: session.violations_count

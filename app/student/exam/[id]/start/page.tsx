@@ -133,6 +133,7 @@ export default function ExamStartPage() {
   const [customInput, setCustomInput] = useState<{
     [key: string]: string;
   }>({});
+  const [originalTemplates, setOriginalTemplates] = useState<Record<string, string>>({});
 
   const [fontSize, setFontSize] = useState(14);
   const [editorTheme, setEditorTheme] = useState<"vs-dark" | "vs-light">(
@@ -145,9 +146,16 @@ export default function ExamStartPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);
   const { theme } = useTheme();
+  const isFetchingRef = useRef(false);
 
   const fetchExamData = useCallback(async () => {
+    // Prevent duplicate simultaneous calls
+    if (isFetchingRef.current) {
+      return;
+    }
+
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       const response = await fetch(`/api/student/exam/${examId}`);
       const data = await response.json();
@@ -164,22 +172,34 @@ export default function ExamStartPage() {
 
         // Initialize answers with starter code for coding questions if not already answered
         const initialAnswers = data.savedAnswers || {};
+        const templates: Record<string, string> = {};
+
         data.questions.forEach((q: Question) => {
-          if (q.type === "coding" && !initialAnswers[q.id]) {
+          if (q.type === "coding") {
             const lang = q.language?.toLowerCase() || "javascript";
+            let template = "";
+
             // Use teacher's starter code if provided, otherwise use complete template
             if (q.starter_code) {
-              initialAnswers[q.id] = q.starter_code;
+              template = q.starter_code;
             } else if (EXAM_TEMPLATES[lang]) {
               // Use complete template with input/output logic
-              initialAnswers[q.id] = EXAM_TEMPLATES[lang].complete;
+              template = EXAM_TEMPLATES[lang].complete;
             } else {
-              initialAnswers[q.id] =
-                CODE_TEMPLATES[lang] || CODE_TEMPLATES["javascript"];
+              template = CODE_TEMPLATES[lang] || CODE_TEMPLATES["javascript"];
+            }
+
+            // Store the original template
+            templates[q.id] = template;
+
+            // Initialize answer if not already saved
+            if (!initialAnswers[q.id]) {
+              initialAnswers[q.id] = template;
             }
           }
         });
 
+        setOriginalTemplates(templates);
         setAnswers(initialAnswers);
       } else {
         toast.error(data.error || "Failed to load exam");
@@ -191,6 +211,7 @@ export default function ExamStartPage() {
       router.push(`/student/exam/${examId}`);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [examId, router]);
 
@@ -271,21 +292,71 @@ export default function ExamStartPage() {
     fetchExamData();
   }, [fetchExamData]);
 
+  // Optimized timer: Calculate client-side + sync on visibility change
   useEffect(() => {
-    if (timeRemaining > 0 && !isSubmitted) {
-      const timer = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            handleAutoSubmit();
-            return 0;
+    if (!examData?.session || isSubmitted) return;
+
+    // Get server-provided start time and duration (only once on mount)
+    const startTime = new Date(examData.session.startTime).getTime();
+    const durationMs = examData.exam.duration * 60 * 1000;
+
+    // Function to calculate remaining time based on current time
+    const calculateRemainingTime = () => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, Math.floor((durationMs - elapsed) / 1000));
+      return remaining;
+    };
+
+    // Set initial time
+    setTimeRemaining(calculateRemainingTime());
+
+    // Countdown timer (updates UI every second)
+    const timer = setInterval(() => {
+      const remaining = calculateRemainingTime();
+      setTimeRemaining(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+        handleAutoSubmit();
+      }
+    }, 1000);
+
+    // Sync with server when page becomes visible (handles tab switching, page reload)
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible" && !isSubmitted) {
+        try {
+          const response = await fetch(`/api/student/exam/${examId}`);
+          const data = await response.json();
+
+          if (data.session?.remainingTime !== undefined) {
+            const calculatedTime = calculateRemainingTime();
+            const serverTime = data.session.remainingTime;
+
+            // If drift is > 5 seconds, trust server time
+            if (Math.abs(calculatedTime - serverTime) > 5) {
+              console.log("Time drift detected, syncing with server");
+              setTimeRemaining(serverTime);
+            }
+
+            // Check if exam was completed/terminated externally
+            if (data.session.status !== "in_progress") {
+              clearInterval(timer);
+              handleAutoSubmit();
+            }
           }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [timeRemaining, isSubmitted, handleAutoSubmit]);
+        } catch (error) {
+          console.error("Failed to sync time:", error);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [examData, isSubmitted, handleAutoSubmit, examId]);
 
   useEffect(() => {
     if (examData) {
@@ -380,8 +451,20 @@ export default function ExamStartPage() {
   };
 
   const getAnsweredQuestions = () => {
-    return Object.keys(answers).filter((key) => {
-      const answer = answers[key];
+    if (!examData) return 0;
+
+    return examData.questions.filter((question) => {
+      const questionId = question.id;
+      const answer = answers[questionId];
+
+      // For coding questions, check if answer differs from template
+      if (question.type === "coding") {
+        const currentAnswer = answer as string || "";
+        const template = originalTemplates[questionId] || "";
+        return currentAnswer !== "" && currentAnswer !== template;
+      }
+
+      // For other question types, check if answer exists
       return answer !== null && answer !== undefined && answer !== "";
     }).length;
   };
@@ -1532,11 +1615,22 @@ ${result.output.trim()}
               <CardContent>
                 <div className="grid grid-cols-5 gap-2">
                   {examData.questions.map((_, index) => {
-                    const questionId = examData.questions[index].id;
-                    const isAnswered =
-                      answers[questionId] !== undefined &&
-                      answers[questionId] !== null &&
-                      answers[questionId] !== "";
+                    const question = examData.questions[index];
+                    const questionId = question.id;
+
+                    // For coding questions, check if answer differs from original template
+                    let isAnswered = false;
+                    if (question.type === "coding") {
+                      const currentAnswer = answers[questionId] as string || "";
+                      const template = originalTemplates[questionId] || "";
+                      isAnswered = currentAnswer !== "" && currentAnswer !== template;
+                    } else {
+                      isAnswered =
+                        answers[questionId] !== undefined &&
+                        answers[questionId] !== null &&
+                        answers[questionId] !== "";
+                    }
+
                     const isCurrent = index === currentQuestion;
 
                     let buttonClass = "";
@@ -1781,11 +1875,22 @@ ${result.output.trim()}
               <CardContent>
                 <div className="grid grid-cols-5 gap-2">
                   {examData.questions.map((_, index) => {
-                    const questionId = examData.questions[index].id;
-                    const isAnswered =
-                      answers[questionId] !== undefined &&
-                      answers[questionId] !== null &&
-                      answers[questionId] !== "";
+                    const question = examData.questions[index];
+                    const questionId = question.id;
+
+                    // For coding questions, check if answer differs from original template
+                    let isAnswered = false;
+                    if (question.type === "coding") {
+                      const currentAnswer = answers[questionId] as string || "";
+                      const template = originalTemplates[questionId] || "";
+                      isAnswered = currentAnswer !== "" && currentAnswer !== template;
+                    } else {
+                      isAnswered =
+                        answers[questionId] !== undefined &&
+                        answers[questionId] !== null &&
+                        answers[questionId] !== "";
+                    }
+
                     const isCurrent = index === currentQuestion;
 
                     let buttonClass = "";

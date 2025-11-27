@@ -142,7 +142,7 @@ function ContactPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="lg:col-span-2"
           >
-            <div className="shadow-input bg-white p-6 md:p-8 rounded-lg md:rounded-2xl dark:bg-[#0f172b]">
+            <div className="shadow-input bg-white p-6 md:p-8 rounded-lg md:rounded-2xl dark:bg-[#0f172b] shadow-lg border border-gray-100 dark:shadow-sm dark:border-none dark:border-gray-800">
               <h2 className="text-lg md:text-2xl font-bold text-neutral-800 dark:text-neutral-200 mb-6">
                 Send us a Message
               </h2>
@@ -329,7 +329,7 @@ const ContactInfoCard = ({
   description: string;
 }) => {
   return (
-    <div className="shadow-input bg-white p-4 md:p-6 rounded-lg md:rounded-2xl dark:bg-[#0f172b]">
+    <div className="shadow-input bg-white p-4 md:p-6 rounded-lg md:rounded-2xl dark:bg-[#0f172b] shadow-lg border border-gray-100 dark:shadow-sm dark:border-none dark:border-gray-800">
       <div className="flex items-start space-x-4">
         <div className="mt-1 p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg text-white">
           {icon}
