@@ -56,24 +56,21 @@ export async function POST(
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
     }
 
-    // Fetch template questions to calculate scores
+    // Fetch exam questions to calculate scores
     const { data: mcqQuestions } = await supabase
       .from('mcq')
       .select('*')
-      .eq('exam_id', examId)
-      .is('user_id', null);
+      .eq('exam_id', examId);
 
     const { data: saqQuestions } = await supabase
       .from('saq')
       .select('*')
-      .eq('exam_id', examId)
-      .is('user_id', null);
+      .eq('exam_id', examId);
 
     const { data: codingQuestions } = await supabase
       .from('coding')
       .select('*')
-      .eq('exam_id', examId)
-      .is('user_id', null);
+      .eq('exam_id', examId);
 
     // Calculate scores
     let autoGradedScore = 0;

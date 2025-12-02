@@ -67,19 +67,16 @@ export async function GET(
         .from("mcq")
         .select("*")
         .eq("exam_id", examId)
-        .is("user_id", null)
         .order("question_order"),
       questionClient
         .from("saq")
         .select("*")
         .eq("exam_id", examId)
-        .is("user_id", null)
         .order("question_order"),
       questionClient
         .from("coding")
         .select("*")
         .eq("exam_id", examId)
-        .is("user_id", null)
         .order("question_order"),
     ]);
 
@@ -236,13 +233,9 @@ export async function PUT(
 
     // Delete existing questions
     await Promise.all([
-      questionClient.from("mcq").delete().eq("exam_id", examId).is("user_id", null),
-      questionClient.from("saq").delete().eq("exam_id", examId).is("user_id", null),
-      questionClient
-        .from("coding")
-        .delete()
-        .eq("exam_id", examId)
-        .is("user_id", null),
+      questionClient.from("mcq").delete().eq("exam_id", examId),
+      questionClient.from("saq").delete().eq("exam_id", examId),
+      questionClient.from("coding").delete().eq("exam_id", examId),
     ]);
 
     // Add updated questions

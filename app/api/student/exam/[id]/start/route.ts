@@ -67,7 +67,13 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to start exam session' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
+    console.log('=== EXAM SESSION CREATED ===');
+    console.log('Exam ID:', examId);
+    console.log('Student ID:', user.id);
+    console.log('Session ID:', newSession.id);
+    console.log('Note: Student answers will be saved to student_responses.answers JSONB field');
+
+    return NextResponse.json({
       success: true,
       session: newSession
     });

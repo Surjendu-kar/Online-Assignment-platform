@@ -435,7 +435,6 @@ export default function DemoPage() {
   const [direction, setDirection] = useState(0);
 
   const currentRole = roleData[activeRole];
-  const Icon = currentRole.icon;
 
   const handleNextScreenshot = (
     pageIndex: number,

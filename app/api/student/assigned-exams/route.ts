@@ -129,18 +129,15 @@ export async function GET() {
           supabase
             .from("mcq")
             .select("id", { count: "exact", head: true })
-            .eq("exam_id", exam.id)
-            .is("user_id", null),
+            .eq("exam_id", exam.id),
           supabase
             .from("saq")
             .select("id", { count: "exact", head: true })
-            .eq("exam_id", exam.id)
-            .is("user_id", null),
+            .eq("exam_id", exam.id),
           supabase
             .from("coding")
             .select("id", { count: "exact", head: true })
-            .eq("exam_id", exam.id)
-            .is("user_id", null),
+            .eq("exam_id", exam.id),
         ]);
 
         const totalQuestions =

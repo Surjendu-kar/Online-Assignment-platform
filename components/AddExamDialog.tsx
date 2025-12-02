@@ -1013,9 +1013,8 @@ export const AddExamDialog = ({
                                     starterCode =
                                       EXAM_TEMPLATES[langKey].complete;
                                   } else {
-                                    // Fallback to editable template if complete not available
+                                    // Fallback to default template if language not found
                                     starterCode =
-                                      EXAM_TEMPLATES[langKey]?.editable ||
                                       "function solution(n) {\n    // Write your code here\n    return n;\n}";
                                   }
 

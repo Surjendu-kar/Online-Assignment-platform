@@ -252,6 +252,10 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
           title: "Exams",
           url: "/teacher/management/exams",
         },
+        {
+          title: "Grading",
+          url: "/teacher/management/grading",
+        },
       ],
     },
     {

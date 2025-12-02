@@ -1325,8 +1325,8 @@ ${result.output.trim()}
                                 className="font-mono text-sm"
                                 style={{ fontSize: `${fontSize}px` }}
                               >
-                                Enter custom input and click "Run with Custom
-                                Input"
+                                Enter custom input and click &quot;Run with Custom
+                                Input&quot;
                               </p>
                               <p className="font-mono text-xs mt-2 opacity-70">
                                 Use console.log() to debug your code
@@ -1349,7 +1349,7 @@ ${result.output.trim()}
                     >
                       {codeOutput[currentQ.id] &&
                       codeOutput[currentQ.id].testResults ? (
-                        <div className="h-full p-4">
+                        <div className="p-4">
                           {/* Test Case Results */}
                           {codeOutput[currentQ.id].testResults && (
                             <div className="space-y-4">

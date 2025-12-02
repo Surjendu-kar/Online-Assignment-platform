@@ -4,7 +4,6 @@ import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Trash2 } from "lucide-react";
 import { EXAM_TEMPLATES } from "@/data/codeTemplates";
@@ -488,7 +487,7 @@ export const QuestionAccordion = ({
                               </li>
                               <li>
                                 Input reading and output sections are
-                                pre-written - students shouldn't modify them
+                                pre-written - students shouldn&apos;t modify them
                               </li>
                             </ul>
                           </div>

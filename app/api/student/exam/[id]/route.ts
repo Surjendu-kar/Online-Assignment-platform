@@ -102,26 +102,23 @@ export async function GET(
       .eq('user_id', user.id)
       .single();
 
-    // Fetch template questions (user_id IS NULL)
+    // Fetch exam questions
     const { data: mcqQuestions } = await supabase
       .from('mcq')
       .select('*')
       .eq('exam_id', examId)
-      .is('user_id', null)
       .order('question_order', { ascending: true });
 
     const { data: saqQuestions } = await supabase
       .from('saq')
       .select('*')
       .eq('exam_id', examId)
-      .is('user_id', null)
       .order('question_order', { ascending: true });
 
     const { data: codingQuestions } = await supabase
       .from('coding')
       .select('*')
       .eq('exam_id', examId)
-      .is('user_id', null)
       .order('question_order', { ascending: true });
 
     // Combine all questions

@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -28,45 +29,52 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  BarChart3,
+  ClipboardCheck,
   FileText,
   ArrowUpDown,
   Search,
+  CheckCircle2,
   AlertCircle,
   Clock,
   ChevronLeft,
   ChevronRight,
-  Trophy,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { ViewResultDialog } from "@/components/ViewResultDialog";
+import { GradingDialog } from "@/components/GradingDialog";
+import GradingTableSkeleton from "@/components/skeleton/GradingTableSkeleton";
 
 type SortField =
+  | "student_name"
   | "exam_title"
   | "department"
   | "submitted_at"
-  | "total_questions"
-  | "percentage"
   | "grading_status";
 type SortOrder = "asc" | "desc";
 
-interface ExamResult {
+interface Submission {
   id: string;
+  session_id: string;
   exam_id: string;
   exam_title: string;
+  student_id: string;
+  student_name: string;
+  student_email: string;
   department: string;
   submitted_at: string;
   total_questions: number;
-  answered_questions: number;
+  mcq_count: number;
+  saq_count: number;
+  coding_count: number;
+  graded_count: number;
+  pending_count: number;
+  grading_status: "completed" | "partial" | "pending";
   total_score: number;
   max_possible_score: number;
-  percentage: number;
-  grading_status: "completed" | "partial" | "pending";
 }
 
 interface StatsCardProps {
   title: string;
-  value: number | string;
+  value: number;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
 }
@@ -96,10 +104,10 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">
       <FileText className="h-8 w-8 text-muted-foreground mb-2" />
-      <h3 className="text-lg font-semibold mb-2">No results found</h3>
+      <h3 className="text-lg font-semibold mb-2">No submissions found</h3>
       <p className="text-muted-foreground mb-4">
-        No results match your current search and filter criteria. Try adjusting
-        your filters or search terms.
+        No submissions match your current search and filter criteria. Try
+        adjusting your filters or search terms.
       </p>
       <Button variant="outline" onClick={onReset}>
         Reset Filters
@@ -108,40 +116,70 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
-export default function ResultsPage() {
-  const [results, setResults] = useState<ExamResult[]>([]);
+export default function GradingPage() {
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>("submitted_at");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-  const [selectedResult, setSelectedResult] = useState<ExamResult | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [_activeInstitutionId, setActiveInstitutionId] = useState<string | null>(
+    null
+  );
+  const [isGradingDialogOpen, setIsGradingDialogOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
 
   const itemsPerPage = 5;
 
-  const fetchResults = async () => {
+  const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/student/results");
+      const institutionId = localStorage.getItem("activeInstitutionId");
+      setActiveInstitutionId(institutionId);
+
+      const response = await fetch("/api/teacher/grading");
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch results");
+        throw new Error(data.error || "Failed to fetch submissions");
       }
 
-      setResults(data.results || []);
+      // Filter submissions by institution if one is selected
+      let filteredSubmissions = data.submissions || [];
+      if (institutionId) {
+        filteredSubmissions = filteredSubmissions.filter(
+          () => {
+            // Assuming submissions have institution_id from exam or student
+            return true; // Will be filtered by API based on teacher's institution
+          }
+        );
+      }
+
+      setSubmissions(filteredSubmissions);
     } catch (error) {
-      console.error("Error fetching results:", error);
-      toast.error("Failed to load results");
+      console.error("Error fetching submissions:", error);
+      toast.error("Failed to load submissions");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchResults();
+    fetchSubmissions();
+
+    // Listen for institution changes
+    const handleInstitutionChange = () => {
+      fetchSubmissions();
+    };
+
+    window.addEventListener("institutionChanged", handleInstitutionChange);
+    return () => {
+      window.removeEventListener("institutionChanged", handleInstitutionChange);
+    };
   }, []);
 
   const handleSort = (field: SortField) => {
@@ -153,14 +191,21 @@ export default function ResultsPage() {
     }
   };
 
-  const filteredAndSortedResults = useMemo(() => {
-    const filtered = results.filter((result) => {
+  const filteredAndSortedSubmissions = useMemo(() => {
+    const filtered = submissions.filter((submission) => {
       const matchesSearch =
-        result.exam_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        result.department.toLowerCase().includes(searchTerm.toLowerCase());
+        submission.student_name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        submission.exam_title
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        submission.student_email
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
 
       const matchesStatus =
-        statusFilter === "all" || result.grading_status === statusFilter;
+        statusFilter === "all" || submission.grading_status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -170,6 +215,7 @@ export default function ResultsPage() {
       let bValue: string | number;
 
       switch (sortField) {
+        case "student_name":
         case "exam_title":
         case "department":
         case "grading_status":
@@ -179,11 +225,6 @@ export default function ResultsPage() {
         case "submitted_at":
           aValue = new Date(a.submitted_at).getTime();
           bValue = new Date(b.submitted_at).getTime();
-          break;
-        case "total_questions":
-        case "percentage":
-          aValue = a[sortField];
-          bValue = b[sortField];
           break;
         default:
           return 0;
@@ -200,35 +241,31 @@ export default function ResultsPage() {
       return 0;
     });
     return filtered;
-  }, [results, searchTerm, statusFilter, sortField, sortOrder]);
+  }, [submissions, searchTerm, statusFilter, sortField, sortOrder]);
 
-  const totalPages = Math.ceil(filteredAndSortedResults.length / itemsPerPage);
+  const totalPages = Math.ceil(
+    filteredAndSortedSubmissions.length / itemsPerPage
+  );
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedResults = filteredAndSortedResults.slice(
+  const paginatedSubmissions = filteredAndSortedSubmissions.slice(
     startIndex,
     startIndex + itemsPerPage
   );
 
   const stats = useMemo(() => {
-    const total = results.length;
-    const pending = results.filter(
-      (r) => r.grading_status === "pending"
+    const total = submissions.length;
+    const pending = submissions.filter(
+      (s) => s.grading_status === "pending"
     ).length;
-    const partial = results.filter(
-      (r) => r.grading_status === "partial"
+    const partial = submissions.filter(
+      (s) => s.grading_status === "partial"
     ).length;
-    const completed = results.filter(
-      (r) => r.grading_status === "completed"
+    const completed = submissions.filter(
+      (s) => s.grading_status === "completed"
     ).length;
-    const averageScore =
-      results.length > 0
-        ? Math.round(
-            results.reduce((sum, r) => sum + r.percentage, 0) / results.length
-          )
-        : 0;
 
-    return { total, pending, partial, completed, averageScore };
-  }, [results]);
+    return { total, pending, partial, completed };
+  }, [submissions]);
 
   const resetAllFilters = () => {
     setSearchTerm("");
@@ -236,30 +273,45 @@ export default function ResultsPage() {
     setCurrentPage(1);
     setSortField("submitted_at");
     setSortOrder("desc");
+    setSelectedRows(new Set());
   };
 
-  const handleViewResult = (result: ExamResult) => {
-    setSelectedResult(result);
-    setIsViewModalOpen(true);
-  };
-
-  const getGradingStatusBadge = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <Badge className="bg-green-500">Completed</Badge>;
-      case "partial":
-        return <Badge className="bg-yellow-500">Partial</Badge>;
-      case "pending":
-        return <Badge variant="secondary">Pending</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const getGradingStatusBadge = (submission: Submission) => {
+    if (submission.pending_count === 0) {
+      return <Badge className="bg-green-500">Completed</Badge>;
+    } else if (submission.graded_count > 0) {
+      return <Badge className="bg-yellow-500">Partial</Badge>;
+    } else {
+      return <Badge variant="secondary">Pending</Badge>;
     }
   };
 
-  const getPercentageColor = (percentage: number) => {
-    if (percentage >= 75) return "text-green-600 font-semibold";
-    if (percentage >= 50) return "text-yellow-600 font-semibold";
-    return "text-red-600 font-semibold";
+  const handleGradeSubmission = (submission: Submission) => {
+    setSelectedSessionId(submission.session_id);
+    setIsGradingDialogOpen(true);
+  };
+
+  const handleGradingSaved = () => {
+    // Refresh submissions list after grading is saved
+    fetchSubmissions();
+  };
+
+  const toggleRowSelection = (submissionId: string) => {
+    const newSelection = new Set(selectedRows);
+    if (newSelection.has(submissionId)) {
+      newSelection.delete(submissionId);
+    } else {
+      newSelection.add(submissionId);
+    }
+    setSelectedRows(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRows.size === paginatedSubmissions.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(paginatedSubmissions.map((s) => s.id)));
+    }
   };
 
   return (
@@ -277,10 +329,10 @@ export default function ResultsPage() {
         className="grid gap-4 md:grid-cols-4"
       >
         <StatsCard
-          title="Total Exams"
+          title="Total Submissions"
           value={stats.total}
-          description="All submitted exams"
-          icon={BarChart3}
+          description="All student submissions"
+          icon={ClipboardCheck}
         />
         <StatsCard
           title="Pending Grading"
@@ -295,10 +347,10 @@ export default function ResultsPage() {
           icon={AlertCircle}
         />
         <StatsCard
-          title="Average Score"
-          value={`${stats.averageScore}%`}
-          description="Overall performance"
-          icon={Trophy}
+          title="Completed"
+          value={stats.completed}
+          description="Fully graded"
+          icon={CheckCircle2}
         />
       </motion.div>
 
@@ -313,11 +365,12 @@ export default function ResultsPage() {
             <div className="flex justify-between items-center">
               <div className="flex flex-col gap-1">
                 <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-5 w-5" />
-                  <span>My Exam Results</span>
+                  <ClipboardCheck className="h-5 w-5" />
+                  <span>Exam Submissions - Grading</span>
                 </CardTitle>
                 <CardDescription>
-                  View your exam scores and performance history
+                  Review and grade student submissions for SAQ and Coding
+                  questions
                 </CardDescription>
               </div>
             </div>
@@ -325,10 +378,29 @@ export default function ResultsPage() {
           <CardContent className="space-y-4">
             {/* Search and Filter Bar */}
             <div className="flex flex-col md:flex-row gap-4">
+              {selectedRows.size > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md"
+                >
+                  <span className="text-sm font-medium">
+                    {selectedRows.size} selected
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedRows(new Set())}
+                    className="h-7"
+                  >
+                    Clear
+                  </Button>
+                </motion.div>
+              )}
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by exam title or department..."
+                  placeholder="Search by student name, exam, or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -353,6 +425,26 @@ export default function ResultsPage() {
                 <Table>
                   <TableHeader className="sticky top-0 bg-muted/90 backdrop-blur-sm z-10">
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={
+                            selectedRows.size === paginatedSubmissions.length &&
+                            paginatedSubmissions.length > 0
+                          }
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all"
+                          disabled={loading}
+                        />
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50 min-w-[150px] border-r"
+                        onClick={() => handleSort("student_name")}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <span>Student Name</span>
+                          <ArrowUpDown className="h-4 w-4" />
+                        </div>
+                      </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 min-w-[200px] border-r"
                         onClick={() => handleSort("exam_title")}
@@ -384,22 +476,10 @@ export default function ResultsPage() {
                         Questions
                       </TableHead>
                       <TableHead className="text-center min-w-[100px] border-r">
-                        Answered
-                      </TableHead>
-                      <TableHead className="text-center min-w-[100px] border-r">
-                        Score
+                        Pending
                       </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 text-center min-w-[120px] border-r"
-                        onClick={() => handleSort("percentage")}
-                      >
-                        <div className="flex items-center justify-center space-x-2">
-                          <span>Percentage</span>
-                          <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50 text-center min-w-[120px]"
                         onClick={() => handleSort("grading_status")}
                       >
                         <div className="flex items-center justify-center space-x-2">
@@ -407,29 +487,26 @@ export default function ResultsPage() {
                           <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+                      <TableHead className="text-center min-w-[120px]">
+                        Total Marks
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
+                      <GradingTableSkeleton />
+                    ) : filteredAndSortedSubmissions.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="h-32">
-                          <div className="flex justify-center items-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : filteredAndSortedResults.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8}>
-                          {results.length === 0 ? (
+                        <TableCell colSpan={9}>
+                          {submissions.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-8 text-center">
                               <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                               <h3 className="text-lg font-semibold mb-2">
-                                No Results Available
+                                No Submissions Found
                               </h3>
                               <p className="text-muted-foreground">
-                                Your exam results will appear here after you
-                                complete and submit exams.
+                                Student submissions will appear here after they
+                                complete exams.
                               </p>
                             </div>
                           ) : (
@@ -439,9 +516,9 @@ export default function ResultsPage() {
                       </TableRow>
                     ) : (
                       <AnimatePresence mode="popLayout">
-                        {paginatedResults.map((result, index) => (
+                        {paginatedSubmissions.map((submission, index) => (
                           <motion.tr
-                            key={result.id}
+                            key={submission.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{
@@ -451,47 +528,70 @@ export default function ResultsPage() {
                             }}
                             transition={{ duration: 0.3, delay: index * 0.05 }}
                             layout
-                            className="border-b transition-all duration-200 hover:bg-muted/30 hover:shadow-sm group cursor-pointer"
-                            onClick={() => handleViewResult(result)}
+                            className="border-b transition-all duration-200 hover:bg-muted/30 hover:shadow-sm data-[state=selected]:bg-muted group cursor-pointer"
+                            onClick={() => handleGradeSubmission(submission)}
                           >
-                            <TableCell className="font-medium capitalize border-r">
-                              {result.exam_title}
-                            </TableCell>
-                            <TableCell className="border-r">
-                              {result.department}
-                            </TableCell>
-                            <TableCell className="border-r">
-                              {new Date(result.submitted_at).toLocaleDateString(
-                                "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={selectedRows.has(submission.id)}
+                                onCheckedChange={() =>
+                                  toggleRowSelection(submission.id)
                                 }
-                              )}
+                                aria-label={`Select ${submission.student_name}`}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium capitalize border-r">
+                              {submission.student_name}
+                              <div className="text-xs text-muted-foreground">
+                                {submission.student_email}
+                              </div>
+                            </TableCell>
+                            <TableCell className="capitalize border-r">
+                              {submission.exam_title}
+                            </TableCell>
+                            <TableCell className="border-r">
+                              {submission.department}
+                            </TableCell>
+                            <TableCell className="border-r">
+                              {new Date(
+                                submission.submitted_at
+                              ).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </TableCell>
                             <TableCell className="text-center border-r">
-                              {result.total_questions}
-                            </TableCell>
-                            <TableCell className="text-center border-r">
-                              {result.answered_questions}
-                            </TableCell>
-                            <TableCell className="text-center border-r">
-                              {result.total_score}/{result.max_possible_score}
+                              <div className="flex flex-col items-center">
+                                <span>{submission.total_questions} Total</span>
+                                <div className="text-xs text-muted-foreground">
+                                  {submission.mcq_count} MCQ,{" "}
+                                  {submission.saq_count} SAQ,{" "}
+                                  {submission.coding_count} Coding
+                                </div>
+                              </div>
                             </TableCell>
                             <TableCell className="text-center border-r">
                               <span
-                                className={getPercentageColor(
-                                  result.percentage
-                                )}
+                                className={
+                                  submission.pending_count > 0
+                                    ? "text-orange-600 font-semibold"
+                                    : ""
+                                }
                               >
-                                {result.percentage}%
+                                {submission.pending_count}
                               </span>
                             </TableCell>
+                            <TableCell className="text-center border-r">
+                              {getGradingStatusBadge(submission)}
+                            </TableCell>
                             <TableCell className="text-center">
-                              {getGradingStatusBadge(result.grading_status)}
+                              <div className="flex items-center justify-center gap-1 text-xs font-semibold">
+                                <span>{submission.total_score || 0}</span>
+                                <span>/ {submission.max_possible_score}</span>
+                              </div>
                             </TableCell>
                           </motion.tr>
                         ))}
@@ -508,9 +608,9 @@ export default function ResultsPage() {
                 Showing {startIndex + 1} to{" "}
                 {Math.min(
                   startIndex + itemsPerPage,
-                  filteredAndSortedResults.length
+                  filteredAndSortedSubmissions.length
                 )}{" "}
-                of {filteredAndSortedResults.length} results
+                of {filteredAndSortedSubmissions.length} submissions
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -552,11 +652,12 @@ export default function ResultsPage() {
         </Card>
       </motion.div>
 
-      {/* View Result Dialog */}
-      <ViewResultDialog
-        result={selectedResult}
-        isOpen={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
+      {/* Grading Dialog */}
+      <GradingDialog
+        isOpen={isGradingDialogOpen}
+        onOpenChange={setIsGradingDialogOpen}
+        sessionId={selectedSessionId}
+        onGradingSaved={handleGradingSaved}
       />
     </motion.div>
   );

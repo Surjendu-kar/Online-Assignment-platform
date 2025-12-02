@@ -94,9 +94,9 @@ export async function GET(request: NextRequest) {
     const examsWithCounts = await Promise.all(
       exams.map(async (exam) => {
         const [mcqCount, saqCount, codingCount] = await Promise.all([
-          supabase.from('mcq').select('id', { count: 'exact', head: true }).eq('exam_id', exam.id).is('user_id', null),
-          supabase.from('saq').select('id', { count: 'exact', head: true }).eq('exam_id', exam.id).is('user_id', null),
-          supabase.from('coding').select('id', { count: 'exact', head: true }).eq('exam_id', exam.id).is('user_id', null)
+          supabase.from('mcq').select('id', { count: 'exact', head: true }).eq('exam_id', exam.id),
+          supabase.from('saq').select('id', { count: 'exact', head: true }).eq('exam_id', exam.id),
+          supabase.from('coding').select('id', { count: 'exact', head: true }).eq('exam_id', exam.id)
         ]);
 
         const totalQuestions = (mcqCount.count || 0) + (saqCount.count || 0) + (codingCount.count || 0);

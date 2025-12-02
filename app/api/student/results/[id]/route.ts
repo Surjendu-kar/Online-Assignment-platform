@@ -63,20 +63,17 @@ export async function GET(
     const { data: mcqQuestions } = await supabase
       .from('mcq')
       .select('*')
-      .eq('exam_id', response.exam_id)
-      .is('user_id', null);
+      .eq('exam_id', response.exam_id);
 
     const { data: saqQuestions } = await supabase
       .from('saq')
       .select('*')
-      .eq('exam_id', response.exam_id)
-      .is('user_id', null);
+      .eq('exam_id', response.exam_id);
 
     const { data: codingQuestions } = await supabase
       .from('coding')
       .select('*')
-      .eq('exam_id', response.exam_id)
-      .is('user_id', null);
+      .eq('exam_id', response.exam_id);
 
     const studentAnswers = response.answers || {};
 
@@ -90,6 +87,7 @@ export async function GET(
       is_correct: boolean;
       points: number;
       earned_points: number;
+      teacher_feedback?: string | null;
     }
 
     interface MCQQuestion {
@@ -129,7 +127,7 @@ export async function GET(
         student_answer: question.options?.[studentAnswer?.answer] || null,
         is_correct: studentAnswer?.isCorrect || false,
         points: question.marks || 0,
-        earned_points: studentAnswer?.marksObtained || 0,
+        earned_points: studentAnswer?.marksObtained ?? null,
       });
     });
 
@@ -144,7 +142,8 @@ export async function GET(
         student_answer: studentAnswer?.answer || null,
         is_correct: studentAnswer?.marksObtained > 0,
         points: question.marks || 0,
-        earned_points: studentAnswer?.marksObtained || 0,
+        earned_points: studentAnswer?.marksObtained ?? null,
+        teacher_feedback: studentAnswer?.teacher_feedback || null,
       });
     });
 
@@ -159,7 +158,8 @@ export async function GET(
         student_answer: studentAnswer?.answer || null,
         is_correct: studentAnswer?.marksObtained > 0,
         points: question.marks || 0,
-        earned_points: studentAnswer?.marksObtained || 0,
+        earned_points: studentAnswer?.marksObtained ?? null,
+        teacher_feedback: studentAnswer?.teacher_feedback || null,
       });
     });
 

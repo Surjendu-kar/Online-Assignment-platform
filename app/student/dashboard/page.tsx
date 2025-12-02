@@ -257,7 +257,7 @@ function ActivityItem({ activity }: { activity: RecentActivity }) {
 export default function StudentDashboard() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [studentData, setStudentData] = useState({
+  const [_studentData, setStudentData] = useState({
     name: "",
     email: "",
     studentId: "",
