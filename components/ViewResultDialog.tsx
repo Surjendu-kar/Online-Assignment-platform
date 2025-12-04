@@ -224,15 +224,15 @@ export function ViewResultDialog({
                   </h4>
                   <div className="space-y-1 text-xs">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded border-2 border-green-500" />
+                      <CheckCircle className="h-3 w-3 text-green-500" />
                       <span>Full Marks</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded border-2 border-yellow-500" />
+                      <CheckCircle className="h-3 w-3 text-yellow-500" />
                       <span>Partial</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded border-2 border-red-500" />
+                      <XCircle className="h-3 w-3 text-red-500" />
                       <span>0 Marks</span>
                     </div>
                     <div className="flex items-center gap-2">

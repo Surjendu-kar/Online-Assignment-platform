@@ -202,6 +202,14 @@ export const GradingDialog = ({
     field: "marks_obtained" | "teacher_feedback",
     value: number | string | null
   ) => {
+    // For marks_obtained, ensure it's an integer (no decimals)
+    if (field === "marks_obtained" && value !== null) {
+      // If it's a number, round it to nearest integer
+      if (typeof value === "number") {
+        value = Math.floor(value);
+      }
+    }
+
     setGradingData((prev) => ({
       ...prev,
       [responseId]: {
@@ -221,6 +229,43 @@ export const GradingDialog = ({
       setSaving(true);
 
       if (!submission) return;
+
+      // Validate that marks don't exceed maximum for each question and are integers
+      const invalidMarks = Object.entries(gradingData).find(([responseId, grading]) => {
+        const response = submission.responses.find((r) => r.id === responseId);
+        if (!response) return false;
+
+        if (grading.marks_obtained === null || grading.marks_obtained === undefined) {
+          return false;
+        }
+
+        // Check if marks is a floating point number
+        if (!Number.isInteger(grading.marks_obtained)) {
+          return { type: 'decimal', responseId };
+        }
+
+        // Check if marks exceed maximum
+        if (grading.marks_obtained > response.question_marks) {
+          return { type: 'exceeds', responseId };
+        }
+
+        return false;
+      });
+
+      if (invalidMarks) {
+        const [responseId, grading] = invalidMarks;
+        const response = submission.responses.find((r) => r.id === responseId);
+
+        if (typeof invalidMarks[1] === 'object' && invalidMarks[1].type === 'decimal') {
+          toast.error('Marks must be whole numbers (no decimals allowed)');
+          return;
+        }
+
+        toast.error(
+          `Marks cannot exceed maximum marks (${response?.question_marks}) for a question`
+        );
+        return;
+      }
 
       // Prepare updates array - only save questions that have been graded (marks entered)
       const updates = Object.entries(gradingData)
@@ -794,10 +839,17 @@ export const GradingDialog = ({
                                       type="number"
                                       min={0}
                                       max={currentResponse.question_marks}
+                                      step={1}
                                       value={
                                         gradingData[currentResponse.id]
                                           ?.marks_obtained ?? ""
                                       }
+                                      onKeyDown={(e) => {
+                                        // Prevent decimal point, minus, plus, and 'e' (exponential)
+                                        if (e.key === '.' || e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                          e.preventDefault();
+                                        }
+                                      }}
                                       onChange={(e) =>
                                         handleGradingChange(
                                           currentResponse.id,
@@ -1160,10 +1212,17 @@ export const GradingDialog = ({
                                       type="number"
                                       min={0}
                                       max={currentResponse.question_marks}
+                                      step={1}
                                       value={
                                         gradingData[currentResponse.id]
                                           ?.marks_obtained ?? ""
                                       }
+                                      onKeyDown={(e) => {
+                                        // Prevent decimal point, minus, plus, and 'e' (exponential)
+                                        if (e.key === '.' || e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                          e.preventDefault();
+                                        }
+                                      }}
                                       onChange={(e) =>
                                         handleGradingChange(
                                           currentResponse.id,
