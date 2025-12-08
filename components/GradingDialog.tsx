@@ -231,32 +231,33 @@ export const GradingDialog = ({
       if (!submission) return;
 
       // Validate that marks don't exceed maximum for each question and are integers
-      const invalidMarks = Object.entries(gradingData).find(([responseId, grading]) => {
+      let validationError: { type: 'decimal' | 'exceeds'; responseId: string } | null = null;
+
+      for (const [responseId, grading] of Object.entries(gradingData)) {
         const response = submission.responses.find((r) => r.id === responseId);
-        if (!response) return false;
+        if (!response) continue;
 
         if (grading.marks_obtained === null || grading.marks_obtained === undefined) {
-          return false;
+          continue;
         }
 
         // Check if marks is a floating point number
         if (!Number.isInteger(grading.marks_obtained)) {
-          return { type: 'decimal', responseId };
+          validationError = { type: 'decimal', responseId };
+          break;
         }
 
         // Check if marks exceed maximum
         if (grading.marks_obtained > response.question_marks) {
-          return { type: 'exceeds', responseId };
+          validationError = { type: 'exceeds', responseId };
+          break;
         }
+      }
 
-        return false;
-      });
+      if (validationError) {
+        const response = submission.responses.find((r) => r.id === validationError.responseId);
 
-      if (invalidMarks) {
-        const [responseId, grading] = invalidMarks;
-        const response = submission.responses.find((r) => r.id === responseId);
-
-        if (typeof invalidMarks[1] === 'object' && invalidMarks[1].type === 'decimal') {
+        if (validationError.type === 'decimal') {
           toast.error('Marks must be whole numbers (no decimals allowed)');
           return;
         }

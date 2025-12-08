@@ -274,12 +274,15 @@ export default function AdminGradingPage() {
 
   const stats = useMemo(() => {
     const total = submissions.length;
-    const pending = submissions.filter((s) => s.grading_status === "pending")
-      .length;
-    const partial = submissions.filter((s) => s.grading_status === "partial")
-      .length;
-    const completed = submissions.filter((s) => s.grading_status === "completed")
-      .length;
+    const pending = submissions.filter(
+      (s) => s.grading_status === "pending"
+    ).length;
+    const partial = submissions.filter(
+      (s) => s.grading_status === "partial"
+    ).length;
+    const completed = submissions.filter(
+      (s) => s.grading_status === "completed"
+    ).length;
 
     return { total, pending, partial, completed };
   }, [submissions]);
@@ -331,11 +334,6 @@ export default function AdminGradingPage() {
     }
   };
 
-  const handleDeleteClick = (submissionId: string) => {
-    setSubmissionToDelete(submissionId);
-    setIsDeleteDialogOpen(true);
-  };
-
   const handleBulkDeleteClick = () => {
     if (selectedRows.size === 0) {
       toast.error("Please select submissions to delete");
@@ -380,7 +378,9 @@ export default function AdminGradingPage() {
     } catch (error) {
       console.error("Error deleting submission(s):", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to delete submission(s)"
+        error instanceof Error
+          ? error.message
+          : "Failed to delete submission(s)"
       );
     } finally {
       setIsDeleteDialogOpen(false);
@@ -443,7 +443,8 @@ export default function AdminGradingPage() {
                   <span>Student Results & Grading</span>
                 </CardTitle>
                 <CardDescription>
-                  View and manage all student exam submissions across departments
+                  View and manage all student exam submissions across
+                  departments
                 </CardDescription>
               </div>
             </div>
@@ -510,7 +511,8 @@ export default function AdminGradingPage() {
               >
                 <Building2 className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                 <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                  Please select an institution from the sidebar to view submissions
+                  Please select an institution from the sidebar to view
+                  submissions
                 </p>
               </motion.div>
             )}

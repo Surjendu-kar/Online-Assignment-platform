@@ -14,7 +14,7 @@ import {
 } from "@/components/animate-ui/components/radix/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Mail, Trash } from "lucide-react";
+import { Edit, Mail, Trash, BookOpen, Calendar } from "lucide-react";
 
 interface Student {
   id: string;
@@ -32,6 +32,15 @@ interface Student {
   assignedExam?: string;
   departmentId?: string;
   examId?: string;
+  assignedExamsList?: Array<{
+    id: string;
+    exam_id: string;
+    exam_title: string;
+    assigned_at: string;
+    status: string;
+    start_time?: string;
+    end_time?: string;
+  }>;
 }
 
 interface ViewStudentDialogProps {
@@ -142,23 +151,9 @@ export const ViewStudentDialog = ({
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Assigned Exam
-                </label>
-                <p className="font-medium">
-                  {student.assignedExam || "No exam assigned"}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-muted-foreground">
                   Average Score
                 </label>
                 <p className="font-medium">{student.averageScore}%</p>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Assigned Exams
-                </label>
-                <p className="font-medium">{student.assignedExams}</p>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">
@@ -178,6 +173,55 @@ export const ViewStudentDialog = ({
                 </label>
                 <p className="font-medium">{student.invitedBy || "Unknown"}</p>
               </div>
+            </div>
+
+            {/* Assigned Exams Section */}
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <label className="text-sm font-semibold">
+                    Assigned Exams ({student.assignedExamsList?.length || 0})
+                  </label>
+                </div>
+              </div>
+
+              {!student.assignedExamsList || student.assignedExamsList.length === 0 ? (
+                <div className="text-center py-6 bg-muted/30 rounded-md">
+                  <BookOpen className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    No exams assigned yet
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {student.assignedExamsList.map((exam) => (
+                    <div
+                      key={exam.id}
+                      className="flex flex-col p-3 border rounded-md hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <p className="font-medium text-sm line-clamp-1 flex-1" title={exam.exam_title}>
+                          {exam.exam_title}
+                        </p>
+                        <Badge
+                          variant={exam.status === 'active' ? 'default' : 'secondary'}
+                          className="text-xs shrink-0"
+                        >
+                          {exam.status}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {exam.start_time
+                          ? new Date(exam.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          : new Date(exam.assigned_at).toLocaleDateString()
+                        }
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

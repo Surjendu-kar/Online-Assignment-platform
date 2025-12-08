@@ -1,447 +1,638 @@
-# Homepage Implementation Task List
+# Task: Make Exam Assignment Optional and Support Multiple Exams per Student
 
-## Project: Online Exam Assignment Platform - Public Homepage
+## Overview
+Currently, teachers must select an exam when inviting students. This task makes exam selection optional and allows teachers to assign multiple exams to students (both during invitation and after).
 
-### Overview
-This task list covers the implementation of the public-facing homepage with the following sections:
-1. Hero Section
-2. Features
-3. Call-to-Action (CTA)
-4. How It Works
-5. Demo Screenshots
+## Solution Approach
+Create a separate `student_exam_assignments` table to handle exam assignments independently from student invitations. This separates concerns and provides better flexibility.
 
 ---
 
-## Phase 1: Foundation & Structure
-
-### ☐ Task 1: Create (public) route group structure and layout
-**Description**: Set up the Next.js App Router structure for public pages
-- Create `app/(public)/` directory
-- Create `app/(public)/layout.tsx` with public layout wrapper
-- Configure routing to distinguish public pages from protected routes
-- Set up proper metadata and SEO tags
-
-**Files to create:**
-- `app/(public)/layout.tsx`
-- `app/(public)/page.tsx` (homepage)
-
----
-
-### ☐ Task 2: Create PublicNavbar component with navigation links
-**Description**: Build the main navigation header for public pages
-- Logo/Brand name (left side)
-- Navigation links: Home, Features, How It Works, Contact
-- Login button (right side, highlighted)
-- Mobile responsive hamburger menu
-- Sticky navigation on scroll
-- Smooth scroll to sections
-
-**Files to create:**
-- `components/PublicNavbar.tsx`
-
-**Features:**
-- Desktop: Horizontal navigation
-- Mobile: Hamburger menu with slide-out drawer
-- Active link highlighting
-- Smooth animations
-
----
-
-### ☐ Task 3: Create Footer component with legal links and branding
-**Description**: Build footer with links and information
-- Platform branding and description
-- Quick links section (Home, Features, About, Contact)
-- Legal links (Privacy Policy, Terms of Service)
-- Social media icons (placeholder for now)
-- Copyright notice with current year
-- Newsletter signup (optional)
-
-**Files to create:**
-- `components/Footer.tsx`
-
----
-
-## Phase 2: Hero Section
-
-### ☐ Task 4: Create Hero section with headline, subheading, and CTA buttons
-**Description**: Build the main hero section that appears first on the homepage
-- Eye-catching headline (e.g., "Transform How Your Institution Conducts Exams")
-- Subheading explaining platform value
-- Two prominent CTA buttons:
-  - Primary: "Request Demo" or "Get Started"
-  - Secondary: "Login"
-- Background with gradient or subtle pattern
-- Optional: Decorative elements or illustration
-
-**Files to create:**
-- `components/home/HeroSection.tsx`
-
-**Content to include:**
-- Platform tagline
-- Brief value proposition (1-2 sentences)
-- Visual appeal with proper spacing
-
----
-
-### ☐ Task 5: Add hero section animations (using Framer Motion)
-**Description**: Enhance hero section with smooth animations
-- Fade-in headline with stagger effect
-- Slide-in subheading from bottom
-- Pulse/hover animations on CTA buttons
-- Subtle background animations (floating elements)
-- Scroll indicator at bottom
-
-**Animation timing:**
-- Headline: 0.5s delay
-- Subheading: 0.7s delay
-- CTA buttons: 0.9s delay
-- All with smooth easing
-
----
-
-## Phase 3: Features Section
-
-### ☐ Task 6: Create Features section with feature cards
-**Description**: Showcase 4 key platform features with cards
-
-**Features to highlight:**
-1. **Multi-Question Types**
-   - Icon: CheckCircle or ListChecks
-   - Description: Support for MCQ, Short Answer, and Coding questions
-
-2. **AI-Powered Proctoring**
-   - Icon: Eye or Shield
-   - Description: Webcam monitoring, violation tracking, secure exams
-
-3. **Multi-Institution Support**
-   - Icon: Building2 or School
-   - Description: Manage multiple institutions, departments, and users
-
-4. **Real-Time Grading**
-   - Icon: Zap or Clock
-   - Description: Instant results for MCQs, streamlined manual grading
-
-**Files to create:**
-- `components/home/FeaturesSection.tsx`
-- `components/home/FeatureCard.tsx`
-
-**Layout:**
-- 2x2 grid on desktop
-- Single column on mobile
-- Each card with icon, title, description
-
----
-
-### ☐ Task 7: Add animations and hover effects to feature cards
-**Description**: Make feature cards interactive and engaging
-- Hover scale effect (scale: 1.05)
-- Card tilt on hover (subtle 3D effect)
-- Icon animations on hover (rotate, bounce, or glow)
-- Stagger reveal on scroll (cards appear one by one)
-- Smooth transitions
-
-**Interactions:**
-- Cursor hover changes card appearance
-- Icons animate independently
-- Cards reveal as user scrolls down
-
----
-
-## Phase 4: CTA Section
-
-### ☐ Task 8: Create primary CTA section with call-to-action buttons
-**Description**: Mid-page CTA to encourage user action
-- Strong headline (e.g., "Ready to Transform Your Exam Process?")
-- Supporting text (1 sentence)
-- Primary button: "Get Started Today" or "Request a Demo"
-- Secondary button: "View Pricing" or "Contact Us"
-- Background: Accent color (blue/purple gradient)
-- Full-width section with centered content
-
-**Files to create:**
-- `components/home/CTASection.tsx`
-
-**Design:**
-- Contrasting background color
-- White text on colored background
-- Generous padding (py-20)
-- Call attention without being overwhelming
-
----
-
-## Phase 5: How It Works Section
-
-### ☐ Task 9: Create How It Works section with 4-step process
-**Description**: Visual explanation of platform workflow
-
-**Steps to show:**
-1. **Admin Setup**
-   - Icon: UserCog or Settings
-   - Title: "Admin Creates Institution"
-   - Description: "Set up your institution, departments, and invite teachers"
-
-2. **Exam Creation**
-   - Icon: FileEdit or PenTool
-   - Title: "Teachers Create Exams"
-   - Description: "Design exams with MCQs, essays, and coding challenges"
-
-3. **Student Takes Exam**
-   - Icon: Users or GraduationCap
-   - Title: "Students Take Proctored Exams"
-   - Description: "Secure, monitored exam environment with violation tracking"
-
-4. **Automated Grading**
-   - Icon: CheckCircle2 or Award
-   - Title: "Instant Results & Grading"
-   - Description: "Auto-graded MCQs, streamlined manual grading for essays"
-
-**Files to create:**
-- `components/home/HowItWorksSection.tsx`
-- `components/home/ProcessStep.tsx`
-
-**Layout:**
-- Horizontal timeline on desktop
-- Vertical flow on mobile
-- Connecting lines/arrows between steps
-- Number badges (1, 2, 3, 4)
-
----
-
-### ☐ Task 10: Add scroll animations to How It Works section
-**Description**: Progressive reveal animation as user scrolls
-- Steps appear one by one with stagger effect
-- Connecting lines animate/draw as steps appear
-- Number badges animate with scale/fade effect
-- Use Framer Motion's `whileInView` prop
-- Trigger animation when section is 50% visible
-
-**Animation sequence:**
-- Step 1 → Line → Step 2 → Line → Step 3 → Line → Step 4
-- Each with 200ms delay between
-- Smooth fade + slide from bottom
-
----
-
-## Phase 6: Demo Screenshots Section
-
-### ☐ Task 11: Create Demo Screenshots section with platform preview images
-**Description**: Showcase platform UI with screenshots
-
-**Screenshots to include:**
-1. Admin Dashboard (institution/department management)
-2. Teacher Exam Creation (question builder interface)
-3. Student Exam Interface (taking exam view)
-4. Results/Grading Page (teacher grading view)
-
-**Files to create:**
-- `components/home/ScreenshotsSection.tsx`
-- `components/home/ScreenshotCard.tsx`
-
-**Layout:**
-- Grid layout: 2 columns on desktop, 1 on mobile
-- Each screenshot with caption/description
-- Placeholder images initially (can be replaced with real screenshots later)
-- Border, shadow, and rounded corners for polish
-
-**Placeholder approach:**
-- Use colored rectangles with text labels for now
-- Or use https://placehold.co/ for placeholder images
-- Dimensions: 1200x800px (3:2 aspect ratio)
-
----
-
-### ☐ Task 12: Add image lightbox/modal functionality for screenshots
-**Description**: Allow users to view full-size screenshots
-- Click on screenshot to open lightbox/modal
-- Full-screen view with dark overlay
-- Navigation: Next/Previous arrows
-- Close button (X) in top-right corner
-- Click outside image to close
-- Keyboard support: Arrow keys for navigation, ESC to close
-- Smooth open/close animations
-
-**Implementation options:**
-- Use shadcn/ui Dialog component
-- Or implement custom lightbox with Framer Motion
-- Support touch gestures on mobile (swipe to navigate)
-
----
-
-## Phase 7: Polish & Testing
-
-### ☐ Task 13: Implement responsive design for mobile and tablet views
-**Description**: Ensure homepage looks great on all screen sizes
-- Mobile (320px - 768px):
-  - Single column layout
-  - Hamburger menu
-  - Stacked CTA buttons
-  - Reduced spacing
-
-- Tablet (768px - 1024px):
-  - 2-column feature cards
-  - Adjusted spacing
-
-- Desktop (1024px+):
-  - Full grid layouts
-  - Max width container (1280px)
-  - Optimal spacing
-
-**Testing breakpoints:**
-- 320px (iPhone SE)
-- 375px (iPhone 12/13)
-- 768px (iPad)
-- 1024px (iPad Pro)
-- 1440px (Desktop)
-
----
-
-### ☐ Task 14: Test homepage on different screen sizes and browsers
-**Description**: Cross-browser and device testing
-- **Browsers to test:**
-  - Chrome
-  - Firefox
-  - Safari
-  - Edge
-
-- **Testing checklist:**
-  - All animations work smoothly
-  - Navigation links work correctly
-  - CTA buttons are clickable and visible
-  - Images load properly
-  - Text is readable on all backgrounds
-  - No layout shifts or overflow issues
-  - Performance: Page loads in < 3 seconds
-
-- **Accessibility:**
-  - Keyboard navigation works
-  - Proper heading hierarchy (h1, h2, h3)
-  - Alt text for images
-  - Sufficient color contrast
-  - Focus indicators visible
-
-**Tools to use:**
-- Chrome DevTools responsive mode
-- Lighthouse audit for performance
-- WAVE browser extension for accessibility
-
----
-
-## Post-Homepage Tasks (Future)
-
-### Additional Pages to Create:
-- [ ] Features page (detailed breakdown)
-- [ ] About Us page
-- [ ] Contact page with form
-- [ ] FAQ page
-- [ ] Privacy Policy page
-- [ ] Terms of Service page
-- [ ] Pricing page (if applicable)
-
----
-
-## Content Needed Before Implementation
-
-### Branding Assets:
-- [ ] Platform name decision
-- [ ] Logo (SVG format preferred)
-- [ ] Color scheme confirmation (currently using slate theme)
-- [ ] Brand fonts (if different from default)
-
-### Content Copy:
-- [ ] Hero headline (attention-grabbing)
-- [ ] Hero subheading (value proposition)
-- [ ] Feature descriptions (4 features, 50-100 words each)
-- [ ] How It Works step descriptions (50 words each)
-- [ ] CTA section copy
-- [ ] Footer description/tagline
-
-### Visual Assets:
-- [ ] Platform screenshots (or use placeholders initially)
-- [ ] Optional: Hero section illustration/animation
-- [ ] Optional: Icons (or use Lucide React icons)
-- [ ] Favicon
-
----
-
-## Technical Decisions Made
-
-### Tech Stack for Homepage:
-- **Framework**: Next.js 15 (App Router)
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion (Motion library)
-- **Icons**: Lucide React
-- **UI Components**: shadcn/ui
-- **Font**: Default Next.js font (Inter)
-
-### File Structure:
-```
-app/
-├── (public)/
-│   ├── layout.tsx          # Public layout with navbar + footer
-│   ├── page.tsx            # Homepage
-│   ├── about/              # Future
-│   ├── contact/            # Future
-│   └── legal/              # Future (privacy, terms)
-
-components/
-├── PublicNavbar.tsx
-├── Footer.tsx
-└── home/
-    ├── HeroSection.tsx
-    ├── FeaturesSection.tsx
-    ├── FeatureCard.tsx
-    ├── CTASection.tsx
-    ├── HowItWorksSection.tsx
-    ├── ProcessStep.tsx
-    ├── ScreenshotsSection.tsx
-    └── ScreenshotCard.tsx
+## Phase 1: Database Schema Changes
+
+### 1.1 Create New Table: `student_exam_assignments`
+
+**Purpose:** Track which exams are assigned to which students
+
+**SQL Schema:**
+```sql
+-- Create student_exam_assignments table
+CREATE TABLE public.student_exam_assignments (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  student_email TEXT NOT NULL,
+  student_id UUID NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  exam_id UUID NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+  assigned_by UUID NOT NULL REFERENCES auth.users(id),
+  department_id UUID NULL REFERENCES departments(id),
+  assigned_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT student_exam_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT unique_student_exam UNIQUE (student_email, exam_id),
+  CONSTRAINT student_exam_assignments_status_check CHECK (status IN ('active', 'completed', 'revoked'))
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_student_exam_assignments_email ON public.student_exam_assignments(student_email);
+CREATE INDEX idx_student_exam_assignments_exam ON public.student_exam_assignments(exam_id);
+CREATE INDEX idx_student_exam_assignments_student_id ON public.student_exam_assignments(student_id);
+CREATE INDEX idx_student_exam_assignments_assigned_by ON public.student_exam_assignments(assigned_by);
+
+-- Enable RLS
+ALTER TABLE public.student_exam_assignments ENABLE ROW LEVEL SECURITY;
 ```
 
-### Performance Targets:
-- **First Contentful Paint**: < 1.5s
-- **Largest Contentful Paint**: < 2.5s
-- **Time to Interactive**: < 3s
-- **Lighthouse Score**: > 90
+**RLS Policies:**
+```sql
+-- Teachers can view assignments they created
+CREATE POLICY "Teachers can view their assignments"
+ON public.student_exam_assignments
+FOR SELECT USING (auth.uid() = assigned_by);
+
+-- Teachers can create assignments
+CREATE POLICY "Teachers can create assignments"
+ON public.student_exam_assignments
+FOR INSERT WITH CHECK (
+  auth.uid() = assigned_by
+  AND EXISTS (
+    SELECT 1 FROM user_profiles
+    WHERE id = auth.uid() AND role = 'teacher'
+  )
+);
+
+-- Teachers can update their assignments
+CREATE POLICY "Teachers can update their assignments"
+ON public.student_exam_assignments
+FOR UPDATE USING (auth.uid() = assigned_by);
+
+-- Teachers can delete their assignments
+CREATE POLICY "Teachers can delete their assignments"
+ON public.student_exam_assignments
+FOR DELETE USING (auth.uid() = assigned_by);
+
+-- Students can view their own assignments
+CREATE POLICY "Students can view their assignments"
+ON public.student_exam_assignments
+FOR SELECT USING (
+  auth.uid() = student_id
+  OR EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = auth.uid()
+    AND email = student_exam_assignments.student_email
+  )
+);
+
+-- Admins can view all assignments
+CREATE POLICY "Admins can view all assignments"
+ON public.student_exam_assignments
+FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM user_profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  )
+);
+
+-- Service role can access all
+CREATE POLICY "Service role can access assignments"
+ON public.student_exam_assignments
+FOR ALL USING (auth.role() = 'service_role'::text);
+```
+
+### 1.2 Modify `student_invitations` Table
+
+**Make `exam_id` optional:**
+```sql
+-- The exam_id field is already nullable in the schema, so no change needed
+-- But we should consider adding a note that it's deprecated in favor of student_exam_assignments
+
+-- Optional: Add a comment to the column
+COMMENT ON COLUMN public.student_invitations.exam_id IS 'Deprecated: Use student_exam_assignments table instead';
+```
+
+### 1.3 Update Trigger for `updated_at`
+
+```sql
+-- Add trigger for student_exam_assignments
+CREATE TRIGGER update_student_exam_assignments_updated_at
+BEFORE UPDATE ON public.student_exam_assignments
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```
 
 ---
 
-## Notes & Considerations
+## Phase 2: API Endpoint Changes
 
-### SEO Optimization:
-- Add proper meta tags in layout.tsx
-- Open Graph tags for social sharing
-- Structured data (JSON-LD) for organization
-- Sitemap.xml generation
+### 2.1 Modify `POST /api/students` Endpoint
 
-### Accessibility (WCAG 2.1 AA):
-- Semantic HTML elements
-- ARIA labels where needed
-- Keyboard navigation support
-- Focus management
-- Color contrast ratios > 4.5:1
+**File:** `app/api/students/route.ts`
 
-### Future Enhancements:
-- Multi-language support (i18n)
-- Blog section for content marketing
-- Video demo instead of/in addition to screenshots
-- Interactive product tour
-- Customer testimonials section
-- Integration showcase (if applicable)
-- Live chat widget
+**Changes:**
+- Make `examId` optional in request body
+- Accept `examIds` as an array of exam IDs
+- Create student invitation record (without exam_id)
+- If `examIds` is provided and not empty, create records in `student_exam_assignments` table
+- Return success with created invitation and assignments
+
+**Request Body Schema:**
+```typescript
+{
+  firstName: string;
+  lastName: string;
+  email: string;
+  departmentId: string;
+  expirationDate: string;
+  examIds?: string[]; // Optional array of exam IDs
+}
+```
+
+### 2.2 Modify `GET /api/students` Endpoint
+
+**File:** `app/api/students/route.ts`
+
+**Changes:**
+- Join with `student_exam_assignments` table to get assigned exams
+- Return invitations with their assigned exams as an array
+- Handle filtering by institution and department (already implemented)
+
+**Response Schema:**
+```typescript
+{
+  id: string;
+  student_email: string;
+  first_name: string;
+  last_name: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+  teacher_id: string;
+  department_id: string;
+  departments: { id, name, code };
+  teacher: { email };
+  assigned_exams: [
+    {
+      id: string;
+      exam_id: string;
+      exam_title: string;
+      assigned_at: string;
+      status: string;
+    }
+  ];
+}
+```
+
+### 2.3 Modify `PUT /api/students` Endpoint
+
+**File:** `app/api/students/route.ts`
+
+**Changes:**
+- Update student invitation basic info (name, department, expiration)
+- Do NOT update exam assignments here (handled separately)
+
+### 2.4 Create New `POST /api/students/assign-exam` Endpoint
+
+**File:** `app/api/students/assign-exam/route.ts` (NEW FILE)
+
+**Purpose:** Assign one or more exams to an existing student
+
+**Request Body:**
+```typescript
+{
+  studentEmail: string;
+  examIds: string[]; // Array of exam IDs to assign
+  departmentId: string;
+}
+```
+
+**Logic:**
+- Validate teacher is authenticated
+- Validate exams exist and belong to teacher's department
+- Check if assignments already exist (handle duplicates gracefully)
+- Create new records in `student_exam_assignments`
+- Return success with created assignments
+
+### 2.5 Create New `DELETE /api/students/unassign-exam` Endpoint
+
+**File:** `app/api/students/unassign-exam/route.ts` (NEW FILE)
+
+**Purpose:** Remove exam assignment from a student
+
+**Request Body:**
+```typescript
+{
+  assignmentIds: string[]; // Array of assignment IDs to remove
+}
+```
+
+**Logic:**
+- Validate teacher is authenticated
+- Validate teacher owns these assignments
+- Delete records from `student_exam_assignments` or update status to 'revoked'
+- Return success
 
 ---
 
-## Approval Checklist
+## Phase 3: Frontend Component Changes
 
-Before starting implementation, confirm:
-- [ ] Task list reviewed and approved
-- [ ] Content strategy aligned
-- [ ] Design direction understood
-- [ ] Placeholder content acceptable for initial implementation
-- [ ] Timeline expectations set
+### 3.1 Update `AddStudentDialog` Component
+
+**File:** `components/AddStudentDialog.tsx`
+
+**Changes:**
+1. Change exam selection from single `<Select>` to multiple checkboxes
+2. Add "Select Exams (Optional)" section with checkbox list
+3. Allow submitting with no exams selected
+4. Update form validation to make exam selection optional
+5. Pass `examIds: string[]` to the API instead of single `examId`
+
+**UI Mockup:**
+```
+┌─────────────────────────────────────┐
+│ First Name: [________]              │
+│ Last Name:  [________]              │
+│ Email:      [________]              │
+│ Department: [Dropdown ▼]           │
+│ Expiration: [Date Picker]          │
+│                                     │
+│ Assign Exams (Optional)             │
+│ ┌─────────────────────────────┐   │
+│ │ ☐ Midterm Exam 2024         │   │
+│ │ ☐ Final Exam 2024           │   │
+│ │ ☐ Quiz 1 - Data Structures  │   │
+│ └─────────────────────────────┘   │
+│                                     │
+│ [Cancel]  [Send Invitation]         │
+└─────────────────────────────────────┘
+```
+
+### 3.2 Update `ViewStudentDialog` Component
+
+**File:** `components/ViewStudentDialog.tsx`
+
+**Changes:**
+1. Add "Assigned Exams" section showing list of assigned exams
+2. Add "Assign Exam" button in the dialog
+3. Create a sub-dialog/modal for assigning new exams
+4. Show exam assignment history with dates
+5. Add "Unassign" button for each exam (optional)
+
+**UI Mockup:**
+```
+┌──────────────────────────────────────┐
+│ Student Details                       │
+│                                      │
+│ Name: John Doe                       │
+│ Email: john@example.com              │
+│ Status: Active                       │
+│ Department: Computer Science         │
+│                                      │
+│ Assigned Exams:                      │
+│ ┌────────────────────────────────┐ │
+│ │ • Midterm Exam 2024            │ │
+│ │   Assigned: Jan 15, 2024       │ │
+│ │                                │ │
+│ │ • Final Exam 2024              │ │
+│ │   Assigned: Jan 20, 2024       │ │
+│ └────────────────────────────────┘ │
+│                                      │
+│ [Assign Exam] [Edit] [Send Email]   │
+│ [Delete]                             │
+└──────────────────────────────────────┘
+```
+
+### 3.3 Create `AssignExamDialog` Component
+
+**File:** `components/AssignExamDialog.tsx` (NEW FILE)
+
+**Purpose:** Dialog for assigning exams to an existing student
+
+**Props:**
+```typescript
+interface AssignExamDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  studentEmail: string;
+  studentName: string;
+  departmentId: string;
+  currentExamIds: string[]; // Already assigned exams
+  availableExams: Exam[];
+  onAssign: (examIds: string[]) => Promise<void>;
+}
+```
+
+**UI:**
+- Show list of available exams (filtered by department)
+- Exclude already assigned exams from the list
+- Multiple checkbox selection
+- Submit button to assign selected exams
+
+### 3.4 Update `TeacherStudentsPage`
+
+**File:** `app/teacher/management/students/page.tsx`
+
+**Changes:**
+
+1. **Update Student Interface:**
+```typescript
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  status: "active" | "pending" | "suspended";
+  assignedExams: number; // Count of assigned exams
+  completedExams: number;
+  averageScore: number;
+  dateJoined: Date;
+  invitedBy?: string;
+  profileImage?: string;
+  studentId?: string;
+  department?: string;
+  assignedExamsList?: Array<{  // NEW: Array of assigned exams
+    id: string;
+    examId: string;
+    examTitle: string;
+    assignedAt: string;
+  }>;
+  departmentId?: string;
+}
+```
+
+2. **Update `processedStudents` mapping:**
+   - Map `assigned_exams` array from API response
+   - Calculate `assignedExams` count from array length
+   - Handle case where `assigned_exams` is empty
+
+3. **Update table display:**
+   - In "Assigned Exam" column, show:
+     - "Not yet assigned" if no exams
+     - "1 exam" if one exam
+     - "X exams" if multiple exams
+     - On hover, show tooltip with exam names
+
+4. **Add handlers:**
+```typescript
+const handleAssignExam = async (studentEmail: string, examIds: string[]) => {
+  // Call /api/students/assign-exam
+  // Refresh student list
+};
+
+const handleUnassignExam = async (assignmentId: string) => {
+  // Call /api/students/unassign-exam
+  // Refresh student list
+};
+```
+
+5. **Update API calls:**
+   - Modify `handleSendStudentInvitation` to send `examIds` array
+   - Add fetch calls for assign/unassign exam endpoints
+
+### 3.5 Update Type Definitions
+
+**File:** `types/student.ts` or inline in component
+
+**Add:**
+```typescript
+export interface ExamAssignment {
+  id: string;
+  examId: string;
+  examTitle: string;
+  assignedAt: string;
+  status: 'active' | 'completed' | 'revoked';
+}
+
+export interface StudentInvitationWithExams {
+  id: string;
+  student_email: string;
+  first_name: string;
+  last_name: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+  teacher_id: string;
+  department_id: string;
+  departments: { id: string; name: string; code: string };
+  teacher?: { email: string };
+  assigned_exams: ExamAssignment[];
+}
+```
 
 ---
 
-**Status**: ⏳ Awaiting Approval
+## Phase 4: Data Migration (If Needed)
 
-**Next Step**: Once approved, begin with Phase 1 (Tasks 1-3) to set up the foundation.
+### 4.1 Migrate Existing Data
+
+**Purpose:** Move existing exam assignments from `student_invitations.exam_id` to `student_exam_assignments` table
+
+**SQL Migration Script:**
+```sql
+-- Insert existing exam assignments into new table
+INSERT INTO public.student_exam_assignments (
+  student_email,
+  student_id,
+  exam_id,
+  assigned_by,
+  department_id,
+  assigned_at,
+  status
+)
+SELECT
+  si.student_email,
+  si.student_id,
+  si.exam_id,
+  si.teacher_id,
+  si.department_id,
+  si.created_at,
+  CASE
+    WHEN si.status = 'accepted' THEN 'active'
+    ELSE 'active'
+  END as status
+FROM public.student_invitations si
+WHERE si.exam_id IS NOT NULL
+ON CONFLICT (student_email, exam_id) DO NOTHING;
+
+-- Verify migration
+SELECT COUNT(*) FROM public.student_exam_assignments;
+```
+
+**Note:** Do NOT delete `exam_id` from `student_invitations` immediately. Keep it for backward compatibility during transition period.
+
+---
+
+## Phase 5: Update Student Exam Access Logic
+
+### 5.1 Modify Student Exam Listing API
+
+**File:** `app/api/student/exams/route.ts`
+
+**Changes:**
+- Instead of checking `student_invitations.exam_id`, query `student_exam_assignments` table
+- Filter exams where `student_email` or `student_id` matches and `status = 'active'`
+
+### 5.2 Modify Exam Start API
+
+**File:** `app/api/student/exam/[id]/start/route.ts`
+
+**Changes:**
+- Verify student has access by checking `student_exam_assignments` table
+- Ensure exam assignment exists and is active before allowing exam start
+
+---
+
+## Phase 6: Update Documentation
+
+### 6.1 Update `db-schema-setup-config.md`
+
+**Add:**
+- New `student_exam_assignments` table schema
+- RLS policies for the new table
+- Migration instructions
+- Update student_invitations section to note `exam_id` is deprecated
+
+### 6.2 Update `CLAUDE.md`
+
+**Add:**
+- Note about new exam assignment architecture
+- Explain separation between invitation and exam assignment
+- Update API endpoint documentation
+
+---
+
+## Testing Checklist
+
+### Database Tests
+- [ ] Create `student_exam_assignments` table successfully
+- [ ] RLS policies work correctly for teachers, students, and admins
+- [ ] Unique constraint prevents duplicate assignments
+- [ ] Foreign key constraints work (cascading deletes)
+- [ ] Indexes improve query performance
+
+### API Tests
+- [ ] POST /api/students without examIds creates invitation only
+- [ ] POST /api/students with examIds creates invitation + assignments
+- [ ] GET /api/students returns invitations with assigned_exams array
+- [ ] POST /api/students/assign-exam assigns exams to existing student
+- [ ] POST /api/students/assign-exam prevents duplicate assignments
+- [ ] DELETE /api/students/unassign-exam removes assignments
+- [ ] Student can only see their own assigned exams
+
+### Frontend Tests
+- [ ] AddStudentDialog shows multiple exam checkboxes
+- [ ] Can submit invitation without selecting any exams
+- [ ] Can submit invitation with multiple exams selected
+- [ ] ViewStudentDialog shows all assigned exams
+- [ ] "Assign Exam" button opens AssignExamDialog
+- [ ] AssignExamDialog excludes already assigned exams
+- [ ] Can assign multiple exams from ViewStudentDialog
+- [ ] Table shows "Not yet assigned" when no exams
+- [ ] Table shows "X exams" when multiple exams assigned
+- [ ] Tooltip shows exam names on hover
+
+### Integration Tests
+- [ ] Invite student without exam → appears in list with "Not yet assigned"
+- [ ] Assign exam to student → exam appears in their assigned list
+- [ ] Student can see newly assigned exam in their exam list
+- [ ] Student can start exam after it's assigned
+- [ ] Unassign exam → student loses access
+- [ ] Delete student invitation → all exam assignments are deleted (cascade)
+- [ ] Delete exam → all assignments for that exam are deleted (cascade)
+
+---
+
+## Rollback Plan
+
+If issues occur, rollback steps:
+
+1. **Database:**
+   ```sql
+   DROP TABLE IF EXISTS public.student_exam_assignments CASCADE;
+   ```
+
+2. **API:** Revert changes to `/api/students` endpoints
+
+3. **Frontend:** Revert component changes
+
+4. **Restore from git:**
+   ```bash
+   git checkout HEAD -- app/api/students/
+   git checkout HEAD -- components/AddStudentDialog.tsx
+   git checkout HEAD -- components/ViewStudentDialog.tsx
+   git checkout HEAD -- app/teacher/management/students/page.tsx
+   ```
+
+---
+
+## Implementation Order
+
+1. ✅ Review and approve this task plan
+2. Create database table and RLS policies
+3. Create new API endpoints (assign-exam, unassign-exam)
+4. Modify existing API endpoints (POST, GET /api/students)
+5. Create AssignExamDialog component
+6. Update AddStudentDialog component
+7. Update ViewStudentDialog component
+8. Update TeacherStudentsPage component
+9. Test all functionality
+10. Migrate existing data (if applicable)
+11. Update documentation
+12. Deploy to production
+
+---
+
+## Estimated Impact
+
+**Files to Create:**
+- `app/api/students/assign-exam/route.ts`
+- `app/api/students/unassign-exam/route.ts`
+- `components/AssignExamDialog.tsx`
+
+**Files to Modify:**
+- `app/api/students/route.ts`
+- `components/AddStudentDialog.tsx`
+- `components/ViewStudentDialog.tsx`
+- `app/teacher/management/students/page.tsx`
+- `db-schema-setup-config.md`
+- `CLAUDE.md`
+
+**Database Changes:**
+- New table: `student_exam_assignments`
+- 8 new RLS policies
+- 4 new indexes
+- 1 new trigger
+
+---
+
+## Notes
+
+- The `exam_id` field in `student_invitations` is kept for backward compatibility but should be considered deprecated
+- **IMPORTANT:** The `exam_id` field in `exam_sessions` table is **NOT** deprecated and must remain - it tracks which exam the student is currently taking/has taken
+- Future enhancement: Add bulk assign/unassign operations
+- Future enhancement: Add exam assignment history/audit log
+- Future enhancement: Allow students to see assignment notifications
+
+---
+
+## Table Relationships Summary
+
+Understanding the relationship between the three key tables:
+
+| Table                      | Rows per Student                           | Purpose                                    |
+|----------------------------|--------------------------------------------|--------------------------------------------|
+| `student_invitations`      | 1 row (the invitation itself)              | Invite student to create account           |
+| `student_exam_assignments` | N rows (one per assigned exam)             | Track which exams student CAN take         |
+| `exam_sessions`            | N rows (one per exam started/completed)    | Track which exams student IS/HAS taking    |
+
+**Data Flow:**
+1. Teacher invites student → creates 1 row in `student_invitations`
+2. Teacher assigns exams → creates N rows in `student_exam_assignments` (permission list)
+3. Student accepts invitation → creates user account
+4. Student starts exam → creates 1 row in `exam_sessions` per exam attempt
+5. System loads questions → uses `exam_id` from `exam_sessions` to fetch correct questions
+6. Student submits → updates `exam_sessions` with score and marks as completed
+
+**Key Points:**
+- `student_exam_assignments.exam_id` = "You are ALLOWED to take this exam"
+- `exam_sessions.exam_id` = "You are CURRENTLY TAKING (or HAVE TAKEN) this exam"
+- Both tables need `exam_id`, but for different purposes
+- `exam_sessions` uses `exam_id` to know which questions to load, which exam settings to apply, and which exam to calculate scores for

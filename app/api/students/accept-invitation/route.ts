@@ -132,7 +132,22 @@ export async function POST(request: Request) {
       // Don't fail the request if this fails, account is already created
     }
 
-    return NextResponse.json({ 
+    // IMPORTANT: Also update student_exam_assignments table to populate student_id
+    // This allows students to see their assigned exams immediately after accepting invitation
+    const { error: assignmentsError } = await supabase
+      .from('student_exam_assignments')
+      .update({
+        student_id: authData.user.id,
+      })
+      .eq('student_email', invitation.student_email)
+      .is('student_id', null); // Only update rows where student_id is null
+
+    if (assignmentsError) {
+      console.error('Error updating exam assignments:', assignmentsError);
+      // Don't fail the request if this fails, we can rely on email matching
+    }
+
+    return NextResponse.json({
       success: true,
       examId: invitation.exam_id,
       message: 'Account created successfully'

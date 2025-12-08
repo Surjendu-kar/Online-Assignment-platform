@@ -152,6 +152,37 @@ create table public.student_invitations (
 );
 ```
 
+### Student Exam Assignments Table
+
+**Purpose:** Track which exams are assigned to which students (supports multiple exams per student)
+
+```sql
+create table public.student_exam_assignments (
+  id uuid not null default gen_random_uuid(),
+  student_email text not null,
+  student_id uuid null references auth.users(id) on delete cascade,
+  exam_id uuid not null references exams(id) on delete cascade,
+  assigned_by uuid not null references auth.users(id),
+  department_id uuid null references departments(id),
+  assigned_at timestamp with time zone not null default now(),
+  status text not null default 'active',
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
+
+  constraint student_exam_assignments_pkey primary key (id),
+  constraint unique_student_exam_assignment unique (student_email, exam_id),
+  constraint student_exam_assignments_status_check check (status in ('active', 'completed', 'revoked'))
+);
+
+-- Create indexes for better performance
+create index idx_student_exam_assignments_email on public.student_exam_assignments(student_email);
+create index idx_student_exam_assignments_exam on public.student_exam_assignments(exam_id);
+create index idx_student_exam_assignments_student_id on public.student_exam_assignments(student_id);
+create index idx_student_exam_assignments_assigned_by on public.student_exam_assignments(assigned_by);
+create index idx_student_exam_assignments_department on public.student_exam_assignments(department_id);
+create index idx_student_exam_assignments_status on public.student_exam_assignments(status);
+```
+
 ### MCQ Table
 
 ```sql
@@ -283,6 +314,7 @@ alter table public.exams enable row level security;
 alter table public.teacher_invitations enable row level security;
 alter table public.exam_sessions enable row level security;
 alter table public.student_invitations enable row level security;
+alter table public.student_exam_assignments enable row level security;
 alter table public.mcq enable row level security;
 alter table public.saq enable row level security;
 alter table public.coding enable row level security;
@@ -458,6 +490,56 @@ create policy "Public access for token validation" on public.student_invitations
 -- Admins can view all student invitations
 create policy "Admins can view all student invitations" on public.student_invitations
   for select using (is_admin());
+```
+
+### Student Exam Assignments Policies
+
+```sql
+-- Teachers can view assignments they created
+create policy "Teachers can view their assignments" on public.student_exam_assignments
+  for select using (auth.uid() = assigned_by);
+
+-- Teachers can create assignments
+create policy "Teachers can create assignments" on public.student_exam_assignments
+  for insert with check (
+    auth.uid() = assigned_by
+    and exists (
+      select 1 from user_profiles
+      where id = auth.uid() and role = 'teacher'
+    )
+  );
+
+-- Teachers can update their assignments
+create policy "Teachers can update their assignments" on public.student_exam_assignments
+  for update using (auth.uid() = assigned_by);
+
+-- Teachers can delete their assignments
+create policy "Teachers can delete their assignments" on public.student_exam_assignments
+  for delete using (auth.uid() = assigned_by);
+
+-- Students can view their own assignments
+create policy "Students can view their assignments" on public.student_exam_assignments
+  for select using (
+    auth.uid() = student_id
+    or exists (
+      select 1 from auth.users
+      where id = auth.uid()
+      and email = student_exam_assignments.student_email
+    )
+  );
+
+-- Admins can view all assignments
+create policy "Admins can view all assignments" on public.student_exam_assignments
+  for all using (
+    exists (
+      select 1 from user_profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- Service role can access all
+create policy "Service role can access assignments" on public.student_exam_assignments
+  for all using (auth.role() = 'service_role'::text);
 ```
 
 ### MCQ Policies
@@ -732,6 +814,11 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_user_profiles_updated_at
     BEFORE UPDATE ON user_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_student_exam_assignments_updated_at
+    BEFORE UPDATE ON student_exam_assignments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE INDEX IF NOT EXISTS idx_mcq_exam_order ON public.mcq(exam_id, question_order);
 CREATE INDEX IF NOT EXISTS idx_saq_exam_order ON public.saq(exam_id, question_order);
 CREATE INDEX IF NOT EXISTS idx_coding_exam_order ON public.coding(exam_id, question_order);
@@ -831,4 +918,73 @@ SMTP_HOST=your_smtp_host
 SMTP_PORT=587
 SMTP_USER=your_smtp_email
 SMTP_PASS=your_smtp_password
+```
+
+## 11. Exam Assignment Architecture
+
+### New Multi-Exam Assignment System
+
+The platform now supports assigning **multiple exams per student** using the `student_exam_assignments` table.
+
+#### Table Relationships
+
+| Table | Purpose | Rows per Student |
+|-------|---------|------------------|
+| `student_invitations` | Invite student to create account | 1 row (the invitation itself) |
+| `student_exam_assignments` | Track which exams student CAN take | N rows (one per assigned exam) |
+| `exam_sessions` | Track which exam student IS/HAS taking | N rows (one per exam attempt) |
+
+#### Data Flow
+
+1. **Teacher invites student** → Creates 1 row in `student_invitations`
+2. **Teacher assigns exams** → Creates N rows in `student_exam_assignments` (can be done during invitation or later)
+3. **Student accepts invitation** → Creates user account
+4. **Student starts exam** → Creates 1 row in `exam_sessions` per exam attempt
+5. **System loads questions** → Uses `exam_id` from `exam_sessions` to fetch correct questions
+6. **Student submits** → Updates `exam_sessions` with score and marks as completed
+
+#### Important Notes
+
+- **`student_invitations.exam_id`** is now **deprecated** - use `student_exam_assignments` instead
+- **`exam_sessions.exam_id`** is **NOT deprecated** - still needed to track which exam is being taken
+- Both tables need `exam_id`, but for different purposes:
+  - `student_exam_assignments.exam_id` = "You are ALLOWED to take this exam"
+  - `exam_sessions.exam_id` = "You are CURRENTLY TAKING (or HAVE TAKEN) this exam"
+
+#### API Endpoints
+
+- `GET /api/students` - Returns invitations with `assigned_exams` array
+- `POST /api/students` - Accepts optional `examIds` array for multiple exam assignments
+- `POST /api/students/assign-exam` - Assign additional exams to existing students
+- `DELETE /api/students/unassign-exam` - Revoke exam assignments (soft delete)
+
+#### Migration Notes
+
+If you have existing data in `student_invitations.exam_id`, you can migrate it to the new table:
+
+```sql
+-- Migrate existing exam assignments to new table
+INSERT INTO public.student_exam_assignments (
+  student_email,
+  student_id,
+  exam_id,
+  assigned_by,
+  department_id,
+  assigned_at,
+  status
+)
+SELECT
+  si.student_email,
+  si.student_id,
+  si.exam_id,
+  si.teacher_id,
+  si.department_id,
+  si.created_at,
+  CASE
+    WHEN si.status = 'accepted' THEN 'active'
+    ELSE 'active'
+  END as status
+FROM public.student_invitations si
+WHERE si.exam_id IS NOT NULL
+ON CONFLICT (student_email, exam_id) DO NOTHING;
 ```

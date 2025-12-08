@@ -65,6 +65,13 @@ interface Student {
   assignedExam?: string;
   departmentId?: string;
   examId?: string;
+  assignedExamsList?: Array<{
+    id: string;
+    exam_id: string;
+    exam_title: string;
+    assigned_at: string;
+    status: string;
+  }>;
 }
 
 type SortField =
@@ -134,6 +141,14 @@ interface Department {
   institution_id: string;
 }
 
+interface ExamAssignment {
+  id: string;
+  exam_id: string;
+  exam_title: string;
+  assigned_at: string;
+  status: string;
+}
+
 interface StudentInvitation {
   id: string;
   student_email: string;
@@ -158,6 +173,7 @@ interface StudentInvitation {
   teacher?: {
     email: string;
   };
+  assigned_exams?: ExamAssignment[];
 }
 
 export default function StudentsPage() {
@@ -184,6 +200,7 @@ export default function StudentsPage() {
     email: string;
     department: string;
     selectedExam: string;
+    selectedExams?: string[]; // Array of currently assigned exam IDs
     expirationDate: string;
   } | null>(null);
 
@@ -296,12 +313,21 @@ export default function StudentsPage() {
         displayStatus = "suspended";
       }
 
+      // Get assigned exams list from the new assigned_exams array
+      const assignedExamsList = invitation.assigned_exams || [];
+      const assignedExamsCount = assignedExamsList.length;
+
+      // For backward compatibility, get first exam title if exists
+      const firstExamTitle = assignedExamsList.length > 0
+        ? assignedExamsList[0].exam_title
+        : "No exam assigned";
+
       return {
         id: invitation.id,
         name: `${invitation.first_name} ${invitation.last_name}`,
         email: invitation.student_email,
         status: displayStatus,
-        assignedExams: 1,
+        assignedExams: assignedExamsCount,
         completedExams: 0,
         averageScore: 0,
         dateJoined: new Date(invitation.created_at),
@@ -309,9 +335,12 @@ export default function StudentsPage() {
         profileImage: undefined,
         studentId: invitation.id.slice(0, 8).toUpperCase(),
         department: invitation.departments?.name || "Not assigned",
-        assignedExam: invitation.exams?.title || "No exam assigned",
+        assignedExam: assignedExamsCount > 1
+          ? `${assignedExamsCount} exams`
+          : firstExamTitle,
         departmentId: invitation.departments?.id || "",
-        examId: invitation.exams?.id || "",
+        examId: assignedExamsList.length > 0 ? assignedExamsList[0].exam_id : "",
+        assignedExamsList: assignedExamsList,
       };
     });
   }, [invitations]);
@@ -441,6 +470,9 @@ export default function StudentsPage() {
 
   const handleEditStudent = (student: Student) => {
     const [firstName, lastName] = student.name.split(" ");
+    // Extract exam IDs from assignedExamsList
+    const assignedExamIds = student.assignedExamsList?.map(exam => exam.exam_id) || [];
+
     setEditingStudent({
       id: student.id,
       firstName: firstName || "",
@@ -448,6 +480,7 @@ export default function StudentsPage() {
       email: student.email,
       department: student.departmentId || "",
       selectedExam: student.examId || "",
+      selectedExams: assignedExamIds, // Pass the array of assigned exam IDs
       expirationDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
@@ -472,20 +505,23 @@ export default function StudentsPage() {
     firstName: string;
     lastName: string;
     email: string;
-    examId: string;
     departmentId: string;
+    examId?: string;
+    examIds?: string[];
     expirationDate: string;
   }): Promise<{ success: boolean; error?: string }> => {
     const isEditing = !!studentData.id;
     const loadingToast = toast.loading(
-      isEditing ? "Updating student..." : "Sending invitation..."
+      isEditing ? "Updating student..." : "Sending invitation...",
+      {
+        duration: Infinity,
+      }
     );
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        toast.dismiss(loadingToast);
-        toast.error("You must be logged in");
+        toast.error("You must be logged in", { id: loadingToast, duration: 4000 });
         return { success: false, error: "Not authenticated" };
       }
 
@@ -501,12 +537,12 @@ export default function StudentsPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        toast.dismiss(loadingToast);
         toast.error(
           result.error ||
             (isEditing
               ? "Failed to update student"
-              : "Failed to send invitation")
+              : "Failed to send invitation"),
+          { id: loadingToast, duration: 4000 }
         );
         return { success: false, error: result.error || "Operation failed" };
       }
@@ -537,19 +573,19 @@ export default function StudentsPage() {
         setInvitations(invitationsData);
       }
 
-      toast.dismiss(loadingToast);
       toast.success(
         isEditing
           ? "Student updated successfully"
-          : `Student invitation sent successfully to ${studentData.email}`
+          : `Student invitation sent successfully to ${studentData.email}`,
+        { id: loadingToast, duration: 4000 }
       );
 
       return { success: true };
     } catch (error) {
       console.error("Error:", error);
-      toast.dismiss(loadingToast);
       toast.error(
-        isEditing ? "Failed to update student" : "Failed to send invitation"
+        isEditing ? "Failed to update student" : "Failed to send invitation",
+        { id: loadingToast, duration: 4000 }
       );
       return { success: false, error: "Operation failed" };
     }
@@ -580,13 +616,14 @@ export default function StudentsPage() {
 
   const confirmDeleteSelected = async () => {
     const selectedIds = Array.from(selectedRows);
-    const loadingToast = toast.loading("Deleting student invitations...");
+    const loadingToast = toast.loading("Deleting student invitations...", {
+      duration: Infinity,
+    });
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        toast.dismiss(loadingToast);
-        toast.error("You must be logged in");
+        toast.error("You must be logged in", { id: loadingToast, duration: 4000 });
         return;
       }
 
@@ -634,14 +671,16 @@ export default function StudentsPage() {
       setStudentToDelete(null);
       setIsDeleteModalOpen(false);
 
-      toast.dismiss(loadingToast);
       toast.success(
-        `${selectedIds.length} student invitation(s) deleted successfully`
+        `${selectedIds.length} student invitation(s) deleted successfully`,
+        { id: loadingToast, duration: 4000 }
       );
     } catch (error) {
       console.error("Error deleting invitations:", error);
-      toast.dismiss(loadingToast);
-      toast.error("Failed to delete invitations");
+      toast.error("Failed to delete invitations", {
+        id: loadingToast,
+        duration: 4000,
+      });
     }
   };
 
@@ -654,13 +693,14 @@ export default function StudentsPage() {
   const confirmDeleteSingle = async () => {
     if (!studentToDelete) return;
 
-    const loadingToast = toast.loading("Deleting student invitation...");
+    const loadingToast = toast.loading("Deleting student invitation...", {
+      duration: Infinity,
+    });
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        toast.dismiss(loadingToast);
-        toast.error("You must be logged in");
+        toast.error("You must be logged in", { id: loadingToast, duration: 4000 });
         return;
       }
 
@@ -707,12 +747,16 @@ export default function StudentsPage() {
       setStudentToDelete(null);
       setIsDeleteModalOpen(false);
 
-      toast.dismiss(loadingToast);
-      toast.success("Student invitation deleted successfully");
+      toast.success("Student invitation deleted successfully", {
+        id: loadingToast,
+        duration: 4000,
+      });
     } catch (error) {
       console.error("Error deleting invitation:", error);
-      toast.dismiss(loadingToast);
-      toast.error("Failed to delete invitation");
+      toast.error("Failed to delete invitation", {
+        id: loadingToast,
+        duration: 4000,
+      });
     }
   };
 

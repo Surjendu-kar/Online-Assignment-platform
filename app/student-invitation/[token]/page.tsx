@@ -26,7 +26,7 @@ interface StudentInvitation {
   last_name: string;
   status: "pending" | "accepted" | "expired";
   expires_at: string;
-  exams: {
+  exams?: {
     id: string;
     title: string;
     description?: string;
@@ -233,7 +233,9 @@ export default function StudentInvitationPage() {
               Student Invitation
             </CardTitle>
             <CardDescription>
-              Create your account to access your assigned exam
+              {invitation.exams
+                ? "Create your account to access your assigned exam"
+                : "Create your account to get started"}
             </CardDescription>
           </CardHeader>
 
@@ -247,17 +249,25 @@ export default function StudentInvitationPage() {
                 <div>
                   <strong>Email:</strong> {invitation.student_email}
                 </div>
-                <div>
-                  <strong>Assigned Exam:</strong> {invitation.exams.title}
-                </div>
-                {invitation.exams.description && (
+                {invitation.exams ? (
+                  <>
+                    <div>
+                      <strong>Assigned Exam:</strong> {invitation.exams.title}
+                    </div>
+                    {invitation.exams.description && (
+                      <div className="text-sm text-muted-foreground mt-2">
+                        {invitation.exams.description}
+                      </div>
+                    )}
+                    <div className="text-sm text-muted-foreground">
+                      <strong>Duration:</strong> {invitation.exams.duration} minutes
+                    </div>
+                  </>
+                ) : (
                   <div className="text-sm text-muted-foreground mt-2">
-                    {invitation.exams.description}
+                    <strong>Note:</strong> No exam has been assigned yet. Your teacher will assign exams after you create your account.
                   </div>
                 )}
-                <div className="text-sm text-muted-foreground">
-                  <strong>Duration:</strong> {invitation.exams.duration} minutes
-                </div>
               </AlertDescription>
             </Alert>
 

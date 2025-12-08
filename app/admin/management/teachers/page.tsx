@@ -495,16 +495,21 @@ export default function TeachersPage() {
     expirationDate: string;
   }) => {
     const isEditing = !!editingTeacher?.id;
+    const loadingToast = toast.loading(
+      isEditing ? 'Updating teacher...' : 'Sending teacher invitation...',
+      { duration: Infinity }
+    );
 
     try {
-      const loadingToast = toast.loading(isEditing ? 'Updating teacher...' : 'Sending teacher invitation...');
 
       // Get session from Supabase client
       const { data, error } = await supabase.auth.getSession();
 
       if (error || !data.session) {
-        toast.dismiss(loadingToast);
-        toast.error('You must be logged in to send invitations');
+        toast.error('You must be logged in to send invitations', {
+          id: loadingToast,
+          duration: 4000,
+        });
         return { success: false, error: 'You must be logged in to send invitations' };
       }
 
@@ -533,8 +538,10 @@ export default function TeachersPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        toast.dismiss(loadingToast);
-        toast.error(result.error || (isEditing ? 'Failed to update teacher' : 'Failed to send invitation'));
+        toast.error(
+          result.error || (isEditing ? 'Failed to update teacher' : 'Failed to send invitation'),
+          { id: loadingToast, duration: 4000 }
+        );
         return { success: false, error: result.error || (isEditing ? 'Failed to update teacher' : 'Failed to send invitation') };
       }
 
@@ -542,13 +549,18 @@ export default function TeachersPage() {
       handleAddTeacher();
 
       // Replace loading toast with success toast immediately
-      toast.dismiss(loadingToast);
-      toast.success(isEditing ? 'Teacher updated successfully' : `Teacher invitation sent successfully to ${teacherData.email}`);
+      toast.success(
+        isEditing ? 'Teacher updated successfully' : `Teacher invitation sent successfully to ${teacherData.email}`,
+        { id: loadingToast, duration: 4000 }
+      );
 
       return { success: true };
     } catch (error) {
       console.error('Error:', error);
-      toast.error(isEditing ? 'Failed to update teacher' : 'Failed to send invitation');
+      toast.error(
+        isEditing ? 'Failed to update teacher' : 'Failed to send invitation',
+        { id: loadingToast, duration: 4000 }
+      );
       return { success: false, error: isEditing ? 'Failed to update teacher' : 'Failed to send invitation' };
     }
   };
@@ -624,19 +636,24 @@ export default function TeachersPage() {
 
   const confirmDeleteSelected = () => {
     // Show loading toast immediately
-    const loadingToast = toast.loading(`Deleting ${selectedRows.size} teacher invitation(s)...`);
+    const loadingToast = toast.loading(
+      `Deleting ${selectedRows.size} teacher invitation(s)...`,
+      { duration: Infinity }
+    );
 
     // Call API to delete the selected invitations
     const deleteSelectedInvitations = async () => {
       try {
         const selectedIds = Array.from(selectedRows);
-        
+
         // Get session from Supabase client
         const { data, error } = await supabase.auth.getSession();
-        
+
         if (error || !data.session) {
-          toast.dismiss(loadingToast);
-          toast.error('You must be logged in to delete invitations');
+          toast.error('You must be logged in to delete invitations', {
+            id: loadingToast,
+            duration: 4000,
+          });
           return;
         }
 
@@ -659,19 +676,23 @@ export default function TeachersPage() {
         const results = await Promise.all(responses.map(res => res.json()));
         
         // Check if any deletion failed
-        const failedDeletions = responses.map((res, index) => ({ 
-          success: res.ok, 
-          id: selectedIds[index], 
-          error: results[index].error 
+        const failedDeletions = responses.map((res, index) => ({
+          success: res.ok,
+          id: selectedIds[index],
+          error: results[index].error
         })).filter(result => !result.success);
-        
+
         if (failedDeletions.length > 0) {
-          toast.dismiss(loadingToast);
-          toast.error(`Failed to delete ${failedDeletions.length} invitation(s)`);
+          toast.error(`Failed to delete ${failedDeletions.length} invitation(s)`, {
+            id: loadingToast,
+            duration: 4000,
+          });
           console.error('Failed deletions:', failedDeletions);
         } else {
-          toast.dismiss(loadingToast);
-          toast.success('Invitations deleted successfully');
+          toast.success('Invitations deleted successfully', {
+            id: loadingToast,
+            duration: 4000,
+          });
         }
 
         // Update local state only after successful deletion
@@ -692,8 +713,10 @@ export default function TeachersPage() {
         }
       } catch (error) {
         console.error('Error deleting invitations:', error);
-        toast.dismiss(loadingToast);
-        toast.error('Failed to delete invitations');
+        toast.error('Failed to delete invitations', {
+          id: loadingToast,
+          duration: 4000,
+        });
       }
     };
 
@@ -726,17 +749,21 @@ export default function TeachersPage() {
     if (!teacherToDelete) return;
 
     // Show loading toast immediately
-    const loadingToast = toast.loading('Deleting teacher invitation...');
+    const loadingToast = toast.loading('Deleting teacher invitation...', {
+      duration: Infinity,
+    });
 
     // Call API to delete the invitation
     const deleteInvitation = async () => {
       try {
         // Get session from Supabase client
         const { data, error } = await supabase.auth.getSession();
-        
+
         if (error || !data.session) {
-          toast.dismiss(loadingToast);
-          toast.error('You must be logged in to delete invitations');
+          toast.error('You must be logged in to delete invitations', {
+            id: loadingToast,
+            duration: 4000,
+          });
           return;
         }
 
@@ -752,10 +779,12 @@ export default function TeachersPage() {
         });
 
         const result = await response.json();
-        
+
         if (!response.ok) {
-          toast.dismiss(loadingToast);
-          toast.error(result.error || 'Failed to delete invitation');
+          toast.error(result.error || 'Failed to delete invitation', {
+            id: loadingToast,
+            duration: 4000,
+          });
           return;
         }
 
@@ -763,17 +792,19 @@ export default function TeachersPage() {
         setInvitations((prev) =>
           prev.filter((invitation) => invitation.id !== teacherToDelete.id)
         );
-        
+
         // Remove from selected rows if it was selected
         if (selectedRows.has(teacherToDelete.id)) {
           const newSelection = new Set(selectedRows);
           newSelection.delete(teacherToDelete.id);
           setSelectedRows(newSelection);
         }
-        
+
         // Show success toast
-        toast.dismiss(loadingToast);
-        toast.success('Invitation deleted successfully');
+        toast.success('Invitation deleted successfully', {
+          id: loadingToast,
+          duration: 4000,
+        });
         
         // Reset to first page if current page becomes empty
         const remainingInvitations = invitations.filter(
@@ -785,8 +816,10 @@ export default function TeachersPage() {
         }
       } catch (error) {
         console.error('Error deleting invitation:', error);
-        toast.dismiss(loadingToast);
-        toast.error('Failed to delete invitation');
+        toast.error('Failed to delete invitation', {
+          id: loadingToast,
+          duration: 4000,
+        });
       } finally {
         setTeacherToDelete(null);
       }

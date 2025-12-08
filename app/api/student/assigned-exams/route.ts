@@ -1,4 +1,5 @@
 import { createRouteClient } from "@/lib/supabaseRouteClient";
+import { supabaseServer } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 interface Exam {
@@ -20,11 +21,11 @@ interface Department {
   name: string;
 }
 
-interface StudentInvitation {
+interface StudentExamAssignment {
   id: string;
   exam_id: string;
   status: string;
-  created_at: string;
+  assigned_at: string;
   department_id: string;
   exams: Exam;
   departments: Department;
@@ -62,17 +63,18 @@ export async function GET() {
       );
     }
 
-    // Fetch student invitations with exam details
-    // Use service role client to bypass RLS for joins
-    // Query by student_id (if accepted) OR by student_email (if pending)
-    const { data, error: invitationsError } = await supabase
-      .from("student_invitations")
+    // Fetch exam assignments from the new student_exam_assignments table
+    // Use service role to bypass RLS after authentication (similar to /api/students pattern)
+    // Query by student_id (if populated) OR by student_email (for backward compatibility)
+
+    const { data, error: assignmentsError } = await supabaseServer
+      .from("student_exam_assignments")
       .select(
         `
         id,
         exam_id,
         status,
-        created_at,
+        assigned_at,
         department_id,
         exams (
           id,
@@ -93,13 +95,14 @@ export async function GET() {
         )
       `
       )
-      .or(`student_id.eq.${user.id},student_email.eq.${user.email}`)
-      .order("created_at", { ascending: false });
+      .or(`student_id.eq.${user.id},student_email.eq.${profile.email}`)
+      .eq("status", "active") // Only show active assignments
+      .order("assigned_at", { ascending: false });
 
-    const invitations = data as unknown as StudentInvitation[];
+    const assignments = data as unknown as StudentExamAssignment[];
 
-    if (invitationsError) {
-      console.error("Error fetching invitations:", invitationsError);
+    if (assignmentsError) {
+      console.error("Error fetching assignments:", assignmentsError);
       return NextResponse.json(
         { error: "Failed to fetch assigned exams" },
         { status: 500 }
@@ -108,14 +111,14 @@ export async function GET() {
 
     // For each exam, get session status and question counts
     const examsWithDetails = await Promise.all(
-      (invitations || []).map(async (invitation: StudentInvitation) => {
-        const exam = invitation.exams;
-        const department = invitation.departments;
+      (assignments || []).map(async (assignment: StudentExamAssignment) => {
+        const exam = assignment.exams;
+        const department = assignment.departments;
 
         if (!exam) return null;
 
         // Get exam session if exists (use service role to bypass RLS)
-        const { data: session } = await supabase
+        const { data: session } = await supabaseServer
           .from("exam_sessions")
           .select(
             "id, status, start_time, end_time, total_score, violations_count"
@@ -126,15 +129,15 @@ export async function GET() {
 
         // Get question counts (template questions only, use service role)
         const [mcqCount, saqCount, codingCount] = await Promise.all([
-          supabase
+          supabaseServer
             .from("mcq")
             .select("id", { count: "exact", head: true })
             .eq("exam_id", exam.id),
-          supabase
+          supabaseServer
             .from("saq")
             .select("id", { count: "exact", head: true })
             .eq("exam_id", exam.id),
-          supabase
+          supabaseServer
             .from("coding")
             .select("id", { count: "exact", head: true })
             .eq("exam_id", exam.id),
@@ -183,8 +186,8 @@ export async function GET() {
           sessionStatus: session?.status || null,
           sessionStartTime: session?.start_time || null,
           score: session?.total_score || null,
-          invitationId: invitation.id,
-          invitationStatus: invitation.status,
+          assignmentId: assignment.id,
+          assignmentStatus: assignment.status,
         };
       })
     );
@@ -196,6 +199,9 @@ export async function GET() {
     return NextResponse.json(validExams);
   } catch (error) {
     console.error("Error in GET /api/student/assigned-exams:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
