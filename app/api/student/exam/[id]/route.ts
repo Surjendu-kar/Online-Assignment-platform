@@ -27,48 +27,43 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Check if student has access to this exam via invitation
-    // Check by BOTH student_id AND student_email to cover all cases
-    const { data: invitation, error: invitationError } = await supabase
-      .from('student_invitations')
+    // Check if student has access to this exam via student_exam_assignments table
+    // This supports the new multi-exam assignment system
+    const { data: assignment, error: assignmentError } = await supabaseServer
+      .from('student_exam_assignments')
       .select('id, status, exam_id')
       .eq('exam_id', examId)
       .or(`student_id.eq.${user.id},student_email.eq.${profile.email}`)
-      .single();
+      .eq('status', 'active')
+      .maybeSingle();
 
-    if (invitationError || !invitation) {
-      return NextResponse.json({ error: 'You are not invited to this exam' }, { status: 403 });
+    if (assignmentError) {
+      return NextResponse.json({ error: 'Failed to verify exam access' }, { status: 500 });
     }
 
-    if (invitation.status !== 'accepted') {
-      return NextResponse.json({ error: 'Invitation not accepted' }, { status: 403 });
+    if (!assignment) {
+      return NextResponse.json({ error: 'You are not assigned to this exam' }, { status: 403 });
     }
 
-    // Get exam details
-    const { data: exam, error: examError } = await supabase
+    // Get exam details (use service role to bypass RLS)
+    const { data: exam, error: examError } = await supabaseServer
       .from('exams')
       .select('*')
       .eq('id', examId)
       .single();
 
     if (examError || !exam) {
-      console.error('Exam fetch error:', examError);
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
     }
 
     // Get teacher information separately using service role to bypass RLS
     let teacherName = 'Unknown Teacher';
     if (exam.created_by) {
-      const { data: teacher, error: teacherError } = await supabaseServer
+      const { data: teacher } = await supabaseServer
         .from('user_profiles')
         .select('first_name, last_name')
         .eq('id', exam.created_by)
         .maybeSingle();
-
-      console.log('Teacher lookup with service role:');
-      console.log('- Looking for ID:', exam.created_by);
-      console.log('- Found teacher:', teacher);
-      console.log('- Error:', teacherError);
 
       if (teacher?.first_name || teacher?.last_name) {
         teacherName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim();
@@ -94,28 +89,28 @@ export async function GET(
       }, { status: 403 });
     }
 
-    // Get existing exam session (don't create)
-    const { data: session } = await supabase
+    // Get existing exam session (don't create) - use service role after authentication
+    const { data: session } = await supabaseServer
       .from('exam_sessions')
       .select('*')
       .eq('exam_id', examId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    // Fetch exam questions
-    const { data: mcqQuestions } = await supabase
+    // Fetch exam questions (use service role to ensure access after authentication)
+    const { data: mcqQuestions } = await supabaseServer
       .from('mcq')
       .select('*')
       .eq('exam_id', examId)
       .order('question_order', { ascending: true });
 
-    const { data: saqQuestions } = await supabase
+    const { data: saqQuestions } = await supabaseServer
       .from('saq')
       .select('*')
       .eq('exam_id', examId)
       .order('question_order', { ascending: true });
 
-    const { data: codingQuestions } = await supabase
+    const { data: codingQuestions } = await supabaseServer
       .from('coding')
       .select('*')
       .eq('exam_id', examId)
@@ -151,12 +146,12 @@ export async function GET(
     }
 
     // Check if student has already saved answers in student_responses
-    const { data: existingResponse } = await supabase
+    const { data: existingResponse } = await supabaseServer
       .from('student_responses')
       .select('answers')
       .eq('exam_session_id', session.id)
       .eq('student_id', user.id)
-      .single();
+      .maybeSingle();
 
     // Calculate remaining time based on server time
     const sessionStartTime = new Date(session.start_time);
@@ -168,7 +163,7 @@ export async function GET(
     // Auto-submit if time has expired and session is still in progress
     let currentStatus = session.status;
     if (remainingTime === 0 && session.status === 'in_progress') {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseServer
         .from('exam_sessions')
         .update({
           status: 'completed',
@@ -205,7 +200,6 @@ export async function GET(
       savedAnswers: existingResponse?.answers || {}
     });
   } catch (error) {
-    console.error('Error in GET /api/student/exam/[examId]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

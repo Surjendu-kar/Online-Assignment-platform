@@ -1,10 +1,11 @@
 import { createRouteClient } from '@/lib/supabaseRouteClient';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
     const supabase = await createRouteClient();
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,7 +21,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: responses, error } = await supabase
+    // Use service role to fetch student responses (after authentication)
+    const { data: responses, error } = await supabaseServer
       .from('student_responses')
       .select(`
         id,
@@ -34,15 +36,19 @@ export async function GET() {
       .eq('student_id', user.id)
       .order('submitted_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching responses:', error);
+      throw error;
+    }
 
     const examIds = [...new Set(responses?.map(r => r.exam_id).filter(Boolean) || [])];
-    
+
     if (examIds.length === 0) {
       return NextResponse.json({ results: [] });
     }
-    
-    const { data: exams, error: examsError } = await supabase
+
+    // Use service role to fetch exam details (after authentication)
+    const { data: exams, error: examsError } = await supabaseServer
       .from('exams')
       .select(`
         id,

@@ -1,4 +1,5 @@
 import { createRouteClient } from '@/lib/supabaseRouteClient';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -8,7 +9,7 @@ export async function GET(
   try {
     const supabase = await createRouteClient();
     const { id } = await params;
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,7 +25,8 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: response, error: responseError } = await supabase
+    // Use service role to fetch student response (after authentication)
+    const { data: response, error: responseError } = await supabaseServer
       .from('student_responses')
       .select('*')
       .eq('id', id)
@@ -35,7 +37,8 @@ export async function GET(
       return NextResponse.json({ error: 'Result not found' }, { status: 404 });
     }
 
-    const { data: exam, error: examError } = await supabase
+    // Use service role to fetch exam details (after authentication)
+    const { data: exam, error: examError } = await supabaseServer
       .from('exams')
       .select(`
         id,
@@ -60,17 +63,18 @@ export async function GET(
       departmentName = (exam.departments as { name: string }).name || 'N/A';
     }
 
-    const { data: mcqQuestions } = await supabase
+    // Use service role to fetch questions (after authentication)
+    const { data: mcqQuestions } = await supabaseServer
       .from('mcq')
       .select('*')
       .eq('exam_id', response.exam_id);
 
-    const { data: saqQuestions } = await supabase
+    const { data: saqQuestions } = await supabaseServer
       .from('saq')
       .select('*')
       .eq('exam_id', response.exam_id);
 
-    const { data: codingQuestions } = await supabase
+    const { data: codingQuestions } = await supabaseServer
       .from('coding')
       .select('*')
       .eq('exam_id', response.exam_id);

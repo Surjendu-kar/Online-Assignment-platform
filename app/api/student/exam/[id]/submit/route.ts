@@ -1,4 +1,5 @@
 import { createRouteClient } from '@/lib/supabaseRouteClient';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
@@ -10,7 +11,7 @@ export async function POST(
     const { id: examId } = await params;
     const body = await req.json();
     const { answers, sessionId } = body;
-    
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -28,8 +29,26 @@ export async function POST(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Get exam session
-    const { data: session, error: sessionError } = await supabase
+    // Check if student has access to this exam via student_exam_assignments table
+    // This supports the new multi-exam assignment system
+    const { data: assignment, error: assignmentError } = await supabaseServer
+      .from('student_exam_assignments')
+      .select('id, status, exam_id')
+      .eq('exam_id', examId)
+      .or(`student_id.eq.${user.id},student_email.eq.${profile.email}`)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (assignmentError) {
+      return NextResponse.json({ error: 'Failed to verify exam access' }, { status: 500 });
+    }
+
+    if (!assignment) {
+      return NextResponse.json({ error: 'You are not assigned to this exam' }, { status: 403 });
+    }
+
+    // Get exam session (use service role after authentication)
+    const { data: session, error: sessionError } = await supabaseServer
       .from('exam_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -45,8 +64,8 @@ export async function POST(
       return NextResponse.json({ error: 'Exam already submitted' }, { status: 400 });
     }
 
-    // Get exam details
-    const { data: exam } = await supabase
+    // Get exam details (use service role after authentication)
+    const { data: exam } = await supabaseServer
       .from('exams')
       .select('*')
       .eq('id', examId)
@@ -56,18 +75,18 @@ export async function POST(
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
     }
 
-    // Fetch exam questions to calculate scores
-    const { data: mcqQuestions } = await supabase
+    // Fetch exam questions to calculate scores (use service role after authentication)
+    const { data: mcqQuestions } = await supabaseServer
       .from('mcq')
       .select('*')
       .eq('exam_id', examId);
 
-    const { data: saqQuestions } = await supabase
+    const { data: saqQuestions } = await supabaseServer
       .from('saq')
       .select('*')
       .eq('exam_id', examId);
 
-    const { data: codingQuestions } = await supabase
+    const { data: codingQuestions } = await supabaseServer
       .from('coding')
       .select('*')
       .eq('exam_id', examId);
@@ -153,17 +172,17 @@ export async function POST(
     const hasManualQuestions = (saqQuestions?.length || 0) > 0 || (codingQuestions?.length || 0) > 0;
     const gradingStatus = hasManualQuestions ? 'partial' : 'completed';
 
-    // Create or update student_responses
-    const { data: existingResponse } = await supabase
+    // Create or update student_responses (use service role)
+    const { data: existingResponse } = await supabaseServer
       .from('student_responses')
       .select('id')
       .eq('exam_session_id', sessionId)
       .eq('student_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existingResponse) {
       // Update existing response
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseServer
         .from('student_responses')
         .update({
           answers: gradedAnswers,
@@ -183,7 +202,7 @@ export async function POST(
       }
     } else {
       // Create new response
-      const { error: insertError } = await supabase
+      const { error: insertError } = await supabaseServer
         .from('student_responses')
         .insert({
           student_id: user.id,
@@ -207,8 +226,8 @@ export async function POST(
       }
     }
 
-    // Update exam session
-    const { error: sessionUpdateError } = await supabase
+    // Update exam session (use service role)
+    const { error: sessionUpdateError } = await supabaseServer
       .from('exam_sessions')
       .update({
         status: 'completed',

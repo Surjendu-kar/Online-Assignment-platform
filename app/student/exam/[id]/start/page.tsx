@@ -359,13 +359,13 @@ export default function ExamStartPage() {
   }, [examData, isSubmitted, handleAutoSubmit, examId]);
 
   useEffect(() => {
-    if (examData) {
+    if (examData && !isSubmitted) {
       const autoSaveInterval = setInterval(() => {
         saveAnswers();
       }, 30000);
       return () => clearInterval(autoSaveInterval);
     }
-  }, [examData, saveAnswers]);
+  }, [examData, saveAnswers, isSubmitted]);
 
   // Sync editor theme with system theme
   useEffect(() => {

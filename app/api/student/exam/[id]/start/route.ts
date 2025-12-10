@@ -1,4 +1,5 @@
 import { createRouteClient } from '@/lib/supabaseRouteClient';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
@@ -24,32 +25,41 @@ export async function POST(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: invitation, error: invitationError } = await supabase
-      .from('student_invitations')
+    // Check if student has access to this exam via student_exam_assignments table
+    // This supports the new multi-exam assignment system
+    const { data: assignment, error: assignmentError } = await supabaseServer
+      .from('student_exam_assignments')
       .select('id, status, exam_id')
       .eq('exam_id', examId)
       .or(`student_id.eq.${user.id},student_email.eq.${profile.email}`)
-      .single();
+      .eq('status', 'active')
+      .maybeSingle();
 
-    if (invitationError || !invitation) {
-      return NextResponse.json({ error: 'You are not invited to this exam' }, { status: 403 });
+    if (assignmentError) {
+      return NextResponse.json({ error: 'Failed to verify exam access' }, { status: 500 });
     }
 
-    const { data: existingSession } = await supabase
+    if (!assignment) {
+      return NextResponse.json({ error: 'You are not assigned to this exam' }, { status: 403 });
+    }
+
+    // Check for existing session (use service role after authentication)
+    const { data: existingSession } = await supabaseServer
       .from('exam_sessions')
       .select('*')
       .eq('exam_id', examId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existingSession) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Exam session already exists',
-        session: existingSession 
+        session: existingSession
       }, { status: 400 });
     }
 
-    const { data: newSession, error: createError } = await supabase
+    // Create new exam session (use service role)
+    const { data: newSession, error: createError } = await supabaseServer
       .from('exam_sessions')
       .insert({
         exam_id: examId,
@@ -63,22 +73,14 @@ export async function POST(
       .single();
 
     if (createError) {
-      console.error('Error creating session:', createError);
       return NextResponse.json({ error: 'Failed to start exam session' }, { status: 500 });
     }
-
-    console.log('=== EXAM SESSION CREATED ===');
-    console.log('Exam ID:', examId);
-    console.log('Student ID:', user.id);
-    console.log('Session ID:', newSession.id);
-    console.log('Note: Student answers will be saved to student_responses.answers JSONB field');
 
     return NextResponse.json({
       success: true,
       session: newSession
     });
   } catch (error) {
-    console.error('Error in POST /api/student/exam/[examId]/start:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
